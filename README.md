@@ -63,7 +63,7 @@ nextflow run neurogenomics/jacquard \
 
 ## Credits
 
-neurogenomics/jacquard was originally written by HDash.
+neurogenomics/jacquard was originally written by Hiranyamaya (Hiru) Dash and Chris Cheshire.
 
 We thank the following people for their extensive assistance in the development of this pipeline:
 

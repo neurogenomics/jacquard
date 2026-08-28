@@ -3,6 +3,8 @@ repository_type: pipeline
 nf_core_version: 4.1.0
 
 lint:
+  template_strings:
+    - justfile # just interpolates recipe args with doubled braces, not Jinja
   files_unchanged:
     - .gitattributes # carries the uv.lock merge=binary directive
     - CODE_OF_CONDUCT.md
@@ -31,7 +33,7 @@ template:
   org: neurogenomics
   name: jacquard
   description: scMultiome Pipeline
-  author: HDash
+  author: Hiranyamaya (Hiru) Dash, Chris Cheshire
   version: 0.1.0
   force: true
   outdir: .
