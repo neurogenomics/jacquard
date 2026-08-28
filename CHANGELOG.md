@@ -1,16 +1,6 @@
-# neurogenomics/jacquard: Changelog
+# Changelog
 
-The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
-and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+All notable changes to neurogenomics/jacquard are documented here.
 
-## v1.0.0dev - [unreleased<!-- TODO nf-core: replace with date on release -->]
-
-Initial release of neurogenomics/jacquard, created with the [nf-core](https://nf-co.re/) template.
-
-### `Added`
-
-### `Fixed`
-
-### `Dependencies`
-
-### `Deprecated`
+This file is maintained by [release-please](https://github.com/googleapis/release-please) from
+[Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/); do not edit it by hand.

@@ -1,0 +1,114 @@
+[project]
+name = "core"
+version = "0.0.0"
+requires-python = ">=3.14"
+dependencies = [
+    "nf-core==4.1.*",
+]
+
+[build-system]
+requires = ["setuptools", "wheel"]
+
+[tool.setuptools]
+package-dir = {"" = "lib"}
+
+[tool.setuptools.packages.find]
+where = ["lib"]
+include = ["core*"]
+exclude = [
+  "work*", "data*", "conf*", "assets*", "results*",
+  "modules*", "containers*", "subworkflows*", "tests*"
+]
+
+[dependency-groups]
+dev = [
+  {include-group = "lint"},
+  {include-group = "test"},
+]
+test = [
+    "pytest",
+    "pytest-cov",
+    "pytest-sugar",
+    "pytest-profiling",
+    "pytest-benchmark",
+    "assertpy",
+]
+lint = [
+    "black==26.5.*",
+    "isort==8.*",   # pylint 4 caps isort <9
+    "pylint==4.*",
+    "ruff==0.16.*",
+]
+
+[tool.pytest.ini_options]
+testpaths = [
+    "lib/core/tests",
+]
+python_files = "test_*.py"
+norecursedirs = [
+    ".*",
+    "*.egg",
+    ".github",
+    "__pycache__",
+    "build",
+    "dist",
+    "prof",
+    "data",
+    "docs",
+    "modules",
+    "subworkflows",
+]
+
+[tool.black]
+line-length = 150
+target-version = ["py314"]
+exclude = '''
+    .venv
+    |  build
+'''
+
+[tool.isort]
+skip = [
+    "build",
+    ".venv",
+]
+profile = "black"
+atomic = true
+indent = 4
+line_length = 150
+include_trailing_comma = true
+
+[tool.pylint.FORMAT]
+max-line-length = 150
+
+[tool.pylint."MESSAGES CONTROL"]
+disable = [
+    "E0401", # import-error
+    "R0913", # too-many-arguments
+    "R0903", # too-few-public-methods
+    "R0904", # too-many-public-methods
+    "R0914", # too-many-locals
+    "R0912", # too-many-branches
+    "R0801", # duplicate-code
+    "R0902", # too-many-instance-attributes
+    "R0917", # too-many-positional-arguments
+    "R0915", # too-many-statements
+    "R1710", # inconsistent-return-statements
+    "W1203", # logging-fstring-interpolation
+    "W0102", # dangerous-default-value
+    "W1514", # unspecified-encoding
+    "C0302", # too-many-lines
+]
+
+[tool.pylint.MASTER]
+ignore-paths = [
+    "build",
+    ".tox"
+]
+
+[tool.ruff]
+target-version = "py314"
+line-length = 150
+exclude = [
+    "build",
+]

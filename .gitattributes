@@ -2,3 +2,6 @@
 *.nf.test linguist-language=nextflow
 modules/nf-core/** linguist-generated
 subworkflows/nf-core/** linguist-generated
+
+# uv lockfile: generated, never hand-merged
+uv.lock linguist-generated=true merge=binary

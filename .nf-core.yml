@@ -4,6 +4,7 @@ nf_core_version: 4.1.0
 
 lint:
   files_unchanged:
+    - .gitattributes # carries the uv.lock merge=binary directive
     - CODE_OF_CONDUCT.md
     - assets/nf-core-jacquard_logo_light.png
     - docs/images/nf-core-jacquard_logo_light.png
@@ -31,7 +32,7 @@ template:
   name: jacquard
   description: scMultiome Pipeline
   author: HDash
-  version: 1.0.0dev
+  version: 0.1.0
   force: true
-  outdir: staging/jacquard
+  outdir: .
   is_nfcore: false

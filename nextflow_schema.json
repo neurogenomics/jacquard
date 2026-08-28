@@ -1,6 +1,6 @@
 {
     "$schema": "https://json-schema.org/draft/2020-12/schema",
-    "$id": "https://raw.githubusercontent.com/neurogenomics/jacquard/master/nextflow_schema.json",
+    "$id": "https://raw.githubusercontent.com/neurogenomics/jacquard/main/nextflow_schema.json",
     "title": "neurogenomics/jacquard pipeline parameters",
     "description": "scMultiome Pipeline",
     "type": "object",

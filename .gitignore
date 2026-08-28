@@ -8,3 +8,11 @@ testing*
 *.pyc
 null/
 .lineage/
+
+# uv
+.venv/
+
+# Local agent tooling - per-machine artifacts, not shared
+.serena/
+graphify-out/
+.agent-cache/
