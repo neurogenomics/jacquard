@@ -1,6 +1,9 @@
 .nextflow*
 work/
+.nf-test/
+.nf-test.log
 data/
+!tests/data/
 results/
 .DS_Store
 testing/
@@ -16,3 +19,4 @@ null/
 .serena/
 graphify-out/
 .agent-cache/
+results_test/

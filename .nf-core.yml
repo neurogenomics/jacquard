@@ -7,6 +7,7 @@ lint:
     - justfile # just interpolates recipe args with doubled braces, not Jinja
   files_unchanged:
     - .gitattributes # carries the uv.lock merge=binary directive
+    - .gitignore # un-ignores tests/data/ (the template's bare `data/` swallows the fixtures)
     - CODE_OF_CONDUCT.md
     - assets/nf-core-jacquard_logo_light.png
     - docs/images/nf-core-jacquard_logo_light.png
@@ -15,6 +16,8 @@ lint:
     - .github/PULL_REQUEST_TEMPLATE.md
     - assets/email_template.txt
     - docs/README.md
+  nf_test_content:
+    - tests/samplesheet_validation.nf.test # negative test: the run fails at validation, so there is no versions.yml to snapshot
   nextflow_config:
     - manifest.name
     - manifest.homePage

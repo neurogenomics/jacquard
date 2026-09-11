@@ -1,0 +1,24 @@
+nextflow_pipeline {
+
+    name "Test samplesheet validation"
+    script "../main.nf"
+    tag "pipeline"
+
+    test("rejects a row with an empty fastq_2 before submitting any process") {
+
+        when {
+            params {
+                input  = "$baseDir/tests/data/samplesheet_missing_r2.csv"
+                outdir = "$outputDir"
+            }
+        }
+
+        then {
+            assertAll(
+                { assert workflow.failed },
+                { assert workflow.trace.tasks().size() == 0 },
+                { assert workflow.stderr.join("\n").contains("Missing required field(s): fastq_2") }
+            )
+        }
+    }
+}
