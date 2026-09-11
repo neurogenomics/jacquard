@@ -26,4 +26,19 @@ class Fixtures {
         dst.text = out.join('\n') + '\n'
         return dst.absolutePath
     }
+
+    /**
+     * Return the messages a run passed to `log.warn`, given the test's `$workDir`.
+     *
+     * Nextflow 26 keeps `log.warn` off the console, so `workflow.stdout` never sees one — unlike
+     * `error()`, which is reported there. The run's own log file, a sibling of the test work
+     * directory, is the only place a warning is observable from a test.
+     */
+    static List<String> warnings(String workDir) {
+        def marker = ' WARN  nextflow.Nextflow - '
+        def log = new File(new File(workDir).parentFile, 'meta/nextflow.log')
+        return log.readLines()
+            .findAll { line -> line.contains(marker) }
+            .collect { line -> line.substring(line.indexOf(marker) + marker.length()) }
+    }
 }

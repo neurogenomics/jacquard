@@ -69,6 +69,28 @@
                 }
             }
         },
+        "arm_gate_options": {
+            "title": "Arm gate options",
+            "type": "object",
+            "fa_icon": "fas fa-filter",
+            "description": "Thresholds deciding which per-arm units of work proceed past read preparation.",
+            "properties": {
+                "min_arm_reads": {
+                    "type": "integer",
+                    "default": 1000,
+                    "minimum": 1,
+                    "description": "Reads an arm must carry to be processed.",
+                    "help_text": "Each sample fans out into one arm per target index carmack's prepare-reads report accounts for, plus the scRNA (`NONE`) arm. An arm carrying fewer reads than this is warned about, recorded in `pipeline_info/arm_gate.tsv` as `FAIL` and dropped; its sibling arms and every other sample are unaffected. The minimum of 1 means an arm that received no read at all can never proceed.",
+                    "fa_icon": "fas fa-greater-than-equal"
+                },
+                "fail_on_no_arms": {
+                    "type": "boolean",
+                    "description": "Stop the run when every arm of a sample falls below `--min_arm_reads`.",
+                    "help_text": "By default such a sample is warned about and dropped, so one bad library cannot discard the completed work of a large run. Set this when a sample losing every arm should instead fail the run; the error names the sample.",
+                    "fa_icon": "fas fa-exclamation-triangle"
+                }
+            }
+        },
         "reference_genome_options": {
             "title": "Reference genome options",
             "type": "object",
@@ -264,6 +286,9 @@
         },
         {
             "$ref": "#/$defs/read_preparation_options"
+        },
+        {
+            "$ref": "#/$defs/arm_gate_options"
         },
         {
             "$ref": "#/$defs/reference_genome_options"

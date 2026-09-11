@@ -24,6 +24,16 @@ nextflow_pipeline {
             def software_versions = path("$outputDir/pipeline_info/jacquard_software_mqc_versions.yml").text
             assert workflow.success
             assertAll(
+                // Asserted by name as well as snapshotted: at the default threshold both arms of
+                // the fixture clear the gate, and a refreshed snapshot would record a loss quietly.
+                { assert path("$outputDir/pipeline_info/arm_gate.tsv").readLines() == [
+                    'sample\tarm\ttgidx\treads\tthreshold\tstatus',
+                    'SK609\tscrna\tNONE\t6229\t1000\tPASS',
+                    'SK609\tsctip\tTATAGCCT\t13332\t1000\tPASS',
+                ] },
+                // The fixture is built to exercise both arms, so this file listing exactly these
+                // two tokens is what makes every downstream per-arm assertion meaningful.
+                { assert path("$outputDir/carmack/preparereads/SK609/SK609.detected_targets.txt").readLines() == ['NONE', 'TATAGCCT'] },
                 { assert [
                     'CARMACK_EXTRACTBARCODES',
                     'CARMACK_EXTRACTUMIS',

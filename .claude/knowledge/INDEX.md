@@ -7,4 +7,5 @@ Add an entry when something cost real time to work out and would cost it again.
 - [nf-test samplesheet paths](nf-test-samplesheet-paths.md) — launchDir differs under nf-test; use `Fixtures.absolutise`.
 - [Never snapshot lines that can be blank](nf-test-snapshot-blank-lines.md) — nf-test resolves `''` as a directory and inlines its listing.
 - [nf-test md5 decompresses gzip](nf-test-md5-decompresses-gzip.md) — content-identical `.gz` files hash the same; use raw bytes for byte-identity.
+- [Nextflow 26 parser and warnings](nextflow-26-parser-and-warnings.md) — `log.warn` is invisible to nf-test; no top-level `import` in `.nf`.
 - [Toolchain PATH in non-interactive shells](toolchain-path-noninteractive.md) — `conda activate` fails; prefix the env's bin.

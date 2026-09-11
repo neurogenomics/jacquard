@@ -4,6 +4,7 @@
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 */
 include { CARMACK_READPREP       } from '../subworkflows/local/carmack_readprep/main'
+include { ARM_FANOUT             } from '../subworkflows/local/arm_fanout/main'
 include { MULTIQC                } from '../modules/nf-core/multiqc/main'
 include { paramsSummaryMap       } from 'plugin/nf-schema'
 include { paramsSummaryMultiqc   } from '../subworkflows/nf-core/utils_nfcore_pipeline'
@@ -36,6 +37,20 @@ workflow JACQUARD {
     CARMACK_READPREP(ch_samplesheet, chemistry)
     ch_versions = ch_versions.mix(CARMACK_READPREP.out.versions)
     ch_multiqc_files = ch_multiqc_files.mix(CARMACK_READPREP.out.multiqc_files)
+
+    //
+    // SUBWORKFLOW: Fan each sample out into its arms and gate each arm on its read count
+    //
+    ARM_FANOUT(
+        CARMACK_READPREP.out.scrna,
+        CARMACK_READPREP.out.sctip,
+        CARMACK_READPREP.out.stats_json,
+        params.min_arm_reads,
+        params.fail_on_no_arms,
+        outdir,
+    )
+    ch_versions = ch_versions.mix(ARM_FANOUT.out.versions)
+    ch_multiqc_files = ch_multiqc_files.mix(ARM_FANOUT.out.multiqc_files)
 
     //
     // Collate and save software versions
