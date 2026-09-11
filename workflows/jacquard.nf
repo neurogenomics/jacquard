@@ -3,8 +3,7 @@
     IMPORT MODULES / SUBWORKFLOWS / FUNCTIONS
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 */
-include { FASTQC                 } from '../modules/nf-core/fastqc/main'
-include { CARMACK_VERSION        } from '../modules/local/carmack/version/main'
+include { CARMACK_READPREP       } from '../subworkflows/local/carmack_readprep/main'
 include { MULTIQC                } from '../modules/nf-core/multiqc/main'
 include { paramsSummaryMap       } from 'plugin/nf-schema'
 include { paramsSummaryMultiqc   } from '../subworkflows/nf-core/utils_nfcore_pipeline'
@@ -21,6 +20,7 @@ workflow JACQUARD {
 
     take:
     ch_samplesheet // channel: samplesheet read in from --input
+    chemistry      //   value: name of the carmack chemistry describing the read layout
     multiqc_config
     multiqc_logo
     multiqc_methods_description
@@ -31,15 +31,11 @@ workflow JACQUARD {
     def ch_versions = channel.empty()
     def ch_multiqc_files = channel.empty()
     //
-    // MODULE: Run FastQC
+    // SUBWORKFLOW: QC the raw reads and run carmack's read preparation chain
     //
-    FASTQC(ch_samplesheet)
-    ch_multiqc_files = ch_multiqc_files.mix(FASTQC.out.zip.map{ _meta, file -> file })
-
-    //
-    // MODULE: Report the carmack version (wiring smoke test for the vendored submodule)
-    //
-    CARMACK_VERSION()
+    CARMACK_READPREP(ch_samplesheet, chemistry)
+    ch_versions = ch_versions.mix(CARMACK_READPREP.out.versions)
+    ch_multiqc_files = ch_multiqc_files.mix(CARMACK_READPREP.out.multiqc_files)
 
     //
     // Collate and save software versions

@@ -21,4 +21,22 @@ nextflow_pipeline {
             )
         }
     }
+
+    test("rejects a sample name used by more than one row") {
+
+        when {
+            params {
+                input  = Fixtures.absolutise("$baseDir", "$outputDir", 'samplesheet_duplicate_sample.csv')
+                outdir = "$outputDir"
+            }
+        }
+
+        then {
+            assertAll(
+                { assert workflow.failed },
+                { assert workflow.trace.tasks().size() == 0 },
+                { assert workflow.stderr.join("\n").contains("Detected duplicate entries: [sample:SK609]") }
+            )
+        }
+    }
 }

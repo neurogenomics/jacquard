@@ -2,7 +2,16 @@
     "-profile test": {
         "content": [
             {
-                "CARMACK_VERSION": {
+                "CARMACK_ASSIGNTARGETS": {
+                    "carmack": "0.0.0+6d40612"
+                },
+                "CARMACK_EXTRACTBARCODES": {
+                    "carmack": "0.0.0+6d40612"
+                },
+                "CARMACK_EXTRACTUMIS": {
+                    "carmack": "0.0.0+6d40612"
+                },
+                "CARMACK_PREPAREREADS": {
                     "carmack": "0.0.0+6d40612"
                 },
                 "FASTQC": {
@@ -13,6 +22,42 @@
                 }
             },
             [
+                "carmack",
+                "carmack/assigntargets",
+                "carmack/assigntargets/SK609",
+                "carmack/assigntargets/SK609/SK609.r1_tgidx.fastq.gz",
+                "carmack/assigntargets/SK609/SK609.tgidx_anchor_run_mqc.json",
+                "carmack/assigntargets/SK609/SK609.tgidx_edit_distance_mqc.json",
+                "carmack/assigntargets/SK609/SK609.tgidx_stats.txt",
+                "carmack/assigntargets/SK609/SK609.tgidx_stats_mqc.json",
+                "carmack/extractbarcodes",
+                "carmack/extractbarcodes/SK609",
+                "carmack/extractbarcodes/SK609/SK609.bc_all.txt.gz",
+                "carmack/extractbarcodes/SK609/SK609.bc_counts.csv",
+                "carmack/extractbarcodes/SK609/SK609.bc_rank.png",
+                "carmack/extractbarcodes/SK609/SK609.bc_stats.txt",
+                "carmack/extractbarcodes/SK609/SK609.bc_valid.txt.gz",
+                "carmack/extractbarcodes/SK609/SK609.extraction_edit_distance_mqc.json",
+                "carmack/extractbarcodes/SK609/SK609.extraction_stats_mqc.json",
+                "carmack/extractbarcodes/SK609/SK609.r1_annotated.fastq.gz",
+                "carmack/extractumis",
+                "carmack/extractumis/SK609",
+                "carmack/extractumis/SK609/SK609.r1_umi.fastq.gz",
+                "carmack/extractumis/SK609/SK609.umi_anchor_run_mqc.json",
+                "carmack/extractumis/SK609/SK609.umi_stats.txt",
+                "carmack/extractumis/SK609/SK609.umi_stats_mqc.json",
+                "carmack/preparereads",
+                "carmack/preparereads/SK609",
+                "carmack/preparereads/SK609/SK609.detected_targets.txt",
+                "carmack/preparereads/SK609/SK609.prepare_stats.txt",
+                "carmack/preparereads/SK609/SK609.prepare_stats_mqc.json",
+                "carmack/preparereads/SK609/scrna",
+                "carmack/preparereads/SK609/scrna/SK609.none.barcodes.fastq.gz",
+                "carmack/preparereads/SK609/scrna/SK609.none.r1.fastq.gz",
+                "carmack/preparereads/SK609/scrna/SK609.none.r2.fastq.gz",
+                "carmack/preparereads/SK609/sctip",
+                "carmack/preparereads/SK609/sctip/SK609.TATAGCCT.r1.fastq.gz",
+                "carmack/preparereads/SK609/sctip/SK609.TATAGCCT.r2.fastq.gz",
                 "fastqc",
                 "fastqc/SK609_1_fastqc.html",
                 "fastqc/SK609_1_fastqc.zip",
@@ -34,6 +79,10 @@
                 "multiqc/multiqc_data/llms-full.txt",
                 "multiqc/multiqc_data/multiqc.log",
                 "multiqc/multiqc_data/multiqc.parquet",
+                "multiqc/multiqc_data/multiqc_carmack_extraction_edit_distance_plot.txt",
+                "multiqc/multiqc_data/multiqc_carmack_tgidx_anchor_run_plot.txt",
+                "multiqc/multiqc_data/multiqc_carmack_tgidx_edit_distance_plot.txt",
+                "multiqc/multiqc_data/multiqc_carmack_umi_anchor_run_plot.txt",
                 "multiqc/multiqc_data/multiqc_citations.txt",
                 "multiqc/multiqc_data/multiqc_data.json",
                 "multiqc/multiqc_data/multiqc_fastqc.txt",
@@ -42,6 +91,10 @@
                 "multiqc/multiqc_data/multiqc_sources.txt",
                 "multiqc/multiqc_plots",
                 "multiqc/multiqc_plots/pdf",
+                "multiqc/multiqc_plots/pdf/carmack_extraction_edit_distance_plot.pdf",
+                "multiqc/multiqc_plots/pdf/carmack_tgidx_anchor_run_plot.pdf",
+                "multiqc/multiqc_plots/pdf/carmack_tgidx_edit_distance_plot.pdf",
+                "multiqc/multiqc_plots/pdf/carmack_umi_anchor_run_plot.pdf",
                 "multiqc/multiqc_plots/pdf/fastqc-status-check-heatmap.pdf",
                 "multiqc/multiqc_plots/pdf/fastqc_adapter_content_plot.pdf",
                 "multiqc/multiqc_plots/pdf/fastqc_overrepresented_sequences_plot.pdf",
@@ -55,6 +108,10 @@
                 "multiqc/multiqc_plots/pdf/fastqc_sequence_duplication_levels_plot.pdf",
                 "multiqc/multiqc_plots/pdf/fastqc_top_overrepresented_sequences_table.pdf",
                 "multiqc/multiqc_plots/png",
+                "multiqc/multiqc_plots/png/carmack_extraction_edit_distance_plot.png",
+                "multiqc/multiqc_plots/png/carmack_tgidx_anchor_run_plot.png",
+                "multiqc/multiqc_plots/png/carmack_tgidx_edit_distance_plot.png",
+                "multiqc/multiqc_plots/png/carmack_umi_anchor_run_plot.png",
                 "multiqc/multiqc_plots/png/fastqc-status-check-heatmap.png",
                 "multiqc/multiqc_plots/png/fastqc_adapter_content_plot.png",
                 "multiqc/multiqc_plots/png/fastqc_overrepresented_sequences_plot.png",
@@ -68,6 +125,10 @@
                 "multiqc/multiqc_plots/png/fastqc_sequence_duplication_levels_plot.png",
                 "multiqc/multiqc_plots/png/fastqc_top_overrepresented_sequences_table.png",
                 "multiqc/multiqc_plots/svg",
+                "multiqc/multiqc_plots/svg/carmack_extraction_edit_distance_plot.svg",
+                "multiqc/multiqc_plots/svg/carmack_tgidx_anchor_run_plot.svg",
+                "multiqc/multiqc_plots/svg/carmack_tgidx_edit_distance_plot.svg",
+                "multiqc/multiqc_plots/svg/carmack_umi_anchor_run_plot.svg",
                 "multiqc/multiqc_plots/svg/fastqc-status-check-heatmap.svg",
                 "multiqc/multiqc_plots/svg/fastqc_adapter_content_plot.svg",
                 "multiqc/multiqc_plots/svg/fastqc_overrepresented_sequences_plot.svg",
@@ -86,6 +147,17 @@
                 "samplesheet_test.csv"
             ],
             [
+                "SK609.tgidx_anchor_run_mqc.json:md5,7202386a0919239fbd8bebddb99ce94f",
+                "SK609.tgidx_edit_distance_mqc.json:md5,58a9925bb20aed66956473fbc422f3ff",
+                "SK609.tgidx_stats_mqc.json:md5,b831514659441809483adefef9617106",
+                "SK609.bc_counts.csv:md5,bb33d2c4509a58db16b124ff6ea40919",
+                "SK609.bc_rank.png:md5,eac7b5bb6c40cb14452904f78556be15",
+                "SK609.extraction_edit_distance_mqc.json:md5,6b7f014bfa396e42b878792cf4c67b47",
+                "SK609.extraction_stats_mqc.json:md5,fe5a29e330bf0d29e1064ed1604bbb9b",
+                "SK609.umi_anchor_run_mqc.json:md5,9cd6ec9739fd35370a51e95266a7dcb5",
+                "SK609.umi_stats_mqc.json:md5,2efc4fd8a75770d8ddd7ac4ee267fdcf",
+                "SK609.detected_targets.txt:md5,9c2b01932d764db48ea2db4ef6a5e061",
+                "SK609.prepare_stats_mqc.json:md5,853a17b7c5e75dd4506762bb3687a9b8",
                 "fastqc-status-check-heatmap.txt:md5,58b47dc1e4343139794bef6f42e77dca",
                 "fastqc_adapter_content_plot.txt:md5,18f9da3be49856ca95a9f14543d92266",
                 "fastqc_overrepresented_sequences_plot.txt:md5,5de96926f7838fa3cfaaa9729b541dc2",
@@ -96,13 +168,17 @@
                 "fastqc_per_sequence_quality_scores_plot.txt:md5,73440bdd4035c5c1e27c870f42ba8c93",
                 "fastqc_sequence_counts_plot.txt:md5,3e8e9a6e966be498001a78d7059fb875",
                 "fastqc_sequence_duplication_levels_plot.txt:md5,9c5365a64c7d0ab1baba4090e9e39710",
+                "multiqc_carmack_extraction_edit_distance_plot.txt:md5,a14c58ae7ed4cc8fd33accd6f8fe072f",
+                "multiqc_carmack_tgidx_anchor_run_plot.txt:md5,05792f4088db9f63895c56e54029ca8a",
+                "multiqc_carmack_tgidx_edit_distance_plot.txt:md5,bdf4bebcec0993ca5e54e7c126771ec9",
+                "multiqc_carmack_umi_anchor_run_plot.txt:md5,edfcf9038f7386602c67c9b4ff0a65ed",
                 "multiqc_citations.txt:md5,4c806e63a283ec1b7e78cdae3a923d4f",
                 "multiqc_fastqc.txt:md5,812e8458e488cae9cd3f41393ee0b552",
                 "multiqc_general_stats.txt:md5,18024b587c59063ab4a186b4c80c68b3",
                 "samplesheet_test.csv:md5,1df8433c74663856db98115d28c8271e"
             ]
         ],
-        "timestamp": "2026-09-11T13:29:45.172619639",
+        "timestamp": "2026-09-11T15:16:08.289424331",
         "meta": {
             "nf-test": "0.9.5",
             "nextflow": "26.04.6"

@@ -18,8 +18,18 @@ nextflow_pipeline {
             def stable_path = getAllFilesFromDir(params.outdir, relative: true, includeDir: true, ignore: ['pipeline_info/*.{html,json,txt}'])
             // stable_content: All files in ${params.outdir}/ with stable content
             def stable_content = getAllFilesFromDir(params.outdir, ignoreFile: 'tests/.nftignore')
+            // Asserted by name rather than left to the snapshot alone: dropping a module's
+            // `topic: versions` output drops its entry silently, and a refreshed snapshot would
+            // then simply record the loss.
+            def software_versions = path("$outputDir/pipeline_info/jacquard_software_mqc_versions.yml").text
             assert workflow.success
             assertAll(
+                { assert [
+                    'CARMACK_EXTRACTBARCODES',
+                    'CARMACK_EXTRACTUMIS',
+                    'CARMACK_ASSIGNTARGETS',
+                    'CARMACK_PREPAREREADS',
+                ].every { process -> software_versions.contains("${process}:\n  carmack: ") } },
                 { assert snapshot(
                     // pipeline versions.yml file for multiqc from which Nextflow version is removed because we test pipelines on multiple Nextflow versions
                     removeNextflowVersion("$outputDir/pipeline_info/jacquard_software_mqc_versions.yml"),

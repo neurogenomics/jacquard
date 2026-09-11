@@ -1,0 +1,60 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/nf-core/modules/master/subworkflows/yaml-schema.json
+name: "carmack_readprep"
+description: QC a raw read pair and run carmack's R1 preparation chain, rejoining the raw R2 for prepare-reads
+keywords:
+  - single-cell
+  - multiome
+  - fastq
+  - quality control
+components:
+  - fastqc
+  - carmack/extractbarcodes
+  - carmack/extractumis
+  - carmack/assigntargets
+  - carmack/preparereads
+input:
+  - ch_reads:
+      type: file
+      description: |
+        Channel of raw read pairs, one entry per sample.
+        Structure: [ val(meta), [ path(fastq_1), path(fastq_2) ] ]
+  - chemistry:
+      type: string
+      description: Name of the carmack chemistry describing the read layout
+output:
+  - scrna:
+      type: file
+      description: |
+        scRNA arm reads, for R1 carrying no real target index.
+        Structure: [ val(meta), path(r1), path(r2), path(barcodes) ]
+  - sctip:
+      type: file
+      description: |
+        One R1/R2 FASTQ pair per whitelisted target index; empty for a chemistry that declares none.
+        Structure: [ val(meta), [ path(fastq) ] ]
+  - stats:
+      type: file
+      description: |
+        Human-readable dispatch report, per arm and per target.
+        Structure: [ val(meta), path("*.prepare_stats.txt") ]
+  - targets:
+      type: file
+      description: |
+        One line per arm that received at least one read.
+        Structure: [ val(meta), path("*.detected_targets.txt") ]
+  - multiqc_files:
+      type: file
+      description: |
+        Every MultiQC input this subworkflow produces: the FastQC report archives and each stage's custom-content JSON.
+        Structure: [ path(mqc_file) ]
+  - versions:
+      type: file
+      description: |
+        Version files, empty because every component reports on the `versions` topic instead.
+        Structure: [ path(versions.yml) ]
+authors:
+  - "@HDash"
+  - "@chris-cheshire"
+maintainers:
+  - "@HDash"
+  - "@chris-cheshire"
