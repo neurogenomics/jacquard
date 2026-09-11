@@ -43,6 +43,32 @@
                 }
             }
         },
+        "read_preparation_options": {
+            "title": "Read preparation options",
+            "type": "object",
+            "fa_icon": "fas fa-cut",
+            "description": "Options controlling how carmack reads the library layout and prepares raw reads.",
+            "properties": {
+                "chemistry": {
+                    "type": "string",
+                    "default": "carmack_custom_seq_1_0",
+                    "enum": [
+                        "carmack_custom_seq_1_0",
+                        "carmack_custom_seq_1_0_primd",
+                        "hydrop"
+                    ],
+                    "description": "Name of the carmack chemistry describing the read structure of the library. The allowed list tracks the vendored carmack build.",
+                    "help_text": "The chemistry declares the barcode, UMI and target index layout of R1, and is required by every carmack read-preparation stage. The `enum` mirrors the chemistries registered in `external/carmack/carmack/chemistry/__init__.py` at the pinned submodule, so it has to be updated alongside a carmack bump that adds one.",
+                    "fa_icon": "fas fa-flask"
+                },
+                "carmack_fast": {
+                    "type": "boolean",
+                    "description": "Skip carmack's local alignment fallback during barcode extraction.",
+                    "help_text": "Passes `--fast` to `carmack extract-barcodes`, dropping the third matching stage. Faster, at the cost of the barcodes only local alignment recovers.",
+                    "fa_icon": "fas fa-forward"
+                }
+            }
+        },
         "reference_genome_options": {
             "title": "Reference genome options",
             "type": "object",
@@ -235,6 +261,9 @@
     "allOf": [
         {
             "$ref": "#/$defs/input_output_options"
+        },
+        {
+            "$ref": "#/$defs/read_preparation_options"
         },
         {
             "$ref": "#/$defs/reference_genome_options"

@@ -1,0 +1,72 @@
+name: "carmack_extractumis"
+description: Extract the fixed-length UMI from a barcode-annotated R1 FASTQ
+keywords:
+  - single-cell
+  - multiome
+  - umi
+  - fastq
+tools:
+  - "carmack":
+      description: "Helper tools for the analysis of single-cell multi-omic data"
+      homepage: "https://github.com/crick-pipelines-stp/carmack"
+      documentation: "https://github.com/crick-pipelines-stp/carmack"
+      tool_dev_url: "https://github.com/crick-pipelines-stp/carmack"
+
+input:
+  - - meta:
+        type: map
+        description: |
+          Groovy Map containing sample information, e.g. `[ id:'sample1' ]`
+    - r1_annotated:
+        type: file
+        description: Barcode-annotated R1 FASTQ from `carmack extract-barcodes`
+        pattern: "*.r1_annotated.fastq.gz"
+  - - chemistry:
+        type: string
+        description: Name of the carmack chemistry describing the UMI layout
+
+output:
+  reads:
+    - - meta:
+          type: map
+          description: |
+            Groovy Map containing sample information, e.g. `[ id:'sample1' ]`
+      - "*.r1_umi.fastq.gz":
+          type: file
+          description: R1 reads carrying UMI and UMI_POS tags on the header
+          pattern: "*.r1_umi.fastq.gz"
+  stats:
+    - - meta:
+          type: map
+          description: |
+            Groovy Map containing sample information, e.g. `[ id:'sample1' ]`
+      - "*.umi_stats.txt":
+          type: file
+          description: Human-readable UMI extraction report, including the anchor run-length distribution
+          pattern: "*.umi_stats.txt"
+  multiqc:
+    - - meta:
+          type: map
+          description: |
+            Groovy Map containing sample information, e.g. `[ id:'sample1' ]`
+      - "*_mqc.json":
+          type: file
+          description: MultiQC custom-content payloads for the UMI summary and anchor run lengths
+          pattern: "*_mqc.json"
+  versions_carmack:
+    - - "${task.process}":
+          type: string
+          description: Name of the emitting process
+      - "carmack":
+          type: string
+          description: Name of the tool
+      - version:
+          type: string
+          description: Version of carmack, emitted on the `versions` topic
+
+authors:
+  - "@HDash"
+  - "@chris-cheshire"
+maintainers:
+  - "@HDash"
+  - "@chris-cheshire"

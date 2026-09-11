@@ -1,0 +1,108 @@
+name: "carmack_extractbarcodes"
+description: Extract cell barcodes from a raw R1 FASTQ and annotate them onto the read headers
+keywords:
+  - single-cell
+  - multiome
+  - barcode
+  - fastq
+tools:
+  - "carmack":
+      description: "Helper tools for the analysis of single-cell multi-omic data"
+      homepage: "https://github.com/crick-pipelines-stp/carmack"
+      documentation: "https://github.com/crick-pipelines-stp/carmack"
+      tool_dev_url: "https://github.com/crick-pipelines-stp/carmack"
+
+input:
+  - - meta:
+        type: map
+        description: |
+          Groovy Map containing sample information, e.g. `[ id:'sample1' ]`
+    - fastq:
+        type: file
+        description: Raw R1 FASTQ carrying the barcode construct
+        pattern: "*.{fastq,fq}.gz"
+  - - chemistry:
+        type: string
+        description: Name of the carmack chemistry describing the barcode layout
+
+output:
+  reads:
+    - - meta:
+          type: map
+          description: |
+            Groovy Map containing sample information, e.g. `[ id:'sample1' ]`
+      - "*.r1_annotated.fastq.gz":
+          type: file
+          description: R1 reads whose barcode was resolved, with the barcode and its span on the header
+          pattern: "*.r1_annotated.fastq.gz"
+  bc_all:
+    - - meta:
+          type: map
+          description: |
+            Groovy Map containing sample information, e.g. `[ id:'sample1' ]`
+      - "*.bc_all.txt.gz":
+          type: file
+          description: Annotated read name of every input read, resolved or not
+          pattern: "*.bc_all.txt.gz"
+  bc_valid:
+    - - meta:
+          type: map
+          description: |
+            Groovy Map containing sample information, e.g. `[ id:'sample1' ]`
+      - "*.bc_valid.txt.gz":
+          type: file
+          description: Annotated read name of every read whose full barcode was resolved
+          pattern: "*.bc_valid.txt.gz"
+  counts:
+    - - meta:
+          type: map
+          description: |
+            Groovy Map containing sample information, e.g. `[ id:'sample1' ]`
+      - "*.bc_counts.csv":
+          type: file
+          description: Read count per full barcode, most common first
+          pattern: "*.bc_counts.csv"
+  rank_plot:
+    - - meta:
+          type: map
+          description: |
+            Groovy Map containing sample information, e.g. `[ id:'sample1' ]`
+      - "*.bc_rank.png":
+          type: file
+          description: Barcode rank plot
+          pattern: "*.bc_rank.png"
+  stats:
+    - - meta:
+          type: map
+          description: |
+            Groovy Map containing sample information, e.g. `[ id:'sample1' ]`
+      - "*.bc_stats.txt":
+          type: file
+          description: Human-readable extraction report, per barcode component and matching stage
+          pattern: "*.bc_stats.txt"
+  multiqc:
+    - - meta:
+          type: map
+          description: |
+            Groovy Map containing sample information, e.g. `[ id:'sample1' ]`
+      - "*_mqc.json":
+          type: file
+          description: MultiQC custom-content payloads for the extraction summary and edit distances
+          pattern: "*_mqc.json"
+  versions_carmack:
+    - - "${task.process}":
+          type: string
+          description: Name of the emitting process
+      - "carmack":
+          type: string
+          description: Name of the tool
+      - version:
+          type: string
+          description: Version of carmack, emitted on the `versions` topic
+
+authors:
+  - "@HDash"
+  - "@chris-cheshire"
+maintainers:
+  - "@HDash"
+  - "@chris-cheshire"

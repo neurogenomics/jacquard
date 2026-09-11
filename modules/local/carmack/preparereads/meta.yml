@@ -1,0 +1,102 @@
+name: "carmack_preparereads"
+description: Trim every read pair to its insert and dispatch it to the scRNA or its scTIP arm
+keywords:
+  - single-cell
+  - multiome
+  - trimming
+  - fastq
+tools:
+  - "carmack":
+      description: "Helper tools for the analysis of single-cell multi-omic data"
+      homepage: "https://github.com/crick-pipelines-stp/carmack"
+      documentation: "https://github.com/crick-pipelines-stp/carmack"
+      tool_dev_url: "https://github.com/crick-pipelines-stp/carmack"
+
+input:
+  - - meta:
+        type: map
+        description: |
+          Groovy Map containing sample information, e.g. `[ id:'sample1' ]`
+    - r1_tgidx:
+        type: file
+        description: Target-assigned R1 FASTQ from `carmack assign-targets`
+        pattern: "*.r1_tgidx.fastq.gz"
+    - r2:
+        type: file
+        description: The raw R2 FASTQ the R1 was sequenced against, in the same read order
+        pattern: "*.{fastq,fq}.gz"
+  - - chemistry:
+        type: string
+        description: Name of the carmack chemistry describing the read layout
+
+output:
+  scrna:
+    - - meta:
+          type: map
+          description: |
+            Groovy Map containing sample information, e.g. `[ id:'sample1' ]`
+      - "scrna/*.none.r1.fastq.gz":
+          type: file
+          description: scRNA arm R1 reads, those carrying no real target index
+          pattern: "scrna/*.none.r1.fastq.gz"
+      - "scrna/*.none.r2.fastq.gz":
+          type: file
+          description: scRNA arm R2 reads
+          pattern: "scrna/*.none.r2.fastq.gz"
+      - "scrna/*.none.barcodes.fastq.gz":
+          type: file
+          description: scRNA arm barcode reads
+          pattern: "scrna/*.none.barcodes.fastq.gz"
+  sctip:
+    - - meta:
+          type: map
+          description: |
+            Groovy Map containing sample information, e.g. `[ id:'sample1' ]`
+      - "sctip/*.fastq.gz":
+          type: file
+          description: One R1/R2 FASTQ pair per whitelisted target index; absent for a chemistry that declares none
+          pattern: "sctip/*.{r1,r2}.fastq.gz"
+  stats:
+    - - meta:
+          type: map
+          description: |
+            Groovy Map containing sample information, e.g. `[ id:'sample1' ]`
+      - "*.prepare_stats.txt":
+          type: file
+          description: Human-readable dispatch report, per arm and per target
+          pattern: "*.prepare_stats.txt"
+  targets:
+    - - meta:
+          type: map
+          description: |
+            Groovy Map containing sample information, e.g. `[ id:'sample1' ]`
+      - "*.detected_targets.txt":
+          type: file
+          description: One line per arm that received at least one read
+          pattern: "*.detected_targets.txt"
+  multiqc:
+    - - meta:
+          type: map
+          description: |
+            Groovy Map containing sample information, e.g. `[ id:'sample1' ]`
+      - "*_mqc.json":
+          type: file
+          description: MultiQC custom-content payload for the dispatch summary
+          pattern: "*_mqc.json"
+  versions_carmack:
+    - - "${task.process}":
+          type: string
+          description: Name of the emitting process
+      - "carmack":
+          type: string
+          description: Name of the tool
+      - version:
+          type: string
+          description: Version of carmack, emitted on the `versions` topic
+
+authors:
+  - "@HDash"
+  - "@chris-cheshire"
+maintainers:
+  - "@HDash"
+  - "@chris-cheshire"
