@@ -1,0 +1,196 @@
+nextflow_workflow {
+
+    name "Test subworkflow SCTIP_ARM"
+    script "../main.nf"
+    workflow "SCTIP_ARM"
+
+    tag "subworkflows"
+    tag "subworkflows_local"
+    tag "sctip_arm"
+
+    test("SK609 - the gated TATAGCCT arm") {
+
+        tag "sctip_arm_tatagcct"
+
+        setup {
+            run("CARMACK_READPREP") {
+                script "../../carmack_readprep/main.nf"
+                workflow {
+                    """
+                    input[0] = channel.of([
+                        [ id:'SK609' ],
+                        [
+                            file("${baseDir}/tests/data/SK609_L5_R1.fastq.gz", checkIfExists: true),
+                            file("${baseDir}/tests/data/SK609_L5_R2.fastq.gz", checkIfExists: true),
+                        ],
+                    ])
+                    input[1] = 'carmack_custom_seq_1_0'
+                    """
+                }
+            }
+            run("ARM_FANOUT") {
+                script "../../arm_fanout/main.nf"
+                workflow {
+                    """
+                    input[0] = CARMACK_READPREP.out.scrna
+                    input[1] = CARMACK_READPREP.out.sctip
+                    input[2] = CARMACK_READPREP.out.stats_json
+                    input[3] = 1000
+                    input[4] = false
+                    input[5] = "${outputDir}"
+                    """
+                }
+            }
+        }
+
+        when {
+            params {
+                outdir = "$outputDir"
+            }
+            workflow {
+                """
+                input[0] = ARM_FANOUT.out.sctip
+                input[1] = params.modules_testdata_base_path + 'genomics/homo_sapiens/genome/chr21/sequence/genome.fasta'
+                input[2] = null
+                """
+            }
+        }
+
+        then {
+            def arm_meta = [ id:'SK609.TATAGCCT', sample:'SK609', arm:'sctip', tgidx:'TATAGCCT', single_end:false ]
+
+            // The pair bowtie2 was handed, read back from the files staged beside its own task, so
+            // the comparison is against what the aligner actually saw rather than a path guessed at.
+            def aligned_bam = workflow.out.bam_aligned[0][1]
+            def align_dir = new File(aligned_bam).parentFile
+            def fastqHeaders = { name ->
+                path("${align_dir}/${name}").linesGzip
+                    .toList()
+                    .withIndex()
+                    .findAll { _line, index -> index % 4 == 0 }
+                    .collect { line, _index -> line.substring(1) }
+            }
+            def r1_headers = fastqHeaders('SK609.TATAGCCT.r1.fastq.gz')
+            def r2_headers = fastqHeaders('SK609.TATAGCCT.r2.fastq.gz')
+            def aligned_qnames = bam(aligned_bam).getSamLines().collect { line -> line.trim().tokenize('\t').first() }
+
+            def dedup_lines = bam(workflow.out.bam[0][1]).getSamLines().collect { line -> line.trim() }
+            def dedup_qnames = dedup_lines.collect { line -> line.tokenize('\t').first() }
+
+            def dedup_command = new File(new File(workflow.out.bam[0][1]).parentFile, '.command.sh').text
+            // umi_tools' own count of what it read and what it wrote. Read off the log rather than
+            // off the BAM because only umi_tools knows how many records it considered: the BAM also
+            // lost every unaligned read, which is most of this arm.
+            def dedup_log = path(workflow.out.log_dedup[0][1]).readLines()
+            def reads_in = (dedup_log.find { line -> line.contains('INFO Reads: Input Reads:') } =~ /Input Reads: (\d+)/)[0][1] as int
+            def reads_out = (dedup_log.find { line -> line.contains('INFO Number of reads out:') } =~ /reads out: (\d+)/)[0][1] as int
+            def bowtie2_log = path(workflow.out.log_align[0][1]).readLines()
+
+            assertAll(
+                { assert workflow.success },
+                // Every output is named off meta.id alone, with no ext.prefix on anything MultiQC
+                // reads, which is what keeps an arm's files and its report rows spelled the same.
+                { assert workflow.out.bam[0][0] == arm_meta },
+                { assert file(workflow.out.bam[0][1]).name == 'SK609.TATAGCCT.bam' },
+                { assert file(workflow.out.bam[0][2]).name == 'SK609.TATAGCCT.bam.bai' },
+                { assert file(workflow.out.log_align[0][1]).name == 'SK609.TATAGCCT.bowtie2.log' },
+                { assert file(workflow.out.log_dedup[0][1]).name == 'SK609.TATAGCCT.log' },
+                { assert file(workflow.out.stats[0][1]).name == 'SK609.TATAGCCT.stats' },
+                { assert workflow.out.multiqc_files.collect { mqc -> file(mqc).name }.sort() == [
+                    'SK609.TATAGCCT.bowtie2.log',
+                    'SK609.TATAGCCT.log',
+                    'SK609.TATAGCCT.stats',
+                    'SK609.TATAGCCT_1_fastqc.zip',
+                    'SK609.TATAGCCT_2_fastqc.zip',
+                ] },
+
+                // The contract bowtie2 has to honour: a SAM QNAME is truncated at the first
+                // whitespace, carmack's composite name carries none, so every read name reaches the
+                // BAM exactly as prepare-reads wrote it. Compared as raw strings rather than by a
+                // file hash, because only the names are claimed to be unchanged.
+                { assert !r1_headers.isEmpty() && r1_headers == r2_headers },
+                { assert r1_headers.every { header -> header ==~ /^\S+\|CB=[ACGTN]{30}\|UR=[ACGTN]{8}$/ } },
+                { assert aligned_qnames.toUnique().toSorted() == r1_headers.toSorted() },
+
+                // The retagging, read off the records that survived to the end of the arm.
+                { assert !dedup_lines.isEmpty() },
+                { assert dedup_qnames.every { qname -> !qname.contains('|') } },
+                { assert dedup_lines.every { line -> line.contains('CB:Z:') && line.contains('UB:Z:') } },
+                { assert dedup_lines.every { line -> !line.contains('UR:') } },
+                // Deduplication is keyed on those tags and grouped per cell; the BAM would still be
+                // produced, silently unchanged, if any of these were dropped from the command.
+                { assert dedup_command.contains('--per-cell') },
+                { assert dedup_command.contains('--extract-umi-method=tag') },
+                { assert dedup_command.contains('--umi-tag=UB') },
+                { assert dedup_command.contains('--cell-tag=CB') },
+                // Something was actually collapsed, and something actually survived: a dedup that
+                // removed everything or nothing would pass every assertion above.
+                { assert reads_out > 0 && reads_out < reads_in },
+
+                // bowtie2's own count of what it read, which is both the arm's size in the gate
+                // table and the proof that it was handed a pair rather than one mate.
+                { assert bowtie2_log.take(2) == [
+                    '13332 reads; of these:',
+                    '  13332 (100.00%) were paired; of these:',
+                ] }
+            )
+        }
+    }
+
+    test("no arm cleared the gate") {
+
+        tag "sctip_arm_empty"
+
+        when {
+            params {
+                outdir = "$outputDir"
+            }
+            workflow {
+                """
+                input[0] = channel.empty()
+                input[1] = params.modules_testdata_base_path + 'genomics/homo_sapiens/genome/chr21/sequence/genome.fasta'
+                input[2] = null
+                """
+            }
+        }
+
+        then {
+            assertAll(
+                { assert workflow.success },
+                // Asserted on the tasks that were submitted, not on the absence of an output file:
+                // an index build costs more than the arm it would have served, so a gate that
+                // dropped every scTIP arm has to leave bowtie2 unstarted rather than merely unused.
+                { assert workflow.trace.tasks().findAll { task -> task.name.contains('BOWTIE2_') }.isEmpty() },
+                { assert workflow.out.bam.isEmpty() },
+            )
+        }
+    }
+
+    test("no arm cleared the gate and no reference was given") {
+
+        tag "sctip_arm_empty_no_reference"
+
+        when {
+            params {
+                outdir = "$outputDir"
+            }
+            workflow {
+                """
+                input[0] = channel.empty()
+                input[1] = null
+                input[2] = null
+                """
+            }
+        }
+
+        then {
+            assertAll(
+                // The reference is only ever wanted by an arm that reached bowtie2. A run left with
+                // no scTIP arm must not be stopped by the absence of one, or the gate would turn a
+                // dropped arm back into a failed run by another route.
+                { assert workflow.success },
+                { assert workflow.trace.tasks().findAll { task -> task.name.contains('BOWTIE2_') }.isEmpty() },
+            )
+        }
+    }
+}

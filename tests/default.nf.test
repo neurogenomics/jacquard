@@ -43,14 +43,33 @@ nextflow_pipeline {
                 { assert [
                     'STAR_GENOMEGENERATE',
                     'STAR_STARSOLO',
+                    'BOWTIE2_BUILD',
+                    'BOWTIE2_ALIGN',
+                    'SAMTOOLS_SORT',
+                    'SAMTOOLS_STATS',
+                    'TAGQNAME',
+                    'UMITOOLS_DEDUP',
                 ].every { process -> software_versions.contains("${process}:\n") } },
-                // The counterpart of the gate test's "no STAR task was submitted": the same
-                // predicate has to find the two tasks here, or its emptiness there proves nothing.
+                // The counterpart of each arm test's "no aligner task was submitted": the same
+                // predicates have to find the tasks here, or their emptiness there proves nothing.
                 { assert workflow.trace.tasks().findAll { task -> task.name.contains('STAR_') }.size() == 2 },
-                // The scRNA arm's two report rows, both named off meta.id alone: without them a
-                // MultiQC report says nothing about read quality or mapping per target index.
+                { assert workflow.trace.tasks().findAll { task -> task.name.contains('BOWTIE2_') }.size() == 2 },
+                // Both arms publish under `<sample>.<tgidx>`, which is `meta.id` and nothing else.
+                { assert path("$outputDir/umitools/SK609.TATAGCCT/SK609.TATAGCCT.bam").exists() },
+                { assert path("$outputDir/samtools/SK609.TATAGCCT/SK609.TATAGCCT.stats").exists() },
+                // Each arm's report rows, all named off meta.id alone: without them a MultiQC
+                // report says nothing about read quality, mapping or duplication per target index.
                 { assert path("$outputDir/multiqc/multiqc_data/multiqc_fastqc.txt").readLines().count { it.startsWith('SK609.none\t') } == 1 },
                 { assert path("$outputDir/multiqc/multiqc_data/multiqc_star.txt").readLines().count { it.startsWith('SK609.none\t') } == 1 },
+                { assert path("$outputDir/multiqc/multiqc_data/multiqc_fastqc.txt").readLines().count { it.startsWith('SK609.TATAGCCT_') } == 2 },
+                { assert path("$outputDir/multiqc/multiqc_data/multiqc_bowtie2.txt").readLines().count { it.startsWith('SK609.TATAGCCT\t') } == 1 },
+                { assert path("$outputDir/multiqc/multiqc_data/multiqc_samtools_stats.txt").readLines().count { it.startsWith('SK609.TATAGCCT\t') } == 1 },
+                // umi_tools deduplicated per cell and MultiQC read its log: the row carries fewer
+                // reads out than in, which is the one number a silently misconfigured dedup loses.
+                { assert path("$outputDir/multiqc/multiqc_data/multiqc_umitools_dedup.txt").readLines().findAll { it.startsWith('SK609.TATAGCCT\t') }.collect { row ->
+                    def fields = row.split('\t')
+                    [ fields[1] as int, fields[2] as int ]
+                } == [ [ 1016, 300 ] ] },
                 { assert snapshot(
                     // pipeline versions.yml file for multiqc from which Nextflow version is removed because we test pipelines on multiple Nextflow versions
                     removeNextflowVersion("$outputDir/pipeline_info/jacquard_software_mqc_versions.yml"),

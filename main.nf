@@ -47,6 +47,7 @@ workflow NEUROGENOMICS_JACQUARD {
         params.fasta ?: getGenomeAttribute('fasta'),
         params.gtf ?: getGenomeAttribute('gtf'),
         params.star_index ?: getGenomeAttribute('star'),
+        params.bowtie2_index ?: getGenomeAttribute('bowtie2'),
         params.multiqc_config,
         params.multiqc_logo,
         params.multiqc_methods_description,

@@ -6,6 +6,7 @@
 include { CARMACK_READPREP       } from '../subworkflows/local/carmack_readprep/main'
 include { ARM_FANOUT             } from '../subworkflows/local/arm_fanout/main'
 include { SCRNA_ARM              } from '../subworkflows/local/scrna_arm/main'
+include { SCTIP_ARM              } from '../subworkflows/local/sctip_arm/main'
 include { MULTIQC                } from '../modules/nf-core/multiqc/main'
 include { paramsSummaryMap       } from 'plugin/nf-schema'
 include { paramsSummaryMultiqc   } from '../subworkflows/nf-core/utils_nfcore_pipeline'
@@ -26,6 +27,7 @@ workflow JACQUARD {
     fasta          //   value: genome FASTA, used to build a STAR index when none is given
     gtf            //   value: gene annotation GTF, used to build a STAR index when none is given
     star_index     //   value: prebuilt STAR index, or null to build one
+    bowtie2_index  //   value: prebuilt bowtie2 index, or null to build one
     multiqc_config
     multiqc_logo
     multiqc_methods_description
@@ -67,6 +69,17 @@ workflow JACQUARD {
     )
     ch_versions = ch_versions.mix(SCRNA_ARM.out.versions)
     ch_multiqc_files = ch_multiqc_files.mix(SCRNA_ARM.out.multiqc_files)
+
+    //
+    // SUBWORKFLOW: Align and deduplicate every scTIP arm that cleared the gate
+    //
+    SCTIP_ARM(
+        ARM_FANOUT.out.sctip,
+        fasta,
+        bowtie2_index,
+    )
+    ch_versions = ch_versions.mix(SCTIP_ARM.out.versions)
+    ch_multiqc_files = ch_multiqc_files.mix(SCTIP_ARM.out.multiqc_files)
 
     //
     // Collate and save software versions

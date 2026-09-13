@@ -10,4 +10,5 @@ Add an entry when something cost real time to work out and would cost it again.
 - [Nextflow 26 parser and warnings](nextflow-26-parser-and-warnings.md) — `log.warn` is invisible to nf-test; no top-level `import` in `.nf`.
 - [Nextflow 26 script params scope](nextflow-26-script-params-scope.md) — `params.x =` in `main.nf` is `null` inside included subworkflows.
 - [STARsolo Gene/Summary.csv is not optional](starsolo-gene-summary-not-optional.md) — `--soloFeatures` must always include `Gene`.
+- [nft-bam getSamLines truncates](nft-bam-getsamlines-truncates.md) — never count BAM records under nf-test; assert set equality or read the tool's log.
 - [Toolchain PATH in non-interactive shells](toolchain-path-noninteractive.md) — `conda activate` fails; prefix the env's bin.

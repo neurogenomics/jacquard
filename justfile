@@ -19,11 +19,11 @@ test:
 
 # Python linters
 lint:
-    source .venv/bin/activate && black --check lib/ && isort --check-only lib/ && ruff check lib/
+    source .venv/bin/activate && black --check bin/ lib/ && isort --check-only bin/ lib/ && ruff check bin/ lib/
 
 # Autoformat Python
 fmt:
-    source .venv/bin/activate && black lib/ && isort lib/ && ruff check --fix lib/
+    source .venv/bin/activate && black bin/ lib/ && isort bin/ lib/ && ruff check --fix bin/ lib/
 
 # nf-core pipeline linting
 nf-lint:

@@ -126,7 +126,7 @@
                     "mimetype": "text/plain",
                     "pattern": "^\\S+\\.fn?a(sta)?(\\.gz)?$",
                     "description": "Path to FASTA genome file.",
-                    "help_text": "Required alongside `--gtf` whenever neither `--genome` nor `--star_index` is given: the scRNA arm builds its STAR index from the two of them.",
+                    "help_text": "Required whenever `--genome` is not given and an arm has no prebuilt index: the scRNA arm builds its STAR index from this and `--gtf`, and the scTIP arm builds its bowtie2 index from this alone.",
                     "fa_icon": "far fa-file-code"
                 },
                 "gtf": {
@@ -145,6 +145,14 @@
                     "exists": true,
                     "description": "Path to a prebuilt STAR index directory.",
                     "help_text": "Skips index building for the scRNA arm. The index must have been built from the annotation you intend to count against, since STARsolo reads that annotation out of the index rather than off `--gtf`.",
+                    "fa_icon": "fas fa-bezier-curve"
+                },
+                "bowtie2_index": {
+                    "type": "string",
+                    "format": "path",
+                    "exists": true,
+                    "description": "Path to a prebuilt bowtie2 index directory.",
+                    "help_text": "Skips index building for the scTIP arm. This is the directory `bowtie2-build` wrote, holding the `*.bt2` files, rather than a path prefix.",
                     "fa_icon": "fas fa-bezier-curve"
                 },
                 "igenomes_ignore": {
