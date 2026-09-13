@@ -43,6 +43,21 @@
                 }
             }
         },
+        "stage_control_options": {
+            "title": "Stage control options",
+            "type": "object",
+            "fa_icon": "fas fa-stop-circle",
+            "description": "Where a run should stop short of the whole pipeline.",
+            "properties": {
+                "stop_after": {
+                    "type": "string",
+                    "enum": ["barcodes", "umis", "targets", "readprep", "gate"],
+                    "description": "Run only as far as this stage, then finish and report.",
+                    "help_text": "The stages are the pipeline's own boundaries, not carmack's command names: `barcodes`, `umis` and `targets` each stop after the matching step of the read-preparation chain, `readprep` stops after `prepare-reads`, and `gate` stops after the arm fan-out and its gate report, so no aligner runs and no reference is needed. Unset, the whole pipeline runs. MultiQC still assembles from the stages that ran, so every stop point leaves a usable report behind.",
+                    "fa_icon": "fas fa-flag-checkered"
+                }
+            }
+        },
         "read_preparation_options": {
             "title": "Read preparation options",
             "type": "object",
@@ -325,6 +340,9 @@
     "allOf": [
         {
             "$ref": "#/$defs/input_output_options"
+        },
+        {
+            "$ref": "#/$defs/stage_control_options"
         },
         {
             "$ref": "#/$defs/read_preparation_options"

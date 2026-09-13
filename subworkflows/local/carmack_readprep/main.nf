@@ -26,6 +26,7 @@ workflow CARMACK_READPREP {
     take:
     ch_reads  // channel: [ val(meta), [ path(fastq_1), path(fastq_2) ] ]
     chemistry // value:   name of the carmack chemistry preset
+    stages    // value:   stage names this run may reach, as --stop_after left them
 
     main:
 
@@ -47,17 +48,23 @@ workflow CARMACK_READPREP {
     //
     // Only R1 carries the barcode, UMI and target index, so the chain below reads R1 alone.
     //
+    // A stage `--stop_after` cut is called on an empty channel rather than skipped, so its outputs
+    // remain channels and every join, mix and emit below reads the same whether or not it ran.
+    //
     CARMACK_EXTRACTBARCODES(ch_pair.map { meta, r1, _r2 -> [ meta, r1 ] }, chemistry)
-    CARMACK_EXTRACTUMIS(CARMACK_EXTRACTBARCODES.out.reads, chemistry)
-    CARMACK_ASSIGNTARGETS(CARMACK_EXTRACTUMIS.out.reads, chemistry)
+    CARMACK_EXTRACTUMIS('umis' in stages ? CARMACK_EXTRACTBARCODES.out.reads : channel.empty(), chemistry)
+    CARMACK_ASSIGNTARGETS('targets' in stages ? CARMACK_EXTRACTUMIS.out.reads : channel.empty(), chemistry)
 
     //
     // prepare-reads writes both arms, so it needs the original R2 the chain never touched.
     // failOnMismatch turns join's default silent drop into an abort: a sample whose R2 went
     // missing must stop the run rather than disappear from the results.
     //
-    def ch_prepare = CARMACK_ASSIGNTARGETS.out.reads
-        .join(ch_pair.map { meta, _r1, r2 -> [ meta, r2 ] }, failOnMismatch: true, failOnDuplicate: true)
+    // The join itself is what a stop short of prepare-reads cuts: R2 comes from the samplesheet and
+    // never stops flowing, so joining it onto a cut chain would abort on the mismatch instead.
+    def ch_prepare = 'readprep' in stages
+        ? CARMACK_ASSIGNTARGETS.out.reads.join(ch_pair.map { meta, _r1, r2 -> [ meta, r2 ] }, failOnMismatch: true, failOnDuplicate: true)
+        : channel.empty()
 
     CARMACK_PREPAREREADS(ch_prepare, chemistry)
 

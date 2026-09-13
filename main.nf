@@ -44,6 +44,7 @@ workflow NEUROGENOMICS_JACQUARD {
     JACQUARD (
         samplesheet,
         params.chemistry,
+        params.stop_after,
         params.fasta ?: getGenomeAttribute('fasta'),
         params.gtf ?: getGenomeAttribute('gtf'),
         params.star_index ?: getGenomeAttribute('star'),
