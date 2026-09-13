@@ -12,3 +12,5 @@ fastqc/*_fastqc.{html,zip}
 carmack/**/*.gz
 carmack/**/*_stats.txt
 pipeline_info/*.{html,json,txt,yml}
+star/**/*Log.*
+fastqc/prepared/**/*_fastqc.{html,zip}

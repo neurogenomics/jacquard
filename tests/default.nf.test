@@ -40,6 +40,17 @@ nextflow_pipeline {
                     'CARMACK_ASSIGNTARGETS',
                     'CARMACK_PREPAREREADS',
                 ].every { process -> software_versions.contains("${process}:\n  carmack: ") } },
+                { assert [
+                    'STAR_GENOMEGENERATE',
+                    'STAR_STARSOLO',
+                ].every { process -> software_versions.contains("${process}:\n") } },
+                // The counterpart of the gate test's "no STAR task was submitted": the same
+                // predicate has to find the two tasks here, or its emptiness there proves nothing.
+                { assert workflow.trace.tasks().findAll { task -> task.name.contains('STAR_') }.size() == 2 },
+                // The scRNA arm's two report rows, both named off meta.id alone: without them a
+                // MultiQC report says nothing about read quality or mapping per target index.
+                { assert path("$outputDir/multiqc/multiqc_data/multiqc_fastqc.txt").readLines().count { it.startsWith('SK609.none\t') } == 1 },
+                { assert path("$outputDir/multiqc/multiqc_data/multiqc_star.txt").readLines().count { it.startsWith('SK609.none\t') } == 1 },
                 { assert snapshot(
                     // pipeline versions.yml file for multiqc from which Nextflow version is removed because we test pipelines on multiple Nextflow versions
                     removeNextflowVersion("$outputDir/pipeline_info/jacquard_software_mqc_versions.yml"),

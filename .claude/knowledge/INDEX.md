@@ -8,4 +8,6 @@ Add an entry when something cost real time to work out and would cost it again.
 - [Never snapshot lines that can be blank](nf-test-snapshot-blank-lines.md) — nf-test resolves `''` as a directory and inlines its listing.
 - [nf-test md5 decompresses gzip](nf-test-md5-decompresses-gzip.md) — content-identical `.gz` files hash the same; use raw bytes for byte-identity.
 - [Nextflow 26 parser and warnings](nextflow-26-parser-and-warnings.md) — `log.warn` is invisible to nf-test; no top-level `import` in `.nf`.
+- [Nextflow 26 script params scope](nextflow-26-script-params-scope.md) — `params.x =` in `main.nf` is `null` inside included subworkflows.
+- [STARsolo Gene/Summary.csv is not optional](starsolo-gene-summary-not-optional.md) — `--soloFeatures` must always include `Gene`.
 - [Toolchain PATH in non-interactive shells](toolchain-path-noninteractive.md) — `conda activate` fails; prefix the env's bin.

@@ -91,6 +91,22 @@
                 }
             }
         },
+        "scrna_arm_options": {
+            "title": "scRNA arm options",
+            "type": "object",
+            "fa_icon": "fas fa-dna",
+            "description": "Options for quantifying the scRNA arm with STARsolo.",
+            "properties": {
+                "solo_features": {
+                    "type": "string",
+                    "default": "GeneFull",
+                    "enum": ["Gene", "GeneFull", "GeneFull_ExonOverIntron", "GeneFull_Ex50pAS", "SJ", "Velocyto"],
+                    "description": "Genomic feature STARsolo counts UMIs against.",
+                    "help_text": "`GeneFull` counts reads overlapping a gene's introns as well as its exons. This is Tn5-derived multiome material, where intronic reads are a large fraction of real signal, so exon-only `Gene` counting discards most of it. `Gene` is always produced in addition to whatever is asked for here, because the report and the per-arm run summary are read off it.",
+                    "fa_icon": "fas fa-layer-group"
+                }
+            }
+        },
         "reference_genome_options": {
             "title": "Reference genome options",
             "type": "object",
@@ -110,8 +126,26 @@
                     "mimetype": "text/plain",
                     "pattern": "^\\S+\\.fn?a(sta)?(\\.gz)?$",
                     "description": "Path to FASTA genome file.",
-                    "help_text": "This parameter is *mandatory* if `--genome` is not specified. If you don't have a BWA index available this will be generated for you automatically. Combine with `--save_reference` to save BWA index for future runs.",
+                    "help_text": "Required alongside `--gtf` whenever neither `--genome` nor `--star_index` is given: the scRNA arm builds its STAR index from the two of them.",
                     "fa_icon": "far fa-file-code"
+                },
+                "gtf": {
+                    "type": "string",
+                    "format": "file-path",
+                    "exists": true,
+                    "mimetype": "text/plain",
+                    "pattern": "^\\S+\\.gtf(\\.gz)?$",
+                    "description": "Path to GTF gene annotation file.",
+                    "help_text": "Required alongside `--fasta` whenever `--star_index` is not given: STARsolo can only assign a read to a gene against an annotation, and that annotation is baked into the index as it is built.",
+                    "fa_icon": "fas fa-code-branch"
+                },
+                "star_index": {
+                    "type": "string",
+                    "format": "path",
+                    "exists": true,
+                    "description": "Path to a prebuilt STAR index directory.",
+                    "help_text": "Skips index building for the scRNA arm. The index must have been built from the annotation you intend to count against, since STARsolo reads that annotation out of the index rather than off `--gtf`.",
+                    "fa_icon": "fas fa-bezier-curve"
                 },
                 "igenomes_ignore": {
                     "type": "boolean",
@@ -289,6 +323,9 @@
         },
         {
             "$ref": "#/$defs/arm_gate_options"
+        },
+        {
+            "$ref": "#/$defs/scrna_arm_options"
         },
         {
             "$ref": "#/$defs/reference_genome_options"

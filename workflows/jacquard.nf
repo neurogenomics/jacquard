@@ -5,6 +5,7 @@
 */
 include { CARMACK_READPREP       } from '../subworkflows/local/carmack_readprep/main'
 include { ARM_FANOUT             } from '../subworkflows/local/arm_fanout/main'
+include { SCRNA_ARM              } from '../subworkflows/local/scrna_arm/main'
 include { MULTIQC                } from '../modules/nf-core/multiqc/main'
 include { paramsSummaryMap       } from 'plugin/nf-schema'
 include { paramsSummaryMultiqc   } from '../subworkflows/nf-core/utils_nfcore_pipeline'
@@ -22,6 +23,9 @@ workflow JACQUARD {
     take:
     ch_samplesheet // channel: samplesheet read in from --input
     chemistry      //   value: name of the carmack chemistry describing the read layout
+    fasta          //   value: genome FASTA, used to build a STAR index when none is given
+    gtf            //   value: gene annotation GTF, used to build a STAR index when none is given
+    star_index     //   value: prebuilt STAR index, or null to build one
     multiqc_config
     multiqc_logo
     multiqc_methods_description
@@ -51,6 +55,18 @@ workflow JACQUARD {
     )
     ch_versions = ch_versions.mix(ARM_FANOUT.out.versions)
     ch_multiqc_files = ch_multiqc_files.mix(ARM_FANOUT.out.multiqc_files)
+
+    //
+    // SUBWORKFLOW: QC and quantify every scRNA arm that cleared the gate
+    //
+    SCRNA_ARM(
+        ARM_FANOUT.out.scrna,
+        fasta,
+        gtf,
+        star_index,
+    )
+    ch_versions = ch_versions.mix(SCRNA_ARM.out.versions)
+    ch_multiqc_files = ch_multiqc_files.mix(SCRNA_ARM.out.multiqc_files)
 
     //
     // Collate and save software versions
