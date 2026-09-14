@@ -33,7 +33,7 @@ def armMeta(Map meta, String tgidx) {
 // Read the per-target read counts prepare-reads recorded for a sample.
 //
 def targetCounts(Map meta, Path stats_json) {
-    def distribution = new groovy.json.JsonSlurper().parseText(stats_json.text)?.target_distribution?.data
+    def distribution = new groovy.json.JsonSlurper().parseText(stats_json.text)?.data
     // Keyed by the prefix prepare-reads ran under, which is `meta.id` unless `ext.prefix` overrides it.
     // Looked up with containsKey rather than an elvis, because an empty map is falsy in Groovy and
     // would fall through to the single-key fallback instead of reaching the error below.
@@ -75,7 +75,7 @@ workflow ARM_FANOUT {
     take:
     ch_scrna        // channel: [ val(meta), path(r1), path(r2), path(barcodes) ]
     ch_sctip        // channel: [ val(meta), [ path(fastq) ] ]
-    ch_stats_json   // channel: [ val(meta), path(prepare_stats_mqc.json) ]
+    ch_stats_json   // channel: [ val(meta), path(prepare_target_distribution_mqc.json) ]
     min_arm_reads   //   value: reads an arm must carry to proceed
     fail_on_no_arms //   value: stop the run when a sample has no arm left
     outdir          //   value: pipeline output directory

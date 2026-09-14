@@ -22,9 +22,9 @@ input:
   - ch_stats_json:
       type: file
       description: |
-        prepare-reads' MultiQC custom-content report. Its `target_distribution.data.<prefix>` map is
+        prepare-reads' output-arm distribution as MultiQC custom content. Its `data.<prefix>` map is
         both the detected arm set and the read count each arm carries, so the two cannot disagree.
-        Structure: [ val(meta), path("*.prepare_stats_mqc.json") ]
+        Structure: [ val(meta), path("*.prepare_target_distribution_mqc.json") ]
   - min_arm_reads:
       type: integer
       description: Reads an arm must carry to proceed; an arm below it is dropped, warned about, and leaves its sibling arms untouched

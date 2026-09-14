@@ -69,11 +69,12 @@ workflow CARMACK_READPREP {
     CARMACK_PREPAREREADS(ch_prepare, chemistry)
 
     // The arm fan-out reads its candidate arms and their read counts out of prepare-reads' own
-    // MultiQC report, so that report is emitted with its meta as well as mixed in below.
+    // output-arm distribution, so that one payload is emitted with its meta as well as mixed in
+    // below. prepare-reads writes a file per payload, so it has to be picked out by name.
     def ch_stats_json = CARMACK_PREPAREREADS.out.multiqc.map { meta, files ->
-        def stats_json = files.find { mqc_file -> mqc_file.name.endsWith('.prepare_stats_mqc.json') }
+        def stats_json = files.find { mqc_file -> mqc_file.name.endsWith('.prepare_target_distribution_mqc.json') }
         if (!stats_json) {
-            error("Sample '${meta.id}': prepare-reads wrote no *.prepare_stats_mqc.json.")
+            error("Sample '${meta.id}': prepare-reads wrote no *.prepare_target_distribution_mqc.json.")
         }
         [ meta, stats_json ]
     }
@@ -91,7 +92,7 @@ workflow CARMACK_READPREP {
     scrna         = CARMACK_PREPAREREADS.out.scrna   // channel: [ val(meta), path(r1), path(r2), path(barcodes) ]
     sctip         = CARMACK_PREPAREREADS.out.sctip   // channel: [ val(meta), [ path(fastq) ] ] — empty unless the chemistry whitelists target indices
     stats         = CARMACK_PREPAREREADS.out.stats   // channel: [ val(meta), path(prepare_stats.txt) ]
-    stats_json    = ch_stats_json                    // channel: [ val(meta), path(prepare_stats_mqc.json) ]
+    stats_json    = ch_stats_json                    // channel: [ val(meta), path(prepare_target_distribution_mqc.json) ]
     targets       = CARMACK_PREPAREREADS.out.targets // channel: [ val(meta), path(detected_targets.txt) ]
     multiqc_files = ch_multiqc_files                 // channel: path(mqc_file)
     versions      = ch_versions                      // channel: [ path(versions.yml) ]

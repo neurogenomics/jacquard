@@ -40,13 +40,13 @@ output:
   - stats_json:
       type: file
       description: |
-        The same dispatch report as MultiQC custom content; its `target_distribution` carries the
-        per-arm read counts the arm fan-out gates on.
-        Structure: [ val(meta), path("*.prepare_stats_mqc.json") ]
+        prepare-reads' per-arm read counts as MultiQC custom content; the map the arm fan-out
+        gates on.
+        Structure: [ val(meta), path("*.prepare_target_distribution_mqc.json") ]
   - targets:
       type: file
       description: |
-        One line per arm that received at least one read.
+        One tab-separated `<tgidx>\t<reads>` line per arm that received at least one read.
         Structure: [ val(meta), path("*.detected_targets.txt") ]
   - multiqc_files:
       type: file

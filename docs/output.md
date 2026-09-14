@@ -33,13 +33,13 @@ pipeline_info/
 - `carmack/preparereads/<sample>/`
   - `scrna/*.none.{r1,r2,barcodes}.fastq.gz`: the scRNA arm's cDNA pair plus the synthesized corrected-barcode-and-UMI read.
   - `sctip/*.<tgidx>.r{1,2}.fastq.gz`: one read pair per target index.
-  - `*.detected_targets.txt`, `*.prepare_stats.txt`, `*.prepare_stats_mqc.json`.
+  - `*.detected_targets.txt`, `*.prepare_stats.txt`, and one `*_mqc.json` per MultiQC payload.
 
 </details>
 
 Only R1 goes through the chain — it carries the barcode, UMI and target index — and the raw R2 rejoins it at `prepare-reads`.
 
-`detected_targets.txt` lists every target index that received a read, plus `NONE`, and is published for the record. Nothing downstream reads it: the arm fan-out and the gate both take their arms **and** their read counts from `prepare_stats_mqc.json`, so the two can never disagree.
+`detected_targets.txt` gives every target index that received a read, plus `NONE`, one `<tgidx>\t<reads>` line each, and is published for the record. Nothing downstream reads it: the arm fan-out and the gate both take their arms **and** their read counts from `prepare_target_distribution_mqc.json`, so the two can never disagree.
 
 ### Arm gate
 
@@ -100,8 +100,9 @@ The aligned BAM is not published — it is superseded by the sort and the retagg
 
 [MultiQC](http://multiqc.info) is a visualization tool that generates a single HTML report summarising all samples in your project. The report carries one FastQC row per raw read file and per arm, the arm-gate table, and the bowtie2, `umi_tools` and `samtools stats` logs, alongside the software versions used by the run.
 
-> [!NOTE]
-> carmack's own `*_mqc.json` files are published under `carmack/` but do not yet reach the report — MultiQC drops them silently. Tracked upstream as [carmack#95](https://github.com/crick-pipelines-stp/carmack/issues/95).
+carmack's own `*_mqc.json` payloads reach the report too, gathered under one **Carmack** section and ordered as the reads pass through the stages — barcode extraction, UMI extraction, target assignment, prepare-reads — rather than alphabetically, which is what the `report_section_order` block in `assets/multiqc_config.yml` is for. Each stage also contributes its headline percentages to the General Statistics table.
+
+Prepare-reads' own section is the **Prepare Reads Output Arm Distribution** bargraph: one bar per output arm, a category per scTIP target bucket plus `NONE` for the scRNA arm, so the categories partition every read the run saw. It is the same distribution the arm fan-out gates on, which makes it the fastest place to see why an arm was dropped.
 
 ### Pipeline information
 

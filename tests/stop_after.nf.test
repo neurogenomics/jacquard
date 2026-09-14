@@ -121,10 +121,20 @@ nextflow_pipeline {
                 { assert versions == [ 'CARMACK_ASSIGNTARGETS:', 'CARMACK_EXTRACTBARCODES:', 'CARMACK_EXTRACTUMIS:', 'CARMACK_PREPAREREADS:', 'FASTQC:', 'Workflow:' ] },
                 // Read preparation ran to the end, so both arms were detected — and the gate that
                 // would have acted on them did not run, leaving no record and no report section.
-                { assert path("$outputDir/carmack/preparereads/SK609/SK609.detected_targets.txt").readLines() == [ 'NONE', 'TATAGCCT' ] },
+                { assert path("$outputDir/carmack/preparereads/SK609/SK609.detected_targets.txt").readLines() == [
+                    'NONE\t6229',
+                    'TATAGCCT\t13332',
+                ] },
                 { assert !path("$outputDir/pipeline_info/arm_gate.tsv").exists() },
                 { assert !path("$outputDir/multiqc/multiqc_data/multiqc_arm_gate_table.txt").exists() },
-                { assert path("$outputDir/multiqc/multiqc_report.html").exists() }
+                { assert path("$outputDir/multiqc/multiqc_report.html").exists() },
+                // The last stage to run is the one whose section the report must carry, with the
+                // scRNA arm as a category of its own; the gate's own table above is absent, so this
+                // is the only place the arm counts reach the report on this run.
+                { assert path("$outputDir/multiqc/multiqc_data/multiqc_carmack_prepare_target_distribution_plot.txt").readLines() == [
+                    'Sample\tTATAGCCT\tNONE',
+                    'SK609\t13332\t6229',
+                ] }
             )
         }
     }

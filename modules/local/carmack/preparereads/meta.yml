@@ -72,7 +72,7 @@ output:
             Groovy Map containing sample information, e.g. `[ id:'sample1' ]`
       - "*.detected_targets.txt":
           type: file
-          description: One line per arm that received at least one read
+          description: One tab-separated `<tgidx>\t<reads>` line per arm that received at least one read
           pattern: "*.detected_targets.txt"
   multiqc:
     - - meta:
@@ -81,7 +81,7 @@ output:
             Groovy Map containing sample information, e.g. `[ id:'sample1' ]`
       - "*_mqc.json":
           type: file
-          description: MultiQC custom-content payload for the dispatch summary
+          description: One MultiQC custom-content payload per file, named after the payload it carries
           pattern: "*_mqc.json"
   versions_carmack:
     - - "${task.process}":

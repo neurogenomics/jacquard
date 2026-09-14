@@ -75,12 +75,16 @@ nextflow_process {
         }
 
         then {
-            def stats_mqc = process.out.multiqc[0][1].find { it.endsWith('umi_stats_mqc.json') }
+            def stats_mqc = process.out.multiqc[0][1].find { it.endsWith('umi_general_stats_mqc.json') }
             assertAll(
                 { assert process.success },
                 { assert process.out.reads[0][1] ==~ /.*\/renamed\.r1_umi\.fastq\.gz$/ },
                 { assert process.out.stats[0][1] ==~ /.*\/renamed\.umi_stats\.txt$/ },
-                { assert process.out.multiqc[0][1].collect { file(it).name } == [ 'renamed.umi_anchor_run_mqc.json', 'renamed.umi_stats_mqc.json' ] },
+                { assert process.out.multiqc[0][1].collect { file(it).name } == [
+                    'renamed.umi_anchor_run_mqc.json',
+                    'renamed.umi_breakdown_mqc.json',
+                    'renamed.umi_general_stats_mqc.json',
+                ] },
                 // The prefix is also the MultiQC sample key, which is the reason it must not drift.
                 { assert path(stats_mqc).text.contains('"renamed"') }
             )
