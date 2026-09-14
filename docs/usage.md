@@ -57,11 +57,17 @@ parameters specific to this pipeline are below.
 | `--min_arm_reads`   | `1000`  | Reads an arm must carry to be processed. An arm below the threshold is dropped, not failed — see [Arm gate](output.md#arm-gate). |
 | `--fail_on_no_arms` | `false` | Fail the run when every arm of a sample falls below `--min_arm_reads`, instead of dropping that sample and continuing.           |
 
+`--fail_on_no_arms` does not fail fast. A sample's verdict is only complete once its read preparation
+has finished, and the check waits for every sample to reach that point, by which time arms that
+cleared the gate earlier may already be aligning. Expect it to abort a run partway through rather
+than before any alignment work starts; what it buys you is that the failure is reported rather than
+left as a sample quietly missing from the results.
+
 ### scRNA arm
 
 | Parameter         | Default    | Description                                                                                                                                                                                    |
 | ----------------- | ---------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `--solo_features` | `GeneFull` | Feature STARsolo counts UMIs against. `GeneFull` counts intronic reads too, which are a large fraction of real signal in Tn5-derived multiome material. `Gene` is always counted alongside it. |
+| `--solo_features` | `GeneFull` | Features STARsolo counts UMIs against, space-separated — one or more of `Gene`, `GeneFull`, `GeneFull_ExonOverIntron`, `GeneFull_Ex50pAS`, `SJ`, `Velocyto`, one count matrix each. `GeneFull` counts intronic reads too, which are a large fraction of real signal in Tn5-derived multiome material. `Gene` is always counted alongside whatever is asked for. |
 
 ### References
 

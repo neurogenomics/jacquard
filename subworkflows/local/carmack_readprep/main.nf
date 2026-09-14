@@ -71,7 +71,7 @@ workflow CARMACK_READPREP {
     // The arm fan-out reads its candidate arms and their read counts out of prepare-reads' own
     // MultiQC report, so that report is emitted with its meta as well as mixed in below.
     def ch_stats_json = CARMACK_PREPAREREADS.out.multiqc.map { meta, files ->
-        def stats_json = files.find { it.name.endsWith('.prepare_stats_mqc.json') }
+        def stats_json = files.find { mqc_file -> mqc_file.name.endsWith('.prepare_stats_mqc.json') }
         if (!stats_json) {
             error("Sample '${meta.id}': prepare-reads wrote no *.prepare_stats_mqc.json.")
         }

@@ -66,15 +66,13 @@ jobs:
       fail-fast: false
       matrix:
         shard: ${{ fromJson(needs.nf-test-changes.outputs.shard) }}
-        profile: [conda, docker, singularity]
-        isMain:
-          - ${{ github.base_ref == 'master' || github.base_ref == 'main' }}
-        # Exclude conda and singularity on dev
-        exclude:
-          - isMain: false
-            profile: "conda"
-          - isMain: false
-            profile: "singularity"
+        # docker only, deliberately. Every carmack-dependent local module declares
+        # `ghcr.io/crick-pipelines-stp/carmack:local` and no `conda` directive, and that tag exists
+        # only in a local docker daemon (built by `just carmack-image`). A conda shard would run
+        # carmack off the host PATH and a singularity shard would try to pull a tag that was never
+        # pushed, so both go red on every run. Restoring them is issue #10, which owns building and
+        # publishing the carmack image in CI.
+        profile: [docker]
         NXF_VER:
           - "25.10.4"
           - "latest-everything"

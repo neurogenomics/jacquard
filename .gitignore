@@ -2,6 +2,7 @@
 work/
 .nf-test/
 .nf-test.log
+.nf-test-*.nf
 data/
 !tests/data/
 results/

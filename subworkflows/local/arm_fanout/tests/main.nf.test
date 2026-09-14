@@ -26,6 +26,8 @@ nextflow_workflow {
                         ],
                     ])
                     input[1] = 'carmack_custom_seq_1_0'
+                    // Read preparation is setup here, not the thing under test, so it is given every stage.
+                    input[2] = [ 'barcodes', 'umis', 'targets', 'readprep', 'gate', 'arms' ]
                     """
                 }
             }
@@ -115,6 +117,7 @@ nextflow_workflow {
                         ],
                     ])
                     input[1] = 'carmack_custom_seq_1_0'
+                    input[2] = [ 'barcodes', 'umis', 'targets', 'readprep', 'gate', 'arms' ]
                     """
                 }
             }
@@ -172,6 +175,7 @@ nextflow_workflow {
                         ],
                     ])
                     input[1] = 'carmack_custom_seq_1_0'
+                    input[2] = [ 'barcodes', 'umis', 'targets', 'readprep', 'gate', 'arms' ]
                     """
                 }
             }
@@ -228,6 +232,7 @@ nextflow_workflow {
                         ],
                     ])
                     input[1] = 'carmack_custom_seq_1_0'
+                    input[2] = [ 'barcodes', 'umis', 'targets', 'readprep', 'gate', 'arms' ]
                     """
                 }
             }
@@ -285,6 +290,7 @@ nextflow_workflow {
                         ],
                     )
                     input[1] = 'carmack_custom_seq_1_0'
+                    input[2] = [ 'barcodes', 'umis', 'targets', 'readprep', 'gate', 'arms' ]
                     """
                 }
             }
@@ -369,6 +375,7 @@ nextflow_workflow {
                         ],
                     ])
                     input[1] = 'carmack_custom_seq_1_0'
+                    input[2] = [ 'barcodes', 'umis', 'targets', 'readprep', 'gate', 'arms' ]
                     """
                 }
             }
@@ -398,6 +405,57 @@ nextflow_workflow {
                 { assert workflow.out.sctip.size() == 0 },
                 { assert Fixtures.warnings("$workDir").contains("Sample 'SK609SCRNA': prepare-reads assigned no read to a target index, so this is a pure scRNA run.") },
                 { assert snapshot(path(workflow.out.gate_tsv[0]).text).match() }
+            )
+        }
+    }
+
+    test("SK609 - a passing arm whose bucket files are missing fails the run") {
+
+        tag "arm_fanout_missing_bucket"
+
+        setup {
+            run("CARMACK_READPREP") {
+                script "../../carmack_readprep/main.nf"
+                workflow {
+                    """
+                    input[0] = channel.of([
+                        [ id:'SK609' ],
+                        [
+                            file("${baseDir}/tests/data/SK609_L5_R1.fastq.gz", checkIfExists: true),
+                            file("${baseDir}/tests/data/SK609_L5_R2.fastq.gz", checkIfExists: true),
+                        ],
+                    ])
+                    input[1] = 'carmack_custom_seq_1_0'
+                    input[2] = [ 'barcodes', 'umis', 'targets', 'readprep', 'gate', 'arms' ]
+                    """
+                }
+            }
+        }
+
+        when {
+            params {
+                outdir = "$outputDir"
+            }
+            workflow {
+                """
+                input[0] = CARMACK_READPREP.out.scrna
+                // The bucket files are emptied on the way in, standing in for a carmack release that
+                // renames them past the pattern this subworkflow matches on. The target distribution
+                // is untouched, so TATAGCCT is still detected and still recorded PASS — which is the
+                // state that used to leave the arm silently unprocessed and the run exiting 0.
+                input[1] = CARMACK_READPREP.out.sctip.map { meta, _fastqs -> [ meta, [] ] }
+                input[2] = CARMACK_READPREP.out.stats_json
+                input[3] = 1000
+                input[4] = false
+                input[5] = "${outputDir}"
+                """
+            }
+        }
+
+        then {
+            assertAll(
+                { assert workflow.failed },
+                { assert workflow.stdout.join('\n').contains("Arm 'SK609.TATAGCCT' cleared the gate, but prepare-reads left no read pair named for target index 'TATAGCCT' of sample 'SK609'.") }
             )
         }
     }

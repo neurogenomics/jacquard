@@ -72,9 +72,9 @@ workflow SCTIP_ARM {
         ch_index = BOWTIE2_BUILD.out.index
     }
 
-    // Forced to a value channel rather than left to Nextflow's singleton inference. One index
-    // serves every arm, and an index channel inferred to be a queue hands it to the first arm and
-    // leaves every later one waiting on a channel that has already emitted — a hang, not an error.
+    // Every input either branch took was a value channel, so the index is one too and already
+    // serves more than one arm. The `first()` says that outright instead of leaving a reader of
+    // either branch to work it out from singleton inference.
     ch_index = ch_index.first()
 
     //

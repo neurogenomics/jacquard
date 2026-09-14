@@ -25,6 +25,8 @@ nextflow_workflow {
                         ],
                     ])
                     input[1] = 'carmack_custom_seq_1_0'
+                    // Read preparation is setup here, not the thing under test, so it is given every stage.
+                    input[2] = [ 'barcodes', 'umis', 'targets', 'readprep', 'gate', 'arms' ]
                     """
                 }
             }

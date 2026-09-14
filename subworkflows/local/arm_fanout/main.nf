@@ -110,30 +110,6 @@ workflow ARM_FANOUT {
         [ meta, reads, status ]
     }
 
-    //
-    // Sample-level messages, once per sample. A sample with nothing left is absent from both arm
-    // channels rather than an abort, unless --fail_on_no_arms says otherwise.
-    //
-    def ch_samples = ch_verdict
-        .map { meta, reads, status -> [ meta.sample, [ arm: meta.arm, tgidx: meta.tgidx, reads: reads, status: status ] ] }
-        .groupTuple()
-        .map { sample, arms ->
-            // A detected set of {NONE} alone is a pure scRNA library, not an error. The scRNA arm has
-            // to carry reads of its own for that to be the diagnosis: a sample where every arm is
-            // empty is a failed library, and the rollup below is the message it should get.
-            if (arms.any { it.arm == 'scrna' && it.reads > 0 } && arms.every { it.arm == 'scrna' || it.reads == 0 }) {
-                log.warn("Sample '${sample}': prepare-reads assigned no read to a target index, so this is a pure scRNA run.")
-            }
-            if (arms.every { it.status == 'FAIL' }) {
-                def detail = arms.collect { "${it.tgidx}=${it.reads}" }.sort().join(', ')
-                if (fail_on_no_arms) {
-                    error("Sample '${sample}' has no arm meeting --min_arm_reads ${min_arm_reads} (${detail}), and --fail_on_no_arms is set.")
-                }
-                log.warn("Sample '${sample}' has no arm meeting --min_arm_reads ${min_arm_reads} (${detail}); the sample is dropped and the run continues.")
-            }
-            [ sample, arms ]
-        }
-
     def ch_gated = ch_verdict.branch { _meta, _reads, status ->
         pass: status == 'PASS'
         fail: true
@@ -142,14 +118,27 @@ workflow ARM_FANOUT {
     //
     // Each arm's files are joined onto its verdict, so a dropped arm is simply a key with no
     // partner: it reaches no process, and neither the sample's other arms nor any other sample
-    // notice. Nothing here can fail a task, which is what keeps one bad library from discarding
-    // the completed work of a large run.
+    // notice. A gate FAIL can therefore never fail a task, which is what keeps one bad library from
+    // discarding the completed work of a large run.
+    //
+    // `remainder: true` is what keeps the two unmatched directions apart. Files with no verdict are
+    // the gate doing its job and are dropped here. A PASS verdict with no files is the opposite —
+    // carmack accounted for an arm and then wrote nothing this side could name, which a renamed
+    // bucket would cause — so it aborts rather than silently emptying the arm while `arm_gate.tsv`
+    // goes on saying PASS. `failOnMismatch` cannot express that, since it would fire on the gate's
+    // own drops too.
     //
     def ch_scrna_arm = ch_gated.pass
         .filter { meta, _reads, _status -> meta.arm == 'scrna' }
         .map { meta, _reads, _status -> [ meta.sample, meta ] }
-        .join(ch_scrna.map { meta, r1, r2, barcodes -> [ meta.id, [ r1, r2, barcodes ] ] }, failOnDuplicate: true)
-        .map { _sample, meta, files -> [ meta, files[0], files[1], files[2] ] }
+        .join(ch_scrna.map { meta, r1, r2, barcodes -> [ meta.id, [ r1, r2, barcodes ] ] }, failOnDuplicate: true, remainder: true)
+        .filter { _sample, meta, _files -> meta != null }
+        .map { _sample, meta, files ->
+            if (!files) {
+                error("Arm '${meta.id}' cleared the gate, but prepare-reads left no scRNA read files for sample '${meta.sample}'.")
+            }
+            [ meta, files[0], files[1], files[2] ]
+        }
 
     // prepare-reads names each bucket `<prefix>.<TGIDX>.r{1,2}.fastq.gz`; the target index is read
     // back off the file name, after the read-type suffix, so a prefix containing dots still parses.
@@ -157,23 +146,52 @@ workflow ARM_FANOUT {
         [ fastqs ].flatten()
             .findAll { fastq -> fastq.name ==~ /.*\.r[12]\.fastq\.gz$/ }
             .groupBy { fastq -> fastq.name.replaceAll(/\.[^.]+\.fastq\.gz$/, '').tokenize('.').last() }
-            .collect { tgidx, reads -> [ [ meta.id, tgidx ], reads.sort { it.name } ] }
+            .collect { tgidx, pair -> [ [ meta.id, tgidx ], pair.sort { fastq -> fastq.name } ] }
     }
 
     def ch_sctip_arm = ch_gated.pass
         .filter { meta, _reads, _status -> meta.arm == 'sctip' }
         .map { meta, _reads, _status -> [ [ meta.sample, meta.tgidx ], meta ] }
-        .join(ch_sctip_pairs, failOnDuplicate: true)
-        .map { _key, meta, reads -> [ meta, reads ] }
+        .join(ch_sctip_pairs, failOnDuplicate: true, remainder: true)
+        .filter { _key, meta, _fastqs -> meta != null }
+        .map { _key, meta, fastqs ->
+            if (!fastqs) {
+                error("Arm '${meta.id}' cleared the gate, but prepare-reads left no read pair named for target index '${meta.tgidx}' of sample '${meta.sample}'.")
+            }
+            [ meta, fastqs ]
+        }
 
     //
     // Two sinks, one verdict: the run record under `pipeline_info` and a MultiQC custom-content
     // table. Both are sorted and written whole, so an empty run still leaves a header behind.
     //
+    // The sample-level messages ride on the run record rather than on a channel of their own. They
+    // need the same per-sample rollup the record's rows do, and putting them on a chain that ends in
+    // a published file keeps --fail_on_no_arms out of reach of anyone tidying away an emit nothing
+    // consumes. groupTuple cannot be given a `size:` — a sample's arm count is only known once its
+    // prepare-reads has run — so it holds every sample until the last one is ready: --fail_on_no_arms
+    // aborts a run whose other samples' arms are already aligning, rather than failing fast.
     def ch_gate_tsv = ch_verdict
-        .map { meta, reads, status -> [ meta.sample, meta.arm, meta.tgidx, reads, min_arm_reads, status ].join('\t') }
+        .map { meta, reads, status -> [ meta.sample, [ arm: meta.arm, tgidx: meta.tgidx, reads: reads, status: status ] ] }
+        .groupTuple()
+        .map { sample, arms ->
+            // A detected set of {NONE} alone is a pure scRNA library, not an error. The scRNA arm has
+            // to carry reads of its own for that to be the diagnosis: a sample where every arm is
+            // empty is a failed library, and the rollup below is the message it should get.
+            if (arms.any { arm -> arm.arm == 'scrna' && arm.reads > 0 } && arms.every { arm -> arm.arm == 'scrna' || arm.reads == 0 }) {
+                log.warn("Sample '${sample}': prepare-reads assigned no read to a target index, so this is a pure scRNA run.")
+            }
+            if (arms.every { arm -> arm.status == 'FAIL' }) {
+                def detail = arms.collect { arm -> "${arm.tgidx}=${arm.reads}" }.sort().join(', ')
+                if (fail_on_no_arms) {
+                    error("Sample '${sample}' has no arm meeting --min_arm_reads ${min_arm_reads} (${detail}), and --fail_on_no_arms is set.")
+                }
+                log.warn("Sample '${sample}' has no arm meeting --min_arm_reads ${min_arm_reads} (${detail}); the sample is dropped and the run continues.")
+            }
+            arms.collect { arm -> [ sample, arm.arm, arm.tgidx, arm.reads, min_arm_reads, arm.status ].join('\t') }
+        }
         .toList()
-        .map { rows -> ([ [ 'sample', 'arm', 'tgidx', 'reads', 'threshold', 'status' ].join('\t') ] + rows.sort()).join('\n') + '\n' }
+        .map { rows -> ([ [ 'sample', 'arm', 'tgidx', 'reads', 'threshold', 'status' ].join('\t') ] + rows.flatten().sort()).join('\n') + '\n' }
         .collectFile(name: 'arm_gate.tsv', storeDir: "${outdir}/pipeline_info")
 
     def ch_gate_mqc = ch_verdict
@@ -186,7 +204,6 @@ workflow ARM_FANOUT {
     scrna         = ch_scrna_arm // channel: [ val(meta), path(r1), path(r2), path(barcodes) ]
     sctip         = ch_sctip_arm // channel: [ val(meta), [ path(r1), path(r2) ] ]
     gate          = ch_verdict   // channel: [ val(meta), val(reads), val(status) ]
-    samples       = ch_samples   // channel: [ val(sample), [ val(arm verdict) ] ]
     gate_tsv      = ch_gate_tsv  // channel: path(arm_gate.tsv)
     multiqc_files = ch_gate_mqc  // channel: path(arm_gate_mqc.tsv)
     versions      = ch_versions  // channel: [ path(versions.yml) ]

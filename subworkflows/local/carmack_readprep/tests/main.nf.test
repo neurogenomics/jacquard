@@ -25,6 +25,9 @@ nextflow_workflow {
                     ],
                 ])
                 input[1] = 'carmack_custom_seq_1_0'
+                // Every stage, which is what an unset --stop_after resolves to. The truncating cases are
+                // covered at pipeline level in tests/stop_after.nf.test.
+                input[2] = [ 'barcodes', 'umis', 'targets', 'readprep', 'gate', 'arms' ]
                 """
             }
         }
@@ -140,6 +143,7 @@ nextflow_workflow {
                     ],
                 )
                 input[1] = 'carmack_custom_seq_1_0'
+                input[2] = [ 'barcodes', 'umis', 'targets', 'readprep', 'gate', 'arms' ]
                 """
             }
         }
@@ -195,6 +199,7 @@ nextflow_workflow {
                     [ file("${baseDir}/tests/data/SK609_L5_R1.fastq.gz", checkIfExists: true) ],
                 ])
                 input[1] = 'carmack_custom_seq_1_0'
+                input[2] = [ 'barcodes', 'umis', 'targets', 'readprep', 'gate', 'arms' ]
                 """
             }
         }
@@ -229,6 +234,7 @@ nextflow_workflow {
                     ],
                 ])
                 input[1] = 'carmack_custom_seq_1_0'
+                input[2] = [ 'barcodes', 'umis', 'targets', 'readprep', 'gate', 'arms' ]
                 """
             }
         }
