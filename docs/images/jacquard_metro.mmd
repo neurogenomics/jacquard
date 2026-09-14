@@ -1,0 +1,114 @@
+%%metro title: neurogenomics/jacquard
+%%metro caption: scMultiome read preparation, gated arm fan-out and alignment
+%%metro style: nfcore
+%%metro legend: bl
+
+%%metro line: prep  | Read preparation (every read)               | #2db572
+%%metro line: scrna | scRNA arm — TGIDX=NONE → STARsolo           | #ff8c00
+%%metro line: sctip | scTIP arms — one per target index → bowtie2 | #3f8efc
+%%metro line: qc    | QC & reporting                              | #9aa0a6 | dashed
+
+%%metro files: input_in   | FASTQ      | Samplesheet + reads
+%%metro files: prep_out   | FASTQ      | Per-arm reads | banner
+%%metro file:  gate_out   | TSV        | arm_gate.tsv
+%%metro file:  star_fasta | FASTA      | Reference
+%%metro file:  star_gtf   | GTF        | Annotation
+%%metro file:  bt2_fasta  | FASTA      | Reference
+%%metro dir:   solo_out   | Solo.out   | Count matrices
+%%metro files: dedup_out  | BAM        | Deduplicated | banner
+%%metro file:  report_out | HTML       | MultiQC report
+%%metro off_track: prep_out, gate_out, star_fasta, star_gtf, bt2_fasta, dedup_out
+
+%%metro marker: arm_gate | square, #e63946
+%%metro marker_legend: square, #e63946 | Gate — an arm below params.min_arm_reads is dropped; the other arms continue
+
+%%metro grid: scrna_arm, reporting | 2,0
+%%metro grid: sctip_arm | 2,1
+
+%%metro process_scope: NEUROGENOMICS_JACQUARD:JACQUARD
+%%metro process: fastqc_raw       | CARMACK_READPREP:FASTQC
+%%metro process: extract_barcodes | CARMACK_READPREP:CARMACK_EXTRACTBARCODES
+%%metro process: extract_umis     | CARMACK_READPREP:CARMACK_EXTRACTUMIS
+%%metro process: assign_targets   | CARMACK_READPREP:CARMACK_ASSIGNTARGETS
+%%metro process: prepare_reads    | CARMACK_READPREP:CARMACK_PREPAREREADS
+%%metro process: fastqc_scrna     | SCRNA_ARM:FASTQC_PREPARED
+%%metro process: star_index       | SCRNA_ARM:STAR_GENOMEGENERATE
+%%metro process: star_align       | SCRNA_ARM:STAR_STARSOLO
+%%metro process: fastqc_sctip     | SCTIP_ARM:FASTQC_PREPARED
+%%metro process: bt2_build        | SCTIP_ARM:BOWTIE2_BUILD
+%%metro process: bt2_align        | SCTIP_ARM:BOWTIE2_ALIGN
+%%metro process: tagqname         | SCTIP_ARM:SAMTOOLS_SORT
+%%metro process: tagqname         | SCTIP_ARM:TAGQNAME
+%%metro process: tagqname         | SCTIP_ARM:SAMTOOLS_INDEX_TAGGED
+%%metro process: umi_dedup        | SCTIP_ARM:UMITOOLS_DEDUP
+%%metro process: umi_dedup        | SCTIP_ARM:SAMTOOLS_INDEX_DEDUP
+%%metro process: sctip_stats      | SCTIP_ARM:SAMTOOLS_STATS
+%%metro process: multiqc          | MULTIQC
+
+graph LR
+    subgraph input[Input]
+        input_in[ ]
+    end
+
+    subgraph readprep[Pre-processing]
+        fastqc_raw[FastQC]
+        extract_barcodes[carmack extract-barcodes]
+        extract_umis[carmack extract-umis]
+        assign_targets[carmack assign-targets]
+        prepare_reads[carmack prepare-reads]
+        prep_out[ ]
+        arm_gate[Read-count gate]
+        gate_out[ ]
+        fastqc_raw -->|prep,qc| extract_barcodes
+        extract_barcodes -->|prep,qc| extract_umis
+        extract_umis -->|prep,qc| assign_targets
+        assign_targets -->|prep,qc| prepare_reads
+        prepare_reads -->|prep| prep_out
+        prepare_reads -->|prep| arm_gate
+        arm_gate -->|qc| gate_out
+    end
+
+    subgraph scrna_arm[scRNA arm]
+        fastqc_scrna[FastQC]
+        star_fasta[ ]
+        star_gtf[ ]
+        star_index[STAR genomeGenerate]
+        star_align[STARsolo]
+        solo_out[ ]
+        fastqc_scrna -->|scrna| star_align
+        star_fasta -->|scrna| star_index
+        star_gtf -->|scrna| star_index
+        star_index -->|scrna| star_align
+        star_align -->|scrna| solo_out
+    end
+
+    subgraph sctip_arm[scTIP arms]
+        fastqc_sctip[FastQC]
+        bt2_fasta[ ]
+        bt2_build[bowtie2-build]
+        bt2_align[bowtie2]
+        tagqname[QNAME → CB/UB tags]
+        umi_dedup[umi_tools dedup]
+        sctip_stats[samtools stats]
+        dedup_out[ ]
+        fastqc_sctip -->|sctip| bt2_align
+        bt2_fasta -->|sctip| bt2_build
+        bt2_build -->|sctip| bt2_align
+        bt2_align -->|sctip| tagqname
+        tagqname -->|sctip| umi_dedup
+        umi_dedup -->|sctip| sctip_stats
+        umi_dedup -->|sctip| dedup_out
+    end
+
+    subgraph reporting[Reporting]
+        multiqc[MultiQC]
+        report_out[ ]
+        multiqc -->|qc| report_out
+    end
+
+    input_in -->|prep,qc| fastqc_raw
+    prepare_reads -->|qc| multiqc
+    arm_gate -->|scrna| fastqc_scrna
+    arm_gate -->|sctip| fastqc_sctip
+    star_align -->|qc| multiqc
+    sctip_stats -->|qc| multiqc
