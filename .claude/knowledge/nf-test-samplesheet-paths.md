@@ -30,3 +30,6 @@ the committed sheet stays the single source of truth. Note `setup {}` is only va
 Related: the nf-core template's bare `data/` in `.gitignore` silently swallows `tests/data/`, so
 fixtures are never committed. `!tests/data/` un-ignores them, and `.gitignore` then needs a
 `files_unchanged` exemption in `.nf-core.yml`.
+
+Also: `prek run --all-files` only covers **git-tracked** files, so a brand-new file you have not
+`git add`ed yet is silently skipped and then fails in CI once committed. Stage before you run it.

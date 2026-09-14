@@ -2,6 +2,7 @@
 name: multiqc-report-section-order
 type: gotcha
 ---
+
 # `report_section_order` sorts ascending — lower renders earlier
 
 In MultiQC 1.35, a lower `order:` value renders **earlier**. Assuming higher-is-earlier produces an
