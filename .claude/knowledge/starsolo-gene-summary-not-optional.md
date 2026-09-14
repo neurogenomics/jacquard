@@ -2,6 +2,7 @@
 name: starsolo-gene-summary-not-optional
 type: gotcha
 ---
+
 # `--soloFeatures GeneFull` alone breaks the vendored `star/starsolo` module
 
 STARsolo writes `Solo.out/<feature>/` for each requested feature and **no `Solo.out/Gene/`** unless

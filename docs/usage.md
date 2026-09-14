@@ -65,8 +65,8 @@ left as a sample quietly missing from the results.
 
 ### scRNA arm
 
-| Parameter         | Default    | Description                                                                                                                                                                                    |
-| ----------------- | ---------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Parameter         | Default    | Description                                                                                                                                                                                                                                                                                                                                                     |
+| ----------------- | ---------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `--solo_features` | `GeneFull` | Features STARsolo counts UMIs against, space-separated — one or more of `Gene`, `GeneFull`, `GeneFull_ExonOverIntron`, `GeneFull_Ex50pAS`, `SJ`, `Velocyto`, one count matrix each. `GeneFull` counts intronic reads too, which are a large fraction of real signal in Tn5-derived multiome material. `Gene` is always counted alongside whatever is asked for. |
 
 ### References

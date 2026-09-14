@@ -67,11 +67,7 @@
                 "chemistry": {
                     "type": "string",
                     "default": "carmack_custom_seq_1_0",
-                    "enum": [
-                        "carmack_custom_seq_1_0",
-                        "carmack_custom_seq_1_0_primd",
-                        "hydrop"
-                    ],
+                    "enum": ["carmack_custom_seq_1_0", "carmack_custom_seq_1_0_primd", "hydrop"],
                     "description": "Name of the carmack chemistry describing the read structure of the library. The allowed list tracks the vendored carmack build.",
                     "help_text": "The chemistry declares the barcode, UMI and target index layout of R1, and is required by every carmack read-preparation stage. The `enum` mirrors the chemistries registered in `external/carmack/carmack/chemistry/__init__.py` at the pinned submodule, so it has to be updated alongside a carmack bump that adds one.",
                     "fa_icon": "fas fa-flask"

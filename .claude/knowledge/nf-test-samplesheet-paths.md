@@ -2,6 +2,7 @@
 name: nf-test-samplesheet-paths
 type: gotcha
 ---
+
 # Pipeline-level nf-tests need absolutised samplesheet paths
 
 nf-schema resolves a samplesheet's file fields against **launchDir**. For `nextflow run .` / `just
@@ -11,6 +12,7 @@ smoke` from the repo root that is the repo root, so the committed
 `the file or directory 'tests/data/…' does not exist`, before any process is submitted.
 
 Things that do **not** work (both verified empirically against nf-test 0.9.5):
+
 - `config { stage { symlink "tests/data" } }` in `nf-test.config` — not applied to
   `nextflow_pipeline` tests.
 - `${projectDir}` inside the CSV — config interpolation does not reach samplesheet contents.

@@ -2,6 +2,7 @@
 name: toolchain-path-noninteractive
 type: how-to
 ---
+
 # Reaching the `jac` toolchain from a non-interactive shell
 
 `conda activate jac` fails in a non-interactive shell (`CondaError: Run 'conda init' before 'conda

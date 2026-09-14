@@ -2,6 +2,7 @@
 name: nf-test-snapshot-blank-lines
 type: gotcha
 ---
+
 # Never snapshot a list of lines that can contain a blank
 
 `snapshot(file.readLines())` on a file with blank lines pulls **unrelated directory listings** into

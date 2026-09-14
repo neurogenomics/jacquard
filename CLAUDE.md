@@ -4,7 +4,7 @@ scMultiome pipeline, built on the nf-core template (tools 4.1.0).
 
 ## Environment
 
-The conda env `jac` carries the *runtime* toolchain; the uv venv `.venv` carries *Python*.
+The conda env `jac` carries the _runtime_ toolchain; the uv venv `.venv` carries _Python_.
 
 ```bash
 conda activate jac   # python 3.14, openjdk 25, nextflow 26.04.6, uv, just
@@ -17,15 +17,15 @@ by hand.
 
 ## Commands
 
-| Command | What it does |
-|---|---|
-| `just dev` | Create/refresh `.venv`, install deps + the editable `core` package |
-| `just test` | Python unit tests (`lib/core/tests`) |
-| `just lint` / `just fmt` | black + isort + ruff, check / write |
-| `just nf-lint` | `nf-core pipelines lint` |
-| `just nf-test` | nf-test suite |
-| `just smoke` | `nextflow run . -profile test,docker` |
-| `just sync` | Pull template updates into the `TEMPLATE` branch |
+| Command                  | What it does                                                       |
+| ------------------------ | ------------------------------------------------------------------ |
+| `just dev`               | Create/refresh `.venv`, install deps + the editable `core` package |
+| `just test`              | Python unit tests (`lib/core/tests`)                               |
+| `just lint` / `just fmt` | black + isort + ruff, check / write                                |
+| `just nf-lint`           | `nf-core pipelines lint`                                           |
+| `just nf-test`           | nf-test suite                                                      |
+| `just smoke`             | `nextflow run . -profile test,docker`                              |
+| `just sync`              | Pull template updates into the `TEMPLATE` branch                   |
 
 ## Layout
 

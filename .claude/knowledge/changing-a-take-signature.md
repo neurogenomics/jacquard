@@ -2,6 +2,7 @@
 name: changing-a-take-signature
 type: way-of-working
 ---
+
 # Changing a subworkflow's `take:` breaks every test that instantiates it
 
 Adding an input to a named workflow's `take:` block is a **breaking change to every `.nf.test` that

@@ -5,7 +5,10 @@ name: nf-core template version comment
 on:
   pull_request:
 
-permissions: {}
+# `contents: read` is required for the checkout below: this is a private repository, so with no
+# permissions at all the checkout has no credentials and fails with "Repository not found".
+permissions:
+  contents: read
 
 jobs:
   check_template_version:

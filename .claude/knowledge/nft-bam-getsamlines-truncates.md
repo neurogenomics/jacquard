@@ -2,6 +2,7 @@
 name: nft-bam-getsamlines-truncates
 type: gotcha
 ---
+
 # `getSamLines()` can return a partial record set under nf-test
 
 Observed with `nft-bam@0.5.0` on a paired BAM: `getSamLines()` returned **13 332 of 26 664**
@@ -12,6 +13,7 @@ So **never write a record-count assertion over a BAM** read this way — `size()
 half the truth, and the test will pass or fail for reasons unrelated to the code.
 
 Assertions that survive the truncation:
+
 - **Set equality over distinct values.** `qnames.toUnique().toSorted() == fastq_headers.toSorted()`
   is safe: if the returned set were the first half of a mate-adjacent BAM, the distinct count would
   halve and the equality would fail. It cannot pass on truncated input.

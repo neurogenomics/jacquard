@@ -2,6 +2,7 @@
 name: nextflow-26-script-params-scope
 type: gotcha
 ---
+
 # A script-level `params.x = …` in `main.nf` is invisible to included scripts
 
 Nextflow 26: assigning a param at script level in `main.nf` does **not** make it visible inside an
