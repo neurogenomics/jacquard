@@ -14,25 +14,28 @@
 
 ## Introduction
 
-**neurogenomics/jacquard** is a bioinformatics pipeline that ...
+**neurogenomics/jacquard** is a bioinformatics pipeline for scMultiome libraries that carry both a
+single-cell RNA readout and one or more scTIP target indices in the same pool. It prepares the reads with
+[`carmack`](https://github.com/crick-pipelines-stp/carmack), splits each sample into one arm per target
+index plus an scRNA arm, gates each arm on its read count, and then quantifies the scRNA arm with STARsolo
+and aligns and deduplicates every scTIP arm. It produces per-arm count matrices or deduplicated BAMs and a
+single MultiQC report over the whole run.
 
-<!-- TODO nf-core:
-   Complete this sentence with a 2-3 sentence summary of what types of data the pipeline ingests, a brief overview of the
-   major pipeline sections and the types of output it produces. You're giving an overview to someone new
-   to nf-core here, in 15-20 seconds. For an example, see https://github.com/nf-core/rnaseq/blob/master/README.md#introduction
--->
+<p align="center">
+  <img src="docs/images/jacquard_metro.svg" alt="neurogenomics/jacquard workflow" width="100%">
+</p>
 
-<!-- TODO nf-core: Include a figure that guides the user through the major workflow steps. Many nf-core
-     workflows use the "tube map" design for that. See https://nf-co.re/docs/community/brand/workflow-schematics#examples for examples.   -->
-<!-- TODO nf-core: Fill in short bullet-pointed list of the default steps in the pipeline -->1. Read QC ([`FastQC`](https://www.bioinformatics.babraham.ac.uk/projects/fastqc/))2. Present QC for raw reads ([`MultiQC`](http://multiqc.info/))
+1. Read QC ([`FastQC`](https://www.bioinformatics.babraham.ac.uk/projects/fastqc/))
+2. Barcode, UMI and target-index extraction, and per-arm read preparation ([`carmack`](https://github.com/crick-pipelines-stp/carmack))
+3. Arm fan-out and a per-arm read-count gate
+4. scRNA arm: per-arm FastQC and quantification ([`STARsolo`](https://github.com/alexdobin/STAR))
+5. scTIP arm: per-arm FastQC, alignment ([`bowtie2`](https://bowtie-bio.sourceforge.net/bowtie2/)) and per-cell deduplication ([`UMI-tools`](https://github.com/CGATOxford/UMI-tools))
+6. Aggregate report ([`MultiQC`](http://multiqc.info/))
 
 ## Usage
 
 > [!NOTE]
 > If you are new to Nextflow and nf-core, please refer to [this page](https://nf-co.re/docs/get_started/environment_setup/overview) on how to set-up Nextflow. Make sure to [test your setup](https://nf-co.re/docs/get_started/run-your-first-pipeline) with `-profile test` before running the workflow on actual data.
-
-<!-- TODO nf-core: Describe the minimum required steps to execute the pipeline, e.g. how to prepare samplesheets.
-     Explain what rows and columns represent. For instance (please edit as appropriate):
 
 First, prepare a samplesheet with your input data that looks as follows:
 
@@ -43,18 +46,17 @@ sample,fastq_1,fastq_2
 CONTROL_REP1,AEG588A1_S1_L002_R1_001.fastq.gz,AEG588A1_S1_L002_R2_001.fastq.gz
 ```
 
-Each row represents a fastq file (single-end) or a pair of fastq files (paired end).
-
--->
+Each row is one sample and one R1/R2 pair. All three columns are mandatory, and a sample may appear only
+once — see [usage.md](docs/usage.md) for the full contract.
 
 Now, you can run the pipeline using:
-
-<!-- TODO nf-core: update the following command to include all required parameters for a minimal example -->
 
 ```bash
 nextflow run neurogenomics/jacquard \
    -profile <docker/singularity/.../institute> \
    --input samplesheet.csv \
+   --fasta genome.fa \
+   --gtf genes.gtf \
    --outdir <OUTDIR>
 ```
 

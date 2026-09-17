@@ -1,6 +1,10 @@
 .nextflow*
 work/
+.nf-test/
+.nf-test.log
+.nf-test-*.nf
 data/
+!tests/data/
 results/
 .DS_Store
 testing/
@@ -11,8 +15,10 @@ null/
 
 # uv
 .venv/
+*.egg-info/
 
 # Local agent tooling - per-machine artifacts, not shared
 .serena/
 graphify-out/
 .agent-cache/
+results_test/

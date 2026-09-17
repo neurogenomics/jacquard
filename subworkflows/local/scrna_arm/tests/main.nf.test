@@ -1,0 +1,201 @@
+nextflow_workflow {
+
+    name "Test subworkflow SCRNA_ARM"
+    script "../main.nf"
+    workflow "SCRNA_ARM"
+
+    tag "subworkflows"
+    tag "subworkflows_local"
+    tag "scrna_arm"
+
+    test("SK609 - the gated NONE arm") {
+
+        tag "scrna_arm_none"
+
+        setup {
+            run("CARMACK_READPREP") {
+                script "../../carmack_readprep/main.nf"
+                workflow {
+                    """
+                    input[0] = channel.of([
+                        [ id:'SK609' ],
+                        [
+                            file("${baseDir}/tests/data/SK609_L5_R1.fastq.gz", checkIfExists: true),
+                            file("${baseDir}/tests/data/SK609_L5_R2.fastq.gz", checkIfExists: true),
+                        ],
+                    ])
+                    input[1] = 'carmack_custom_seq_1_0'
+                    // Read preparation is setup here, not the thing under test, so it is given every stage.
+                    input[2] = [ 'barcodes', 'umis', 'targets', 'readprep', 'gate', 'arms' ]
+                    """
+                }
+            }
+            run("ARM_FANOUT") {
+                script "../../arm_fanout/main.nf"
+                workflow {
+                    """
+                    input[0] = CARMACK_READPREP.out.scrna
+                    input[1] = CARMACK_READPREP.out.sctip
+                    input[2] = CARMACK_READPREP.out.stats_json
+                    input[3] = 1000
+                    input[4] = false
+                    input[5] = "${outputDir}"
+                    """
+                }
+            }
+        }
+
+        when {
+            params {
+                outdir = "$outputDir"
+            }
+            workflow {
+                """
+                input[0] = ARM_FANOUT.out.scrna
+                input[1] = params.modules_testdata_base_path + 'genomics/homo_sapiens/genome/chr21/sequence/genome.fasta'
+                input[2] = params.modules_testdata_base_path + 'genomics/homo_sapiens/genome/chr21/sequence/chr21_gencode.gtf'
+                input[3] = null
+                """
+            }
+        }
+
+        then {
+            def arm_meta = [ id:'SK609.none', sample:'SK609', arm:'scrna', tgidx:'NONE', single_end:false ]
+            def solo_out = workflow.out.counts[0][1]
+            // The matrices are gzipped and the run summary carries mapping numbers, so the tree is
+            // asserted by the names STARsolo wrote rather than by content.
+            def solo_tree = new File(solo_out).with { root ->
+                def names = []
+                root.eachFileRecurse { names << root.toPath().relativize(it.toPath()).toString() }
+                names.sort()
+            }
+
+            // The one thing the whole arm turns on: what STAR was actually told to read, in what
+            // order. carmack's `.r1` is the cDNA insert and `.barcodes` the synthesized
+            // barcode-plus-UMI record, and STARsolo takes them cDNA first.
+            def star_command = new File(solo_out).parentFile
+            def read_files_in = new File(star_command, '.command.sh')
+                .readLines()
+                .find { it.contains('--readFilesIn') }
+                .split(/\s+/)
+                .findAll { it.endsWith('.fastq.gz') }
+                .collect { it.tokenize('/').last() }
+
+            def cell_barcodes = path("${solo_out}/Gene/raw/barcodes.tsv.gz").linesGzip
+
+            // Every barcode STARsolo called, read back out of the file it was handed as the barcode
+            // read. Length alone cannot show which file that was — the 65 base cDNA read would give
+            // 30 character strings too — so each called barcode is matched to the leading 30 bases
+            // of a record in the synthesized barcodes FASTQ staged beside the command.
+            def barcode_read_prefixes = new java.util.zip.GZIPInputStream(
+                new File(star_command, 'SK609.none.barcodes.fastq.gz').newInputStream()
+            ).withReader('UTF-8') { reader ->
+                def prefixes = [] as Set
+                def position = 0
+                def line = reader.readLine()
+                while (line != null) {
+                    if (position % 4 == 1) {
+                        prefixes << line.substring(0, 30)
+                    }
+                    position++
+                    line = reader.readLine()
+                }
+                prefixes
+            }
+
+            assertAll(
+                { assert workflow.success },
+                // Every output is named off meta.id alone, with no ext.prefix anywhere, which is
+                // what keeps an arm's files and its MultiQC row spelled the same.
+                { assert workflow.out.counts[0][0] == arm_meta },
+                { assert file(workflow.out.counts[0][1]).name == 'SK609.none.Solo.out' },
+                { assert file(workflow.out.log_final[0][1]).name == 'SK609.none.Log.final.out' },
+                { assert workflow.out.multiqc_files.collect { file(it).name }.sort() == [
+                    'SK609.none.Log.final.out',
+                    'SK609.none_fastqc.zip',
+                ] },
+                { assert read_files_in == [ 'SK609.none.r1.fastq.gz', 'SK609.none.barcodes.fastq.gz' ] },
+                // The acceptance criterion itself: a Solo.out tree with a cell-by-gene matrix in it.
+                // Both feature trees are named: `GeneFull` is what --solo_features asks for and
+                // `Gene` is what the module's non-optional summary output needs to exist.
+                { assert solo_tree.containsAll([
+                    'Gene/Summary.csv',
+                    'Gene/raw/barcodes.tsv.gz',
+                    'Gene/raw/features.tsv.gz',
+                    'Gene/raw/matrix.mtx.gz',
+                    'GeneFull/Summary.csv',
+                    'GeneFull/raw/barcodes.tsv.gz',
+                    'GeneFull/raw/features.tsv.gz',
+                    'GeneFull/raw/matrix.mtx.gz',
+                ]) },
+                // The cell barcodes STARsolo actually read back, measured rather than assumed: the
+                // chemistry's three 10 base chunks make a 30 base barcode, and STAR's own 10x
+                // default of 16 would silently produce a whole matrix keyed on truncated barcodes.
+                // Emptiness is checked first: `every` over no barcode at all is vacuously true, so
+                // without this the assertion would pass on a Solo.out that called no cell.
+                { assert !cell_barcodes.isEmpty() && cell_barcodes.every { it.length() == 30 } },
+                { assert cell_barcodes.every { barcode -> barcode_read_prefixes.contains(barcode) } },
+                { assert file(workflow.out.summary[0][1]).readLines().contains('Number of Reads,6229') },
+            )
+        }
+    }
+
+    test("no arm cleared the gate") {
+
+        tag "scrna_arm_empty"
+
+        when {
+            params {
+                outdir = "$outputDir"
+            }
+            workflow {
+                """
+                input[0] = channel.empty()
+                input[1] = params.modules_testdata_base_path + 'genomics/homo_sapiens/genome/chr21/sequence/genome.fasta'
+                input[2] = params.modules_testdata_base_path + 'genomics/homo_sapiens/genome/chr21/sequence/chr21_gencode.gtf'
+                input[3] = null
+                """
+            }
+        }
+
+        then {
+            assertAll(
+                { assert workflow.success },
+                // Asserted on the tasks that were submitted, not on the absence of an output file:
+                // an index build costs more than the arm it would have served, so a gate that
+                // dropped every scRNA arm has to leave STAR unstarted rather than merely unused.
+                { assert workflow.trace.tasks().findAll { task -> task.name.contains('STAR_') }.isEmpty() },
+                { assert workflow.out.counts.isEmpty() },
+            )
+        }
+    }
+
+    test("no arm cleared the gate and no reference was given") {
+
+        tag "scrna_arm_empty_no_reference"
+
+        when {
+            params {
+                outdir = "$outputDir"
+            }
+            workflow {
+                """
+                input[0] = channel.empty()
+                input[1] = null
+                input[2] = null
+                input[3] = null
+                """
+            }
+        }
+
+        then {
+            assertAll(
+                // The reference is only ever wanted by an arm that reached STAR. A run left with no
+                // scRNA arm must not be stopped by the absence of one, or the gate would turn a
+                // dropped arm back into a failed run by another route.
+                { assert workflow.success },
+                { assert workflow.trace.tasks().findAll { task -> task.name.contains('STAR_') }.isEmpty() },
+            )
+        }
+    }
+}

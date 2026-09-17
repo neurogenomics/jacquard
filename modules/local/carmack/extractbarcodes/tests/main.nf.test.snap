@@ -1,0 +1,60 @@
+{
+    "SK609 - fastq.gz": {
+        "content": [
+            "# Carmack version: 0.0.0+6816691\n\n# Overall Barcode Extraction Stats\nTotal reads: 20000\nPerfect matches: 18213 (91.06%)\nCorrected matches: 1348 (6.74%)\nFailed matches: 439 (2.20%)\nTop 10 barcode fractions:\n\tACCTATCAGAACTGTACGCAAGATTGCTCA\t0.006\n\tGAGGACAAGGGAGTAACAGGGTGTTGAAGT\t0.0049\n\tGAACGTGCGTGAGCAGCGATTAATACCAGG\t0.0047\n\tTAATCTGTGCGGTAGGTAGGTTGCCACAAT\t0.0046\n\tTCTACGAACGTGAAGCGAACTTGCAGTTCT\t0.0045\n\tGCTGACAACGTAAGCGGTGGTGACCGGAAC\t0.004\n\tAGATATCGAGTTGCGAATATGGCTTCCAGA\t0.0039\n\tCTAGAAGGCTATCTCAACAGTAATACCAGG\t0.0037\n\tCGTTATCGTGCTCACATTCATTGCAGTTCT\t0.0033\n\tGAGGACAAGGGACCTAAGGACATTGCGAGT\t0.0032\n\n# Per-Barcode Component Stats\n\n## BC3\n\nMatching method: EXACTMATCH\nReads checked: 20000\nSuccessful matches: 19254 (96.27%)\nFailed matches: 746 (3.73%)\nAmbiguous matches (reads): 0 (0.00%)\n\nMatching method: KMERMATCH\nReads checked: 746\nSuccessful matches: 512 (68.63%)\nFailed matches: 234 (31.37%)\nEdit distance distribution (distance - count):\n\t0\t50 (9.77%)\n\t1\t470 (91.80%)\nAmbiguous matches (reads): 4 (0.54%)\nMatches with spacers present: 20\n\nMatching method: ALIGNMATCH\nReads checked: 230\nSuccessful matches: 1 (0.43%)\nFailed matches: 229 (99.57%)\nEdit distance distribution (distance - count):\n\t0\t1 (100.00%)\nAmbiguous matches (reads): 0 (0.00%)\nMatches with spacers present: 1\n\n## BC2\n\nMatching method: EXACTMATCH\nReads checked: 20000\nSuccessful matches: 19181 (95.91%)\nFailed matches: 819 (4.09%)\nAmbiguous matches (reads): 0 (0.00%)\n\nMatching method: KMERMATCH\nReads checked: 819\nSuccessful matches: 543 (66.30%)\nFailed matches: 276 (33.70%)\nEdit distance distribution (distance - count):\n\t0\t346 (63.72%)\n\t1\t197 (36.28%)\nAmbiguous matches (reads): 0 (0.00%)\nMatches with spacers present: 16\n\nMatching method: ALIGNMATCH\nReads checked: 276\nSuccessful matches: 1 (0.36%)\nFailed matches: 275 (99.64%)\nEdit distance distribution (distance - count):\n\t0\t1 (100.00%)\nAmbiguous matches (reads): 0 (0.00%)\nMatches with spacers present: 1\n\n## BC1\n\nMatching method: EXACTMATCH\nReads checked: 20000\nSuccessful matches: 18615 (93.08%)\nFailed matches: 1385 (6.93%)\nAmbiguous matches (reads): 0 (0.00%)\n\nMatching method: KMERMATCH\nReads checked: 1385\nSuccessful matches: 993 (71.70%)\nFailed matches: 392 (28.30%)\nEdit distance distribution (distance - count):\n\t0\t656 (66.06%)\n\t1\t337 (33.94%)\nAmbiguous matches (reads): 0 (0.00%)\nMatches with spacers present: 35\n\nMatching method: ALIGNMATCH\nReads checked: 392\nSuccessful matches: 3 (0.77%)\nFailed matches: 389 (99.23%)\nEdit distance distribution (distance - count):\n\t0\t3 (100.00%)\nAmbiguous matches (reads): 6 (1.53%)\nMatches with spacers present: 3",
+            [
+                [
+                    {
+                        "id": "SK609"
+                    },
+                    [
+                        "SK609.extraction_breakdown_mqc.json:md5,5cb0911fac869eede453f59e695cb8ee",
+                        "SK609.extraction_edit_distance_mqc.json:md5,6b7f014bfa396e42b878792cf4c67b47",
+                        "SK609.extraction_general_stats_mqc.json:md5,d234f99fa2671be5d61a881f8f3ca648"
+                    ]
+                ]
+            ],
+            [
+                [
+                    "CARMACK_EXTRACTBARCODES",
+                    "carmack",
+                    "0.0.0+6816691"
+                ]
+            ]
+        ],
+        "timestamp": "2026-09-14T13:37:29.779812605",
+        "meta": {
+            "nf-test": "0.9.5",
+            "nextflow": "26.04.6"
+        }
+    },
+    "SK609 - fastq.gz - carmack_fast": {
+        "content": [
+            "# Carmack version: 0.0.0+6816691\n\n# Overall Barcode Extraction Stats\nTotal reads: 20000\nPerfect matches: 18213 (91.06%)\nCorrected matches: 1346 (6.73%)\nFailed matches: 441 (2.21%)\nTop 10 barcode fractions:\n\tACCTATCAGAACTGTACGCAAGATTGCTCA\t0.006\n\tGAGGACAAGGGAGTAACAGGGTGTTGAAGT\t0.0049\n\tGAACGTGCGTGAGCAGCGATTAATACCAGG\t0.0047\n\tTAATCTGTGCGGTAGGTAGGTTGCCACAAT\t0.0046\n\tTCTACGAACGTGAAGCGAACTTGCAGTTCT\t0.0045\n\tGCTGACAACGTAAGCGGTGGTGACCGGAAC\t0.004\n\tAGATATCGAGTTGCGAATATGGCTTCCAGA\t0.0039\n\tCTAGAAGGCTATCTCAACAGTAATACCAGG\t0.0037\n\tCGTTATCGTGCTCACATTCATTGCAGTTCT\t0.0033\n\tGAGGACAAGGGACCTAAGGACATTGCGAGT\t0.0032\n\n# Per-Barcode Component Stats\n\n## BC3\n\nMatching method: EXACTMATCH\nReads checked: 20000\nSuccessful matches: 19254 (96.27%)\nFailed matches: 746 (3.73%)\nAmbiguous matches (reads): 0 (0.00%)\n\nMatching method: KMERMATCH\nReads checked: 746\nSuccessful matches: 512 (68.63%)\nFailed matches: 234 (31.37%)\nEdit distance distribution (distance - count):\n\t0\t50 (9.77%)\n\t1\t470 (91.80%)\nAmbiguous matches (reads): 4 (0.54%)\nMatches with spacers present: 20\n\n## BC2\n\nMatching method: EXACTMATCH\nReads checked: 20000\nSuccessful matches: 19181 (95.91%)\nFailed matches: 819 (4.09%)\nAmbiguous matches (reads): 0 (0.00%)\n\nMatching method: KMERMATCH\nReads checked: 819\nSuccessful matches: 543 (66.30%)\nFailed matches: 276 (33.70%)\nEdit distance distribution (distance - count):\n\t0\t346 (63.72%)\n\t1\t197 (36.28%)\nAmbiguous matches (reads): 0 (0.00%)\nMatches with spacers present: 16\n\n## BC1\n\nMatching method: EXACTMATCH\nReads checked: 20000\nSuccessful matches: 18615 (93.08%)\nFailed matches: 1385 (6.93%)\nAmbiguous matches (reads): 0 (0.00%)\n\nMatching method: KMERMATCH\nReads checked: 1385\nSuccessful matches: 993 (71.70%)\nFailed matches: 392 (28.30%)\nEdit distance distribution (distance - count):\n\t0\t656 (66.06%)\n\t1\t337 (33.94%)\nAmbiguous matches (reads): 0 (0.00%)\nMatches with spacers present: 35",
+            [
+                [
+                    {
+                        "id": "SK609"
+                    },
+                    [
+                        "SK609.extraction_breakdown_mqc.json:md5,4778346604d96f0a93b9cf48f07c3711",
+                        "SK609.extraction_edit_distance_mqc.json:md5,884237406aa1f500809637ebad9d6d92",
+                        "SK609.extraction_general_stats_mqc.json:md5,b3251bbcc42098d37cc7a82e6b1ceaeb"
+                    ]
+                ]
+            ],
+            [
+                [
+                    "CARMACK_EXTRACTBARCODES",
+                    "carmack",
+                    "0.0.0+6816691"
+                ]
+            ]
+        ],
+        "timestamp": "2026-09-14T13:38:59.872012374",
+        "meta": {
+            "nf-test": "0.9.5",
+            "nextflow": "26.04.6"
+        }
+    }
+}

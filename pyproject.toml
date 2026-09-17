@@ -26,6 +26,7 @@ dev = [
   {include-group = "test"},
 ]
 test = [
+    "pysam",
     "pytest",
     "pytest-cov",
     "pytest-sugar",

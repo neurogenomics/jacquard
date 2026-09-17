@@ -1,0 +1,205 @@
+nextflow_pipeline {
+
+    name "Test pipeline - stop_after"
+    script "../main.nf"
+    tag "pipeline"
+    tag "stop_after"
+
+    // Each stop point is asserted on the set of processes the run actually submitted, read off the
+    // trace and off the software-versions record. An absent output directory proves nothing about
+    // whether work was done, and a bare "no aligner ran" would pass just as well on a pipeline that
+    // ran nothing at all — the set equality below names every stage that had to run as well.
+
+    test("-profile test --stop_after barcodes") {
+
+        tag "stop_after_barcodes"
+
+        when {
+            params {
+                input      = Fixtures.absolutise("$baseDir", "$outputDir")
+                outdir     = "$outputDir"
+                stop_after = 'barcodes'
+            }
+        }
+
+        then {
+            def processes = workflow.trace.tasks().collect { task -> task.name.tokenize(':').last().tokenize(' ').first() }.toUnique().toSorted()
+            def versions = path("$outputDir/pipeline_info/jacquard_software_mqc_versions.yml").readLines().findAll { line -> line.endsWith(':') }.toSorted()
+
+            assertAll(
+                { assert workflow.success },
+                { assert processes == [ 'CARMACK_EXTRACTBARCODES', 'FASTQC', 'MULTIQC' ] },
+                { assert versions == [ 'CARMACK_EXTRACTBARCODES:', 'FASTQC:', 'Workflow:' ] },
+                // The earliest stop still has to leave a usable report: the raw pair's FastQC rows
+                // and barcode extraction's own section, and nothing from a stage that never ran.
+                { assert path("$outputDir/multiqc/multiqc_report.html").exists() },
+                { assert path("$outputDir/multiqc/multiqc_data/multiqc_fastqc.txt").readLines().collect { it.tokenize('\t').first() } == [ 'Sample', 'SK609_1', 'SK609_2' ] },
+                { assert path("$outputDir/multiqc/multiqc_data/multiqc_carmack_extraction_edit_distance_plot.txt").exists() },
+                { assert !path("$outputDir/multiqc/multiqc_data/multiqc_carmack_umi_anchor_run_plot.txt").exists() },
+                { assert !path("$outputDir/pipeline_info/arm_gate.tsv").exists() }
+            )
+        }
+    }
+
+    test("-profile test --stop_after umis") {
+
+        tag "stop_after_umis"
+
+        when {
+            params {
+                input      = Fixtures.absolutise("$baseDir", "$outputDir")
+                outdir     = "$outputDir"
+                stop_after = 'umis'
+            }
+        }
+
+        then {
+            def processes = workflow.trace.tasks().collect { task -> task.name.tokenize(':').last().tokenize(' ').first() }.toUnique().toSorted()
+            def versions = path("$outputDir/pipeline_info/jacquard_software_mqc_versions.yml").readLines().findAll { line -> line.endsWith(':') }.toSorted()
+
+            assertAll(
+                { assert workflow.success },
+                { assert processes == [ 'CARMACK_EXTRACTBARCODES', 'CARMACK_EXTRACTUMIS', 'FASTQC', 'MULTIQC' ] },
+                { assert versions == [ 'CARMACK_EXTRACTBARCODES:', 'CARMACK_EXTRACTUMIS:', 'FASTQC:', 'Workflow:' ] },
+                { assert path("$outputDir/multiqc/multiqc_report.html").exists() },
+                { assert path("$outputDir/multiqc/multiqc_data/multiqc_carmack_umi_anchor_run_plot.txt").exists() },
+                { assert !path("$outputDir/multiqc/multiqc_data/multiqc_carmack_tgidx_edit_distance_plot.txt").exists() },
+                { assert !path("$outputDir/pipeline_info/arm_gate.tsv").exists() }
+            )
+        }
+    }
+
+    test("-profile test --stop_after targets") {
+
+        tag "stop_after_targets"
+
+        when {
+            params {
+                input      = Fixtures.absolutise("$baseDir", "$outputDir")
+                outdir     = "$outputDir"
+                stop_after = 'targets'
+            }
+        }
+
+        then {
+            def processes = workflow.trace.tasks().collect { task -> task.name.tokenize(':').last().tokenize(' ').first() }.toUnique().toSorted()
+            def versions = path("$outputDir/pipeline_info/jacquard_software_mqc_versions.yml").readLines().findAll { line -> line.endsWith(':') }.toSorted()
+
+            assertAll(
+                { assert workflow.success },
+                { assert processes == [ 'CARMACK_ASSIGNTARGETS', 'CARMACK_EXTRACTBARCODES', 'CARMACK_EXTRACTUMIS', 'FASTQC', 'MULTIQC' ] },
+                { assert versions == [ 'CARMACK_ASSIGNTARGETS:', 'CARMACK_EXTRACTBARCODES:', 'CARMACK_EXTRACTUMIS:', 'FASTQC:', 'Workflow:' ] },
+                { assert path("$outputDir/multiqc/multiqc_report.html").exists() },
+                { assert path("$outputDir/multiqc/multiqc_data/multiqc_carmack_tgidx_edit_distance_plot.txt").exists() },
+                // Neither prepare-reads nor either arm left a published directory behind, which is
+                // the same claim the process set makes, read off the other end of the run.
+                { assert !path("$outputDir/carmack/preparereads").exists() },
+                { assert [ 'star', 'bowtie2', 'samtools', 'umitools' ].every { dir -> !path("$outputDir/${dir}").exists() } }
+            )
+        }
+    }
+
+    test("-profile test --stop_after readprep") {
+
+        tag "stop_after_readprep"
+
+        when {
+            params {
+                input      = Fixtures.absolutise("$baseDir", "$outputDir")
+                outdir     = "$outputDir"
+                stop_after = 'readprep'
+            }
+        }
+
+        then {
+            def processes = workflow.trace.tasks().collect { task -> task.name.tokenize(':').last().tokenize(' ').first() }.toUnique().toSorted()
+            def versions = path("$outputDir/pipeline_info/jacquard_software_mqc_versions.yml").readLines().findAll { line -> line.endsWith(':') }.toSorted()
+
+            assertAll(
+                { assert workflow.success },
+                { assert processes == [ 'CARMACK_ASSIGNTARGETS', 'CARMACK_EXTRACTBARCODES', 'CARMACK_EXTRACTUMIS', 'CARMACK_PREPAREREADS', 'FASTQC', 'MULTIQC' ] },
+                { assert versions == [ 'CARMACK_ASSIGNTARGETS:', 'CARMACK_EXTRACTBARCODES:', 'CARMACK_EXTRACTUMIS:', 'CARMACK_PREPAREREADS:', 'FASTQC:', 'Workflow:' ] },
+                // Read preparation ran to the end, so both arms were detected — and the gate that
+                // would have acted on them did not run, leaving no record and no report section.
+                { assert path("$outputDir/carmack/preparereads/SK609/SK609.detected_targets.txt").readLines() == [
+                    'NONE\t6229',
+                    'TATAGCCT\t13332',
+                ] },
+                { assert !path("$outputDir/pipeline_info/arm_gate.tsv").exists() },
+                { assert !path("$outputDir/multiqc/multiqc_data/multiqc_arm_gate_table.txt").exists() },
+                { assert path("$outputDir/multiqc/multiqc_report.html").exists() },
+                // The last stage to run is the one whose section the report must carry, with the
+                // scRNA arm as a category of its own; the gate's own table above is absent, so this
+                // is the only place the arm counts reach the report on this run.
+                { assert path("$outputDir/multiqc/multiqc_data/multiqc_carmack_prepare_target_distribution_plot.txt").readLines() == [
+                    'Sample\tTATAGCCT\tNONE',
+                    'SK609\t13332\t6229',
+                ] }
+            )
+        }
+    }
+
+    test("-profile test --stop_after gate with no reference") {
+
+        tag "stop_after_gate"
+
+        when {
+            params {
+                input      = Fixtures.absolutise("$baseDir", "$outputDir")
+                outdir     = "$outputDir"
+                stop_after = 'gate'
+                fasta      = null
+                gtf        = null
+            }
+        }
+
+        then {
+            def processes = workflow.trace.tasks().collect { task -> task.name.tokenize(':').last().tokenize(' ').first() }.toUnique().toSorted()
+            def versions = path("$outputDir/pipeline_info/jacquard_software_mqc_versions.yml").readLines().findAll { line -> line.endsWith(':') }.toSorted()
+
+            assertAll(
+                // No reference is passed at all: stopping at the gate leaves both arms unaligned,
+                // so neither aligner's index build can be demanded of a run that never reaches one.
+                { assert workflow.success },
+                { assert processes == [ 'CARMACK_ASSIGNTARGETS', 'CARMACK_EXTRACTBARCODES', 'CARMACK_EXTRACTUMIS', 'CARMACK_PREPAREREADS', 'FASTQC', 'MULTIQC' ] },
+                { assert versions == [ 'CARMACK_ASSIGNTARGETS:', 'CARMACK_EXTRACTBARCODES:', 'CARMACK_EXTRACTUMIS:', 'CARMACK_PREPAREREADS:', 'FASTQC:', 'Workflow:' ] },
+                // The gate is the stage this run is here for, so its verdict is asserted whole
+                // rather than by the file's existence.
+                { assert path("$outputDir/pipeline_info/arm_gate.tsv").readLines() == [
+                    'sample\tarm\ttgidx\treads\tthreshold\tstatus',
+                    'SK609\tscrna\tNONE\t6229\t1000\tPASS',
+                    'SK609\tsctip\tTATAGCCT\t13332\t1000\tPASS',
+                ] },
+                { assert path("$outputDir/multiqc/multiqc_data/multiqc_arm_gate_table.txt").readLines() == [
+                    'Sample\tArm\tTarget index\tReads\tThreshold\tStatus',
+                    'SK609.TATAGCCT\tsctip\tTATAGCCT\t13332\t1000\tPASS',
+                    'SK609.none\tscrna\tNONE\t6229\t1000\tPASS',
+                ] },
+                { assert [ 'star', 'bowtie2', 'samtools', 'umitools' ].every { dir -> !path("$outputDir/${dir}").exists() } }
+            )
+        }
+    }
+
+    test("rejects an unknown stage before submitting any process") {
+
+        tag "stop_after_bogus"
+
+        when {
+            params {
+                input      = Fixtures.absolutise("$baseDir", "$outputDir")
+                outdir     = "$outputDir"
+                stop_after = 'bogus'
+            }
+        }
+
+        then {
+            assertAll(
+                // The flag is an enum in the schema, so a stage nobody implements is a launch
+                // failure rather than a run that quietly does everything.
+                { assert workflow.failed },
+                { assert workflow.trace.tasks().size() == 0 },
+                { assert workflow.stderr.join('\n').contains("--stop_after (bogus): Expected any of [[barcodes, umis, targets, readprep, gate]]") }
+            )
+        }
+    }
+}

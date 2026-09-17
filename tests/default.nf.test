@@ -8,6 +8,7 @@ nextflow_pipeline {
 
         when {
             params {
+                input  = Fixtures.absolutise("$baseDir", "$outputDir")
                 outdir = "$outputDir"
             }
         }
@@ -17,8 +18,96 @@ nextflow_pipeline {
             def stable_path = getAllFilesFromDir(params.outdir, relative: true, includeDir: true, ignore: ['pipeline_info/*.{html,json,txt}'])
             // stable_content: All files in ${params.outdir}/ with stable content
             def stable_content = getAllFilesFromDir(params.outdir, ignoreFile: 'tests/.nftignore')
+            // Asserted by name rather than left to the snapshot alone: dropping a module's
+            // `topic: versions` output drops its entry silently, and a refreshed snapshot would
+            // then simply record the loss.
+            def software_versions = path("$outputDir/pipeline_info/jacquard_software_mqc_versions.yml").text
+            // Every section MultiQC built from a carmack payload, in the order the report lays them
+            // out. Taken from multiqc_data.json's insertion-ordered plot data rather than the
+            // rendered HTML; the file as a whole is too volatile to snapshot, so only this list is
+            // read off it.
+            def carmack_sections = new groovy.json.JsonSlurper()
+                .parseText(path("$outputDir/multiqc/multiqc_data/multiqc_data.json").text)
+                .report_plot_data
+                .keySet()
+                .toList() // a keySet's own findAll returns a Set, which never equals the list below
+                .findAll { section -> section.startsWith('carmack_') }
             assert workflow.success
             assertAll(
+                // Asserted by name as well as snapshotted: at the default threshold both arms of
+                // the fixture clear the gate, and a refreshed snapshot would record a loss quietly.
+                { assert path("$outputDir/pipeline_info/arm_gate.tsv").readLines() == [
+                    'sample\tarm\ttgidx\treads\tthreshold\tstatus',
+                    'SK609\tscrna\tNONE\t6229\t1000\tPASS',
+                    'SK609\tsctip\tTATAGCCT\t13332\t1000\tPASS',
+                ] },
+                // The fixture is built to exercise both arms, so this file listing exactly these
+                // two tokens is what makes every downstream per-arm assertion meaningful. Its counts
+                // are the gate's own, read off a second file: a distribution that drifted from the
+                // detected set would show up as a disagreement here rather than as a quiet rewiring.
+                { assert path("$outputDir/carmack/preparereads/SK609/SK609.detected_targets.txt").readLines() == [
+                    'NONE\t6229',
+                    'TATAGCCT\t13332',
+                ] },
+                { assert [
+                    'CARMACK_EXTRACTBARCODES',
+                    'CARMACK_EXTRACTUMIS',
+                    'CARMACK_ASSIGNTARGETS',
+                    'CARMACK_PREPAREREADS',
+                ].every { process -> software_versions.contains("${process}:\n  carmack: ") } },
+                { assert [
+                    'STAR_GENOMEGENERATE',
+                    'STAR_STARSOLO',
+                    'BOWTIE2_BUILD',
+                    'BOWTIE2_ALIGN',
+                    'SAMTOOLS_SORT',
+                    'SAMTOOLS_STATS',
+                    'TAGQNAME',
+                    'UMITOOLS_DEDUP',
+                ].every { process -> software_versions.contains("${process}:\n") } },
+                // The counterpart of each arm test's "no aligner task was submitted": the same
+                // predicates have to find the tasks here, or their emptiness there proves nothing.
+                { assert workflow.trace.tasks().findAll { task -> task.name.contains('STAR_') }.size() == 2 },
+                { assert workflow.trace.tasks().findAll { task -> task.name.contains('BOWTIE2_') }.size() == 2 },
+                // Both arms publish under `<sample>.<tgidx>`, which is `meta.id` and nothing else.
+                { assert path("$outputDir/umitools/SK609.TATAGCCT/SK609.TATAGCCT.bam").exists() },
+                { assert path("$outputDir/samtools/SK609.TATAGCCT/SK609.TATAGCCT.stats").exists() },
+                // Each arm's report rows, all named off meta.id alone: without them a MultiQC
+                // report says nothing about read quality, mapping or duplication per target index.
+                { assert path("$outputDir/multiqc/multiqc_data/multiqc_fastqc.txt").readLines().count { it.startsWith('SK609.none\t') } == 1 },
+                { assert path("$outputDir/multiqc/multiqc_data/multiqc_star.txt").readLines().count { it.startsWith('SK609.none\t') } == 1 },
+                { assert path("$outputDir/multiqc/multiqc_data/multiqc_fastqc.txt").readLines().count { it.startsWith('SK609.TATAGCCT_') } == 2 },
+                { assert path("$outputDir/multiqc/multiqc_data/multiqc_bowtie2.txt").readLines().count { it.startsWith('SK609.TATAGCCT\t') } == 1 },
+                { assert path("$outputDir/multiqc/multiqc_data/multiqc_samtools_stats.txt").readLines().count { it.startsWith('SK609.TATAGCCT\t') } == 1 },
+                // umi_tools deduplicated per cell and MultiQC read its log: the row carries fewer
+                // reads out than in, which is the one number a silently misconfigured dedup loses.
+                { assert path("$outputDir/multiqc/multiqc_data/multiqc_umitools_dedup.txt").readLines().findAll { it.startsWith('SK609.TATAGCCT\t') }.collect { row ->
+                    def fields = row.split('\t')
+                    [ fields[1] as int, fields[2] as int ]
+                } == [ [ 1016, 300 ] ] },
+                // All four read-preparation stages reach the report, under the one `carmack_`
+                // parent, and in the order the reads pass through them rather than alphabetically —
+                // which is what `report_section_order` in assets/multiqc_config.yml buys.
+                { assert carmack_sections == [
+                    'carmack_extraction_breakdown_plot',
+                    'carmack_extraction_edit_distance_plot',
+                    'carmack_umi_breakdown_plot',
+                    'carmack_umi_anchor_run_plot',
+                    'carmack_tgidx_breakdown_plot',
+                    'carmack_tgidx_target_distribution_plot',
+                    'carmack_tgidx_edit_distance_plot',
+                    'carmack_tgidx_anchor_run_plot',
+                    'carmack_prepare_target_distribution_plot',
+                ] },
+                // Each of those sections was parsed, not merely ordered: MultiQC wrote a data file
+                // for every one of them.
+                { assert carmack_sections.every { section -> path("$outputDir/multiqc/multiqc_data/multiqc_${section}.txt").exists() } },
+                // The bargraph carries the scRNA arm as a category of its own, so the chart accounts
+                // for every read the run saw rather than for the target-matched share alone.
+                { assert path("$outputDir/multiqc/multiqc_data/multiqc_carmack_prepare_target_distribution_plot.txt").readLines() == [
+                    'Sample\tTATAGCCT\tNONE',
+                    'SK609\t13332\t6229',
+                ] },
                 { assert snapshot(
                     // pipeline versions.yml file for multiqc from which Nextflow version is removed because we test pipelines on multiple Nextflow versions
                     removeNextflowVersion("$outputDir/pipeline_info/jacquard_software_mqc_versions.yml"),

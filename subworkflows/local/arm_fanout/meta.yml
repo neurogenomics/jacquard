@@ -1,0 +1,85 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/nf-core/modules/master/subworkflows/yaml-schema.json
+name: "arm_fanout"
+description: Fan a prepared sample out into one unit of work per arm and gate each arm on its read count
+keywords:
+  - single-cell
+  - multiome
+  - demultiplexing
+  - filtering
+components: []
+input:
+  - ch_scrna:
+      type: file
+      description: |
+        scRNA arm reads as emitted by carmack prepare-reads, one entry per sample.
+        Structure: [ val(meta), path(r1), path(r2), path(barcodes) ]
+  - ch_sctip:
+      type: file
+      description: |
+        Every scTIP bucket prepare-reads wrote for a sample, in one list; may be an entirely empty
+        channel for a chemistry that whitelists no target indices.
+        Structure: [ val(meta), [ path(fastq) ] ]
+  - ch_stats_json:
+      type: file
+      description: |
+        prepare-reads' output-arm distribution as MultiQC custom content. Its `data.<prefix>` map is
+        both the detected arm set and the read count each arm carries, so the two cannot disagree.
+        Structure: [ val(meta), path("*.prepare_target_distribution_mqc.json") ]
+  - min_arm_reads:
+      type: integer
+      description: Reads an arm must carry to proceed; an arm below it is dropped, warned about, and leaves its sibling arms untouched
+  - fail_on_no_arms:
+      type: boolean
+      description: Stop the run, naming the sample, when every arm of a sample falls below `min_arm_reads`; by default the sample is dropped and the run continues
+  - outdir:
+      type: string
+      description: Pipeline output directory, under which `pipeline_info/arm_gate.tsv` is written
+output:
+  - scrna:
+      type: file
+      description: |
+        One entry per sample whose scRNA arm passed the gate, with `meta` rewritten to
+        `[ id: '<SAMPLE>.none', sample: '<SAMPLE>', arm: 'scrna', tgidx: 'NONE', single_end: false ]`.
+        Note this is deliberately not the nf-core `[ val(meta), [ path(reads) ] ]` shape: the three
+        files are kept apart because only the caller knows which pair a given aligner wants, so a
+        consumer such as STARsolo has to pair them itself (`[ meta, [ cDNA, barcodes ] ]`).
+        Structure: [ val(meta), path(r1), path(r2), path(barcodes) ]
+  - sctip:
+      type: file
+      description: |
+        One entry per target index that passed the gate, with `meta` rewritten to
+        `[ id: '<SAMPLE>.<TGIDX>', sample: '<SAMPLE>', arm: 'sctip', tgidx: '<TGIDX>', single_end: false ]`.
+        The read list is the target's `r1`/`r2` pair, in that order, which is the nf-core
+        `[ val(meta), [ path(reads) ] ]` shape a read aligner takes unchanged.
+        Structure: [ val(meta), [ path(r1), path(r2) ] ]
+  - gate:
+      type: file
+      description: |
+        Every candidate arm's verdict, passing or failing, with the count it was judged on.
+        Structure: [ val(meta), val(reads), val(status) ]
+  - samples:
+      type: file
+      description: |
+        The per-sample rollup of those verdicts, one entry per sample.
+        Structure: [ val(sample), [ val(arm verdict) ] ]
+  - gate_tsv:
+      type: file
+      description: |
+        The run record, one row per candidate arm: `sample`, `arm`, `tgidx`, `reads`, `threshold`, `status`.
+        Structure: path("arm_gate.tsv")
+  - multiqc_files:
+      type: file
+      description: |
+        The same verdicts as a MultiQC custom-content table.
+        Structure: path("arm_gate_mqc.tsv")
+  - versions:
+      type: file
+      description: |
+        Version files, empty because this subworkflow runs no process.
+        Structure: [ path(versions.yml) ]
+authors:
+  - "@HDash"
+  - "@chris-cheshire"
+maintainers:
+  - "@HDash"
+  - "@chris-cheshire"

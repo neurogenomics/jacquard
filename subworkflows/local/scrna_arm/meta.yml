@@ -1,0 +1,67 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/nf-core/modules/master/subworkflows/yaml-schema.json
+name: "scrna_arm"
+description: QC and quantify the scRNA arm of a prepared sample with FastQC and STARsolo
+keywords:
+  - single-cell
+  - rnaseq
+  - starsolo
+  - quantification
+components:
+  - fastqc
+  - star/genomegenerate
+  - star/starsolo
+input:
+  - ch_arm:
+      type: file
+      description: |
+        One gated scRNA arm per sample, as `ARM_FANOUT` emits it: the cDNA insert R1 was trimmed
+        to, the untouched R2 mate, and the synthesized barcode-plus-UMI read. `meta.id` is already
+        `<sample>.none`, which is what names every output path and MultiQC row for this arm.
+        Structure: [ val(meta), path(r1), path(r2), path(barcodes) ]
+  - fasta:
+      type: string
+      description: Genome FASTA an index is built from when `star_index` is not given
+  - gtf:
+      type: string
+      description: Gene annotation GTF an index is built from when `star_index` is not given; STARsolo counts against the annotation baked into the index, so it is never passed again at mapping time
+  - star_index:
+      type: string
+      description: Prebuilt STAR index directory, or null to build one from `fasta` and `gtf`
+output:
+  - counts:
+      type: directory
+      description: |
+        STARsolo's own output tree for the arm, carrying the raw and filtered cell-by-gene matrices.
+        Structure: [ val(meta), path("*.Solo.out") ]
+  - summary:
+      type: file
+      description: |
+        STARsolo's per-arm run summary, the numbers a cell-calling decision is read off.
+        Structure: [ val(meta), path("*/Gene/Summary.csv") ]
+  - log_final:
+      type: file
+      description: |
+        STAR's alignment summary for the arm, which is what MultiQC's STAR section is built from.
+        Structure: [ val(meta), path("*Log.final.out") ]
+  - index:
+      type: directory
+      description: |
+        The STAR index the arm was mapped against, built here unless one was given. Only ever
+        emitted once a gated arm exists, so a run with no scRNA arm left builds nothing.
+        Structure: [ val(meta), path("star") ]
+  - multiqc_files:
+      type: file
+      description: |
+        The arm's FastQC archive and STAR log, ready to mix into the report.
+        Structure: path(mqc_file)
+  - versions:
+      type: file
+      description: |
+        Version files, empty because every module here reports on the `versions` topic instead.
+        Structure: [ path(versions.yml) ]
+authors:
+  - "@HDash"
+  - "@chris-cheshire"
+maintainers:
+  - "@HDash"
+  - "@chris-cheshire"

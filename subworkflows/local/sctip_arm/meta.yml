@@ -1,0 +1,85 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/nf-core/modules/master/subworkflows/yaml-schema.json
+name: "sctip_arm"
+description: QC, align, retag and per-cell deduplicate one scTIP target index with bowtie2 and umi_tools
+keywords:
+  - single-cell
+  - multiome
+  - bowtie2
+  - umi
+  - deduplication
+components:
+  - fastqc
+  - bowtie2/build
+  - bowtie2/align
+  - samtools/sort
+  - samtools/index
+  - samtools/stats
+  - tagqname
+  - umitools/dedup
+input:
+  - ch_arm:
+      type: file
+      description: |
+        One gated scTIP arm per target index, as `ARM_FANOUT` emits it: the `r1`/`r2` pair
+        prepare-reads wrote for that index, whose read names still carry the barcode and UMI as
+        `readid|CB=<barcode>|UR=<umi>`. `meta.id` is already `<sample>.<tgidx>`, which is what
+        names every output path and MultiQC row for this arm.
+        Structure: [ val(meta), [ path(r1), path(r2) ] ]
+  - fasta:
+      type: string
+      description: Genome FASTA a bowtie2 index is built from when `bowtie2_index` is not given
+  - bowtie2_index:
+      type: string
+      description: Prebuilt bowtie2 index directory, or null to build one from `fasta`
+output:
+  - bam:
+      type: file
+      description: |
+        The arm's deduplicated alignments and their index. One record per surviving cell/UMI/position
+        combination, with the barcode and UMI on `CB` and `UB` tags rather than in the read name.
+        Structure: [ val(meta), path("*.bam"), path("*.bai") ]
+  - bam_aligned:
+      type: file
+      description: |
+        The alignments as bowtie2 wrote them, before sorting, retagging or deduplication. Read names
+        are still carmack's composite form, which is what makes this the place to check that nothing
+        between prepare-reads and the aligner rewrote them.
+        Structure: [ val(meta), path("*.bam") ]
+  - log_dedup:
+      type: file
+      description: |
+        umi_tools' own run log for the arm, which is what MultiQC's UMI-tools section is built from.
+        Structure: [ val(meta), path("*.log") ]
+  - log_align:
+      type: file
+      description: |
+        bowtie2's alignment summary for the arm, which is what MultiQC's Bowtie 2 section is built from.
+        Structure: [ val(meta), path("*.bowtie2.log") ]
+  - stats:
+      type: file
+      description: |
+        `samtools stats` over the deduplicated BAM, the numbers a yield decision is read off.
+        Structure: [ val(meta), path("*.stats") ]
+  - index:
+      type: directory
+      description: |
+        The bowtie2 index the arm was aligned against, built here unless one was given. Only ever
+        emitted once a gated arm exists, so a run with no scTIP arm left builds nothing.
+        Structure: [ val(meta), path("bowtie2") ]
+  - multiqc_files:
+      type: file
+      description: |
+        The arm's FastQC archives, bowtie2 log, umi_tools log and samtools stats, ready to mix into
+        the report.
+        Structure: path(mqc_file)
+  - versions:
+      type: file
+      description: |
+        Version files, empty because every module here reports on the `versions` topic instead.
+        Structure: [ path(versions.yml) ]
+authors:
+  - "@HDash"
+  - "@chris-cheshire"
+maintainers:
+  - "@HDash"
+  - "@chris-cheshire"

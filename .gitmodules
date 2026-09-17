@@ -1,0 +1,5 @@
+[submodule "external/carmack"]
+	path = external/carmack
+	url = https://github.com/crick-pipelines-stp/carmack.git
+	branch = main
+	ignore = dirty

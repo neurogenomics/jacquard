@@ -9,4 +9,11 @@ multiqc/multiqc_data/llms-full.txt
 multiqc/multiqc_plots/{svg,pdf,png}/*.{svg,pdf,png}
 multiqc/multiqc_report.html
 fastqc/*_fastqc.{html,zip}
+carmack/**/*.gz
+carmack/**/*_stats.txt
 pipeline_info/*.{html,json,txt,yml}
+star/**/*Log.*
+fastqc/prepared/**/*_fastqc.{html,zip}
+bowtie2/**/*.log
+samtools/**/*.stats
+umitools/**/*.{bam,bai,log}

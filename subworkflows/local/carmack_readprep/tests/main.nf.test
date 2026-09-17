@@ -1,0 +1,268 @@
+nextflow_workflow {
+
+    name "Test subworkflow CARMACK_READPREP"
+    script "../main.nf"
+    workflow "CARMACK_READPREP"
+
+    tag "subworkflows"
+    tag "subworkflows_local"
+    tag "carmack"
+    tag "carmack_readprep"
+
+    test("SK609 - paired fastq.gz") {
+
+        when {
+            params {
+                outdir = "$outputDir"
+            }
+            workflow {
+                """
+                input[0] = channel.of([
+                    [ id:'SK609' ],
+                    [
+                        file("${baseDir}/tests/data/SK609_L5_R1.fastq.gz", checkIfExists: true),
+                        file("${baseDir}/tests/data/SK609_L5_R2.fastq.gz", checkIfExists: true),
+                    ],
+                ])
+                input[1] = 'carmack_custom_seq_1_0'
+                // Every stage, which is what an unset --stop_after resolves to. The truncating cases are
+                // covered at pipeline level in tests/stop_after.nf.test.
+                input[2] = [ 'barcodes', 'umis', 'targets', 'readprep', 'gate', 'arms' ]
+                """
+            }
+        }
+
+        then {
+            // The report carries the wall-clock time it was written at, so that line alone is dropped. The
+            // lines are rejoined because nf-test resolves a bare '' in a snapshotted list as a directory path.
+            def stats = path(workflow.out.stats[0][1])
+                .readLines()
+                .findAll { !it.startsWith('# Report generated at:') }
+                .join('\n')
+            def total = (stats =~ /Total reads: (\d+)/)[0][1] as int
+            def unmatched = (stats =~ /Unmatched \(scRNA arm\): (\d+)/)[0][1] as int
+            def matched = (stats =~ /Matched \(scTIP arms\): (\d+)/)[0][1] as int
+
+            // The prepare-reads task directory is the only place the R2 handed to the stage, and the
+            // R1 it was paired against, are observable from outside the subworkflow.
+            def prepare_dirs = []
+            new File("$workDir").eachDirRecurse { dir ->
+                def command = new File(dir, '.command.sh')
+                if (command.exists() && command.text.contains('prepare-reads')) {
+                    prepare_dirs << dir
+                }
+            }
+            def staged_r2 = prepare_dirs[0].listFiles().findAll { it.name.endsWith('_R2.fastq.gz') }
+            def staged_r1 = prepare_dirs[0].listFiles().find { it.name.endsWith('.r1_tgidx.fastq.gz') }
+
+            def countReads = { String fastq_gz ->
+                def lines = 0
+                new java.util.zip.GZIPInputStream(new File(fastq_gz).newInputStream()).withReader('UTF-8') { reader ->
+                    while (reader.readLine() != null) {
+                        lines++
+                    }
+                }
+                lines.intdiv(4)
+            }
+            // Counted out of the files rather than off the report: the report's three numbers come
+            // from one accumulator and agree with each other whatever the wiring does.
+            def reads_read = countReads(staged_r1.toString())
+            def reads_in_scrna = countReads(workflow.out.scrna[0][1])
+            def reads_in_sctip = workflow.out.sctip[0][1]
+                .findAll { it.endsWith('.r1.fastq.gz') }
+                .collect { countReads(it) }
+                .sum()
+
+            def mqc_json = workflow.out.multiqc_files
+                .collect { file(it).name }
+                .findAll { it.endsWith('_mqc.json') }
+                .sort()
+
+            assertAll(
+                { assert workflow.success },
+                // carmack writes every read it reads to exactly one arm, so the arms must account
+                // for the input file exactly, and each for the share the report claims.
+                { assert reads_read == total },
+                { assert reads_in_scrna + reads_in_sctip == reads_read },
+                { assert reads_in_scrna == unmatched },
+                { assert reads_in_sctip == matched },
+                { assert prepare_dirs.size() == 1 },
+                { assert staged_r2.size() == 1 },
+                { assert staged_r2[0].bytes == new File("${baseDir}/tests/data/SK609_L5_R2.fastq.gz").bytes },
+                { assert mqc_json == [
+                    'SK609.extraction_breakdown_mqc.json',
+                    'SK609.extraction_edit_distance_mqc.json',
+                    'SK609.extraction_general_stats_mqc.json',
+                    'SK609.prepare_general_stats_mqc.json',
+                    'SK609.prepare_target_distribution_mqc.json',
+                    'SK609.tgidx_anchor_run_mqc.json',
+                    'SK609.tgidx_breakdown_mqc.json',
+                    'SK609.tgidx_edit_distance_mqc.json',
+                    'SK609.tgidx_general_stats_mqc.json',
+                    'SK609.tgidx_target_distribution_mqc.json',
+                    'SK609.umi_anchor_run_mqc.json',
+                    'SK609.umi_breakdown_mqc.json',
+                    'SK609.umi_general_stats_mqc.json',
+                ] },
+                { assert workflow.out.multiqc_files.collect { file(it).name }.contains('SK609_1_fastqc.zip') },
+                { assert workflow.out.scrna[0][2] ==~ /.*\/scrna\/SK609\.none\.r2\.fastq\.gz$/ },
+                { assert workflow.out.sctip[0][1].collect { file(it).name } == [ 'SK609.TATAGCCT.r1.fastq.gz', 'SK609.TATAGCCT.r2.fastq.gz' ] },
+                { assert snapshot(stats, workflow.out.targets).match() }
+            )
+        }
+    }
+
+    test("SK609 and SK610 - each sample keeps its own R2") {
+
+        when {
+            params {
+                outdir = "$outputDir"
+            }
+            workflow {
+                """
+                // A second sample built from the first 10 000 pairs of the fixture: a real pair
+                // that still shares no bytes with it, so an R2 delivered to the wrong sample cannot
+                // pass for the right one.
+                def sk610_dir = new File("${outputDir}/sk610")
+                sk610_dir.mkdirs()
+                def sk610_r1 = new File(sk610_dir, 'SK610_L5_R1.fastq.gz')
+                def sk610_r2 = new File(sk610_dir, 'SK610_L5_R2.fastq.gz')
+                [ [ 'SK609_L5_R1.fastq.gz', sk610_r1 ], [ 'SK609_L5_R2.fastq.gz', sk610_r2 ] ].each { source, target ->
+                    def reads = new java.util.zip.GZIPInputStream(new File("${baseDir}/tests/data/" + source).newInputStream()).text.readLines()
+                    new java.util.zip.GZIPOutputStream(target.newOutputStream()).withWriter('UTF-8') { writer ->
+                        writer << reads.take(40000).join(System.lineSeparator()) + System.lineSeparator()
+                    }
+                }
+
+                input[0] = channel.of(
+                    [
+                        [ id:'SK609' ],
+                        [
+                            file("${baseDir}/tests/data/SK609_L5_R1.fastq.gz", checkIfExists: true),
+                            file("${baseDir}/tests/data/SK609_L5_R2.fastq.gz", checkIfExists: true),
+                        ],
+                    ],
+                    [
+                        [ id:'SK610' ],
+                        [ file(sk610_r1.toString()), file(sk610_r2.toString()) ],
+                    ],
+                )
+                input[1] = 'carmack_custom_seq_1_0'
+                input[2] = [ 'barcodes', 'umis', 'targets', 'readprep', 'gate', 'arms' ]
+                """
+            }
+        }
+
+        then {
+            def prepare_dirs = []
+            new File("$workDir").eachDirRecurse { dir ->
+                def command = new File(dir, '.command.sh')
+                if (command.exists() && command.text.contains('prepare-reads')) {
+                    prepare_dirs << dir
+                }
+            }
+            // Keyed off the R1 the task was handed, so a task that took the wrong sample's R2 is
+            // filed under the sample whose chain produced it.
+            def staged_r2 = prepare_dirs.collectEntries { dir ->
+                [
+                    dir.listFiles().find { it.name.endsWith('.r1_tgidx.fastq.gz') }.name.tokenize('.')[0],
+                    dir.listFiles().find { it.name.endsWith('_R2.fastq.gz') },
+                ]
+            }
+            // Hashed off the raw bytes: nf-test's own `md5` decompresses a gzip first, which is
+            // exactly the difference this test needs to see.
+            def rawMd5 = { File fastq_gz ->
+                java.security.MessageDigest.getInstance('MD5').digest(fastq_gz.bytes).encodeHex().toString()
+            }
+            def expected_r2 = [
+                SK609: rawMd5(new File("${baseDir}/tests/data/SK609_L5_R2.fastq.gz")),
+                SK610: rawMd5(new File("${outputDir}/sk610/SK610_L5_R2.fastq.gz")),
+            ]
+
+            assertAll(
+                { assert workflow.success },
+                { assert workflow.out.stats.size() == 2 },
+                // One prepare-reads task per sample: a combine in place of the join would give four.
+                { assert prepare_dirs.size() == 2 },
+                { assert expected_r2.SK609 != expected_r2.SK610 },
+                { assert rawMd5(staged_r2.SK609) == expected_r2.SK609 },
+                { assert rawMd5(staged_r2.SK610) == expected_r2.SK610 }
+            )
+        }
+    }
+
+    test("SK609 - a sample carrying no R2") {
+
+        when {
+            params {
+                outdir = "$outputDir"
+            }
+            workflow {
+                """
+                input[0] = channel.of([
+                    [ id:'SK609' ],
+                    [ file("${baseDir}/tests/data/SK609_L5_R1.fastq.gz", checkIfExists: true) ],
+                ])
+                input[1] = 'carmack_custom_seq_1_0'
+                input[2] = [ 'barcodes', 'umis', 'targets', 'readprep', 'gate', 'arms' ]
+                """
+            }
+        }
+
+        then {
+            assertAll(
+                { assert workflow.failed },
+                { assert workflow.stdout.join('\n').contains("Sample 'SK609' carries 1 FASTQ file(s)") }
+            )
+        }
+    }
+
+    test("SK609 - R2 from another sample") {
+
+        when {
+            params {
+                outdir = "$outputDir"
+            }
+            workflow {
+                """
+                def other_r2 = new File("${outputDir}/OTHER_L1_R2.fastq.gz")
+                other_r2.parentFile.mkdirs()
+                new java.util.zip.GZIPOutputStream(other_r2.newOutputStream()).withWriter('UTF-8') { writer ->
+                    writer << "@OTHER:1:FLOWCELL:1:1101:1:1 2:N:0:1\\nACGTACGTAC\\n+\\nIIIIIIIIII\\n"
+                }
+
+                input[0] = channel.of([
+                    [ id:'SK609' ],
+                    [
+                        file("${baseDir}/tests/data/SK609_L5_R1.fastq.gz", checkIfExists: true),
+                        file(other_r2.toString()),
+                    ],
+                ])
+                input[1] = 'carmack_custom_seq_1_0'
+                input[2] = [ 'barcodes', 'umis', 'targets', 'readprep', 'gate', 'arms' ]
+                """
+            }
+        }
+
+        then {
+            def prepare_dirs = []
+            new File("$workDir").eachDirRecurse { dir ->
+                def command = new File(dir, '.command.sh')
+                if (command.exists() && command.text.contains('prepare-reads')) {
+                    prepare_dirs << dir
+                }
+            }
+            // carmack pairs the first read before it opens a writer, so a wholesale mismatch leaves
+            // its output directory empty rather than a truncated arm behind.
+            def written = prepare_dirs.collect { new File(it, 'out').list() as List }.flatten()
+
+            assertAll(
+                { assert workflow.failed },
+                { assert prepare_dirs.size() == 1 },
+                { assert written == [] },
+                // carmack's traceback is rendered in a fixed-width box, so the message wraps.
+                { assert new File(prepare_dirs[0], '.command.err').text.replaceAll(/\s+/, ' ').contains('has no matching read in R2') }
+            )
+        }
+    }
+}

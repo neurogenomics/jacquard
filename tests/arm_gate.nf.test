@@ -1,0 +1,210 @@
+nextflow_pipeline {
+
+    name "Test pipeline - arm gate"
+    script "../main.nf"
+    tag "pipeline"
+    tag "arm_gate"
+
+    test("-profile test --min_arm_reads 8000") {
+
+        tag "arm_gate_8000"
+
+        when {
+            params {
+                input         = Fixtures.absolutise("$baseDir", "$outputDir")
+                outdir        = "$outputDir"
+                min_arm_reads = 8000
+            }
+        }
+
+        then {
+            def gate = path("$outputDir/pipeline_info/arm_gate.tsv").readLines()
+
+            assertAll(
+                // The scRNA arm of the only sample is below the threshold, so it is dropped — and
+                // the run still has to finish, carrying the arm that cleared it.
+                { assert workflow.success },
+                { assert gate == [
+                    'sample\tarm\ttgidx\treads\tthreshold\tstatus',
+                    'SK609\tscrna\tNONE\t6229\t8000\tFAIL',
+                    'SK609\tsctip\tTATAGCCT\t13332\t8000\tPASS',
+                ] },
+                // The gate reaches the report as its own table, one row per arm, rather than
+                // collapsing both arms of a sample onto one row.
+                { assert path("$outputDir/multiqc/multiqc_data/multiqc_arm_gate_table.txt").readLines() == [
+                    'Sample\tArm\tTarget index\tReads\tThreshold\tStatus',
+                    'SK609.TATAGCCT\tsctip\tTATAGCCT\t13332\t8000\tPASS',
+                    'SK609.none\tscrna\tNONE\t6229\t8000\tFAIL',
+                ] },
+                { assert Fixtures.warnings("$workDir").contains("Arm 'SK609.none' carries 6229 read(s), below --min_arm_reads 8000; it is dropped and the run continues.") },
+                // Asserted on the tasks that were submitted, not on the absence of an output file:
+                // a dropped arm has to leave STAR unstarted, index build included, rather than
+                // paying for a reference no read will ever be mapped against.
+                { assert workflow.trace.tasks().findAll { task -> task.name.contains('STAR_') }.isEmpty() },
+                { assert !path("$outputDir/star").exists() },
+                // The other half of the same claim: dropping one arm must not cost the surviving
+                // one. Asserted on the arm's terminal output, so a scTIP chain that aborted
+                // halfway would fail here rather than passing on workflow.success alone.
+                { assert !workflow.trace.tasks().findAll { task -> task.name.contains('BOWTIE2_ALIGN') }.isEmpty() },
+                { assert path("$outputDir/umitools/SK609.TATAGCCT/SK609.TATAGCCT.bam").exists() }
+            )
+        }
+    }
+
+    test("-profile test --min_arm_reads 8000 with no annotation") {
+
+        tag "arm_gate_no_reference"
+
+        when {
+            params {
+                input         = Fixtures.absolutise("$baseDir", "$outputDir")
+                outdir        = "$outputDir"
+                min_arm_reads = 8000
+                gtf           = null
+            }
+        }
+
+        then {
+            assertAll(
+                // The scRNA arm is gone and there is no annotation to count against, which has to
+                // be the same run as the one above rather than an abort: a STAR index is wanted by
+                // an arm that reached STAR, and no arm did. The FASTA stays because the scTIP arm
+                // did clear the gate and bowtie2 builds its index from it.
+                { assert workflow.success },
+                { assert workflow.trace.tasks().findAll { task -> task.name.contains('STAR_') }.isEmpty() },
+                { assert workflow.trace.tasks().findAll { task -> task.name.contains('BOWTIE2_') }.size() == 2 },
+                { assert path("$outputDir/pipeline_info/arm_gate.tsv").readLines() == [
+                    'sample\tarm\ttgidx\treads\tthreshold\tstatus',
+                    'SK609\tscrna\tNONE\t6229\t8000\tFAIL',
+                    'SK609\tsctip\tTATAGCCT\t13332\t8000\tPASS',
+                ] }
+            )
+        }
+    }
+
+    test("-profile test --min_arm_reads 8000 with no FASTA") {
+
+        tag "arm_gate_sctip_needs_reference"
+
+        when {
+            params {
+                input         = Fixtures.absolutise("$baseDir", "$outputDir")
+                outdir        = "$outputDir"
+                min_arm_reads = 8000
+                fasta         = null
+                gtf           = null
+            }
+        }
+
+        then {
+            assertAll(
+                // The other side of every "no task was submitted" assertion: an arm that did clear
+                // the gate must still stop the run when it has nothing to align against, or the
+                // guard could be deleted outright and the suite would not notice.
+                { assert workflow.failed },
+                { assert workflow.stdout.join('\n').contains("Arm 'SK609.TATAGCCT' has no reference to map against: pass --bowtie2_index, or --fasta to build one.") }
+            )
+        }
+    }
+
+    test("-profile test with no annotation") {
+
+        tag "arm_gate_scrna_needs_reference"
+
+        when {
+            params {
+                input  = Fixtures.absolutise("$baseDir", "$outputDir")
+                outdir = "$outputDir"
+                gtf    = null
+            }
+        }
+
+        then {
+            assertAll(
+                // The same for the scRNA arm, at the default threshold where it survives: the FASTA
+                // alone satisfies bowtie2 but not STARsolo, which counts against an annotation.
+                { assert workflow.failed },
+                { assert workflow.stdout.join('\n').contains("Arm 'SK609.none' has no reference to map against: pass --star_index, or --fasta and --gtf to build one.") }
+            )
+        }
+    }
+
+    test("-profile test --min_arm_reads 20000 with no reference") {
+
+        tag "arm_gate_no_reference_at_all"
+
+        when {
+            params {
+                input         = Fixtures.absolutise("$baseDir", "$outputDir")
+                outdir        = "$outputDir"
+                min_arm_reads = 20000
+                fasta         = null
+                gtf           = null
+            }
+        }
+
+        then {
+            assertAll(
+                // Neither arm survived, so neither aligner's reference is wanted. Both guards hang
+                // off their own arm channel, and a run that demanded a reference here would turn a
+                // gate-dropped sample back into a failed run by another route.
+                { assert workflow.success },
+                { assert workflow.trace.tasks().findAll { task -> task.name.contains('STAR_') || task.name.contains('BOWTIE2_') }.isEmpty() }
+            )
+        }
+    }
+
+    test("-profile test --min_arm_reads 20000") {
+
+        tag "arm_gate_20000"
+
+        when {
+            params {
+                input         = Fixtures.absolutise("$baseDir", "$outputDir")
+                outdir        = "$outputDir"
+                min_arm_reads = 20000
+            }
+        }
+
+        then {
+            assertAll(
+                // Every arm of the only sample is gone, so the sample is gone; losing a library
+                // must not cost the run the work it has already finished.
+                { assert workflow.success },
+                { assert path("$outputDir/pipeline_info/arm_gate.tsv").readLines() == [
+                    'sample\tarm\ttgidx\treads\tthreshold\tstatus',
+                    'SK609\tscrna\tNONE\t6229\t20000\tFAIL',
+                    'SK609\tsctip\tTATAGCCT\t13332\t20000\tFAIL',
+                ] },
+                { assert Fixtures.warnings("$workDir").contains("Sample 'SK609' has no arm meeting --min_arm_reads 20000 (NONE=6229, TATAGCCT=13332); the sample is dropped and the run continues.") },
+                // A run left with nothing to carry forward still reports what it ran, so the
+                // completion it reaches is a real one rather than a collapsed one.
+                { assert [
+                    'CARMACK_EXTRACTBARCODES',
+                    'CARMACK_PREPAREREADS',
+                ].every { process -> path("$outputDir/pipeline_info/jacquard_software_mqc_versions.yml").text.contains("${process}:\n  carmack: ") } }
+            )
+        }
+    }
+
+    test("-profile test --min_arm_reads 20000 --fail_on_no_arms") {
+
+        tag "arm_gate_fail_on_no_arms"
+
+        when {
+            params {
+                input           = Fixtures.absolutise("$baseDir", "$outputDir")
+                outdir          = "$outputDir"
+                min_arm_reads   = 20000
+                fail_on_no_arms = true
+            }
+        }
+
+        then {
+            assertAll(
+                { assert workflow.failed },
+                { assert workflow.stdout.join('\n').contains("Sample 'SK609' has no arm meeting --min_arm_reads 20000 (NONE=6229, TATAGCCT=13332), and --fail_on_no_arms is set.") }
+            )
+        }
+    }
+}

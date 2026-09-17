@@ -1,0 +1,20 @@
+{
+    "SK609 - paired fastq.gz": {
+        "content": [
+            "# Carmack version: 0.0.0+6816691\n# Prepare Reads Stats\n# unmatched_written + sum(target_written.values()) == total_reads\nTotal reads: 19561\nUnmatched (scRNA arm): 6229 (31.84%)\nMatched (scTIP arms): 13332 (68.16%)\n\n# Target Distribution\n\tTATAGCCT\t13332 (68.16%)",
+            [
+                [
+                    {
+                        "id": "SK609"
+                    },
+                    "SK609.detected_targets.txt:md5,f3dcfe4f6b657ee3473d3b00b16e4f90"
+                ]
+            ]
+        ],
+        "timestamp": "2026-09-14T13:55:47.3850121",
+        "meta": {
+            "nf-test": "0.9.5",
+            "nextflow": "26.04.6"
+        }
+    }
+}
