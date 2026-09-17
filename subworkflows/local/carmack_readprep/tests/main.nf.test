@@ -90,6 +90,7 @@ nextflow_workflow {
                 { assert staged_r2.size() == 1 },
                 { assert staged_r2[0].bytes == new File("${baseDir}/tests/data/SK609_L5_R2.fastq.gz").bytes },
                 { assert mqc_json == [
+                    'SK609.extraction_barcode_rank_mqc.json',
                     'SK609.extraction_breakdown_mqc.json',
                     'SK609.extraction_edit_distance_mqc.json',
                     'SK609.extraction_general_stats_mqc.json',

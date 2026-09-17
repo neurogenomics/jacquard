@@ -11,19 +11,19 @@
                     "bowtie2": "2.5.4"
                 },
                 "CARMACK_ASSIGNTARGETS": {
-                    "carmack": "0.0.0+fe755ee"
+                    "carmack": "0.0.0+ffa5349"
                 },
                 "CARMACK_EXTRACTBARCODES": {
-                    "carmack": "0.0.0+fe755ee"
+                    "carmack": "0.0.0+ffa5349"
                 },
                 "CARMACK_EXTRACTUMIS": {
-                    "carmack": "0.0.0+fe755ee"
+                    "carmack": "0.0.0+ffa5349"
                 },
                 "CARMACK_PREPAREREADS": {
-                    "carmack": "0.0.0+fe755ee"
+                    "carmack": "0.0.0+ffa5349"
                 },
                 "CHEMISTRYADAPTERS": {
-                    "carmack": "0.0.0+fe755ee"
+                    "carmack": "0.0.0+ffa5349"
                 },
                 "FASTP": {
                     "fastp": "1.3.6"
@@ -417,18 +417,18 @@
                 "umitools/SK609.TATAGCCT/SK609.TATAGCCT.log"
             ],
             [
-                "SK609.tgidx_anchor_run_mqc.json:md5,7202386a0919239fbd8bebddb99ce94f",
+                "SK609.tgidx_anchor_run_mqc.json:md5,473c7b1f9f7fe00aaff68a13ed50f281",
                 "SK609.tgidx_breakdown_mqc.json:md5,db0a8cacb80680f0b1e2238f4f442fec",
-                "SK609.tgidx_edit_distance_mqc.json:md5,58a9925bb20aed66956473fbc422f3ff",
+                "SK609.tgidx_edit_distance_mqc.json:md5,d136d111aa497bb55373efbe741193b3",
                 "SK609.tgidx_general_stats_mqc.json:md5,e9179ed37727a35f52b5a5542a9a34fc",
                 "SK609.tgidx_target_distribution_mqc.json:md5,ad5378003fe0b6c8b9fd71a16e7b04e1",
                 "SK609.bc_counts.csv:md5,bb33d2c4509a58db16b124ff6ea40919",
                 "SK609.bc_rank.png:md5,eac7b5bb6c40cb14452904f78556be15",
                 "SK609.extraction_barcode_rank_mqc.json:md5,939152d35a1451311a328d741ef3dbe3",
                 "SK609.extraction_breakdown_mqc.json:md5,5cb0911fac869eede453f59e695cb8ee",
-                "SK609.extraction_edit_distance_mqc.json:md5,6b7f014bfa396e42b878792cf4c67b47",
+                "SK609.extraction_edit_distance_mqc.json:md5,abbf8d5abb601cdfed9f58f7b4a08e3a",
                 "SK609.extraction_general_stats_mqc.json:md5,d234f99fa2671be5d61a881f8f3ca648",
-                "SK609.umi_anchor_run_mqc.json:md5,7a0b5d298dfa3f6ed470056f91a26ab6",
+                "SK609.umi_anchor_run_mqc.json:md5,1596c61c91dca16f5ba6af65acc4b030",
                 "SK609.umi_breakdown_mqc.json:md5,a5255117acf2896e2de2744738c40189",
                 "SK609.umi_general_stats_mqc.json:md5,2dbb70470f5083f95d23f1158162f494",
                 "SK609.detected_targets.txt:md5,f3dcfe4f6b657ee3473d3b00b16e4f90",
@@ -465,13 +465,13 @@
                 "multiqc_bowtie2.txt:md5,3a62d4fdf9b76d14704d1d7ed06a760c",
                 "multiqc_carmack_extraction_barcode_rank_plot.txt:md5,1e71577d53ccebfba6fbed08064a637d",
                 "multiqc_carmack_extraction_breakdown_plot.txt:md5,696f98000d37104be7299ffa004b1e2a",
-                "multiqc_carmack_extraction_edit_distance_plot.txt:md5,a14c58ae7ed4cc8fd33accd6f8fe072f",
+                "multiqc_carmack_extraction_edit_distance_plot.txt:md5,602677bb0a5d43f7fb573cb685bd3b5d",
                 "multiqc_carmack_prepare_target_distribution_plot.txt:md5,a6bd373c2bc6c4246a62eebd2b4a6964",
-                "multiqc_carmack_tgidx_anchor_run_plot.txt:md5,05792f4088db9f63895c56e54029ca8a",
+                "multiqc_carmack_tgidx_anchor_run_plot.txt:md5,af0b688e4c814a9f8b6b7904ca4d1c98",
                 "multiqc_carmack_tgidx_breakdown_plot.txt:md5,1a92b99bf3445f63c183067502c38584",
-                "multiqc_carmack_tgidx_edit_distance_plot.txt:md5,bdf4bebcec0993ca5e54e7c126771ec9",
+                "multiqc_carmack_tgidx_edit_distance_plot.txt:md5,98724cab44a6398d7d5431f5e9939707",
                 "multiqc_carmack_tgidx_target_distribution_plot.txt:md5,726f25b4dae47d664c47a7a399c1e93d",
-                "multiqc_carmack_umi_anchor_run_plot.txt:md5,edfcf9038f7386602c67c9b4ff0a65ed",
+                "multiqc_carmack_umi_anchor_run_plot.txt:md5,6389416bfd032e93929bea0ee66eda9e",
                 "multiqc_carmack_umi_breakdown_plot.txt:md5,e3daf835bacc6cb2f692feed5a04e36e",
                 "multiqc_citations.txt:md5,2dbf68f27d2865e859f51f1132050790",
                 "multiqc_fastp.txt:md5,3c20704ac1f07c8a42af9f157ac5b4b0",
@@ -511,7 +511,7 @@
                 "matrix.mtx.gz:md5,be9d1e95efdbe4db369252112580ad4e"
             ]
         ],
-        "timestamp": "2026-09-17T12:14:21.392204222",
+        "timestamp": "2026-09-17T15:26:10.572141261",
         "meta": {
             "nf-test": "0.9.5",
             "nextflow": "26.04.6"
