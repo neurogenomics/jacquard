@@ -1,0 +1,56 @@
+name: "resyncbarcodes"
+description: Replay the read ids surviving a trim onto carmack's synthesized barcode FASTQ
+keywords:
+  - single-cell
+  - multiome
+  - barcode
+  - umi
+  - fastq
+tools:
+  - "python":
+      description: "The Python programming language; this module uses its standard library alone"
+      homepage: "https://www.python.org/"
+      documentation: "https://docs.python.org/3/"
+      licence: ["PSF-2.0"]
+
+input:
+  - - meta:
+        type: map
+        description: |
+          Groovy Map containing sample information, e.g. `[ id:'sample1.none' ]`
+    - reads:
+        type: file
+        description: The trimmed cDNA read whose surviving read ids the barcode read is resynced to
+        pattern: "*.fastq.gz"
+    - barcodes:
+        type: file
+        description: carmack's synthesized barcode-plus-UMI read, one record per untrimmed read pair
+        pattern: "*.fastq.gz"
+
+output:
+  barcodes:
+    - - meta:
+          type: map
+          description: |
+            Groovy Map containing sample information, e.g. `[ id:'sample1.none' ]`
+      - "*.resynced.barcodes.fastq.gz":
+          type: file
+          description: The same barcode records verbatim, less the ones whose read did not survive
+          pattern: "*.fastq.gz"
+  versions_python:
+    - - "${task.process}":
+          type: string
+          description: Name of the emitting process
+      - "python":
+          type: string
+          description: Name of the tool
+      - version:
+          type: string
+          description: Version of python, emitted on the `versions` topic
+
+authors:
+  - "@HDash"
+  - "@chris-cheshire"
+maintainers:
+  - "@HDash"
+  - "@chris-cheshire"

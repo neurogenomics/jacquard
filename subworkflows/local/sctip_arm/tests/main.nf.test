@@ -38,8 +38,14 @@ nextflow_workflow {
                     input[1] = CARMACK_READPREP.out.sctip
                     input[2] = CARMACK_READPREP.out.stats_json
                     input[3] = 1000
-                    input[4] = false
-                    input[5] = "${outputDir}"
+                    """
+                }
+            }
+            run("CHEMISTRYADAPTERS") {
+                script "../../../../modules/local/chemistryadapters/main.nf"
+                process {
+                    """
+                    input[0] = 'carmack_custom_seq_1_0'
                     """
                 }
             }
@@ -54,12 +60,25 @@ nextflow_workflow {
                 input[0] = ARM_FANOUT.out.sctip
                 input[1] = params.modules_testdata_base_path + 'genomics/homo_sapiens/genome/chr21/sequence/genome.fasta'
                 input[2] = null
+                input[3] = CHEMISTRYADAPTERS.out.fasta.map { adapters -> adapters.size() > 0 ? adapters : [] }.first()
+                input[4] = false
+                input[5] = 1000
                 """
             }
         }
 
         then {
             def arm_meta = [ id:'SK609.TATAGCCT', sample:'SK609', arm:'sctip', tgidx:'TATAGCCT', single_end:false ]
+
+            // fastp's own report, and the FASTA staged beside the task that wrote it.
+            def trim_json = workflow.out.trim_json[0][1]
+            def trim_dir = new File(trim_json).parentFile
+            def report = new groovy.json.JsonSlurper().parseText(path(trim_json).text)
+            // The arguments the process was actually given. `read1_adapter_counts` cannot stand in
+            // for this: it came back empty on runs where the FASTA demonstrably changed the outcome,
+            // and a selector that matched nothing would leave fastp on stock defaults, silently.
+            def trim_command = report.command
+            def adapters = new File(trim_dir, 'carmack_custom_seq_1_0.adapters.fasta').text
 
             // The pair bowtie2 was handed, read back from the files staged beside its own task, so
             // the comparison is against what the aligner actually saw rather than a path guessed at.
@@ -72,8 +91,8 @@ nextflow_workflow {
                     .findAll { _line, index -> index % 4 == 0 }
                     .collect { line, _index -> line.substring(1) }
             }
-            def r1_headers = fastqHeaders('SK609.TATAGCCT.r1.fastq.gz')
-            def r2_headers = fastqHeaders('SK609.TATAGCCT.r2.fastq.gz')
+            def r1_headers = fastqHeaders('SK609.TATAGCCT_R1.fastp.fastq.gz')
+            def r2_headers = fastqHeaders('SK609.TATAGCCT_R2.fastp.fastq.gz')
             def aligned_qnames = bam(aligned_bam).getSamLines().collect { line -> line.trim().tokenize('\t').first() }
 
             def dedup_lines = bam(workflow.out.bam[0][1]).getSamLines().collect { line -> line.trim() }
@@ -87,6 +106,7 @@ nextflow_workflow {
             def reads_in = (dedup_log.find { line -> line.contains('INFO Reads: Input Reads:') } =~ /Input Reads: (\d+)/)[0][1] as int
             def reads_out = (dedup_log.find { line -> line.contains('INFO Number of reads out:') } =~ /reads out: (\d+)/)[0][1] as int
             def bowtie2_log = path(workflow.out.log_align[0][1]).readLines()
+            def bowtie2_reads = (bowtie2_log.first() =~ /(\d+) reads/)[0][1] as int
 
             assertAll(
                 { assert workflow.success },
@@ -98,18 +118,50 @@ nextflow_workflow {
                 { assert file(workflow.out.log_align[0][1]).name == 'SK609.TATAGCCT.bowtie2.log' },
                 { assert file(workflow.out.log_dedup[0][1]).name == 'SK609.TATAGCCT.log' },
                 { assert file(workflow.out.stats[0][1]).name == 'SK609.TATAGCCT.stats' },
+                { assert file(trim_json).name == 'SK609.TATAGCCT.fastp.json' },
                 { assert workflow.out.multiqc_files.collect { mqc -> file(mqc).name }.sort() == [
                     'SK609.TATAGCCT.bowtie2.log',
+                    'SK609.TATAGCCT.fastp.json',
                     'SK609.TATAGCCT.log',
                     'SK609.TATAGCCT.stats',
                     'SK609.TATAGCCT_1_fastqc.zip',
                     'SK609.TATAGCCT_2_fastqc.zip',
                 ] },
 
-                // The contract bowtie2 has to honour: a SAM QNAME is truncated at the first
-                // whitespace, carmack's composite name carries none, so every read name reaches the
-                // BAM exactly as prepare-reads wrote it. Compared as raw strings rather than by a
-                // file hash, because only the names are claimed to be unchanged.
+                // The arguments this arm's config block sets, read off fastp's own record of the
+                // command line rather than trusted to the selector having matched.
+                { assert trim_command.contains('--adapter_fasta carmack_custom_seq_1_0.adapters.fasta') },
+                { assert trim_command.contains('--trim_poly_g') },
+                { assert trim_command.contains('--length_required 25') },
+                // Quality trimming would move the leftmost coordinate of a reverse-strand alignment,
+                // which is the key umi_tools groups on, and --umi would rewrite the read name that
+                // carries the barcode and the UMI. Neither may reach this arm.
+                { assert !trim_command.contains('--cut_right') },
+                { assert !trim_command.contains('--cut_tail') },
+                { assert !trim_command.contains('--umi ') },
+                // Read-through reaches R2 as the reverse complement of the Mosaic End, which fastp
+                // will not derive from the forward sequence for you.
+                { assert adapters.contains('AGATGTGTATAAGAGACAG') },
+                { assert adapters.contains('CTGTCTCTTATACACATCT') },
+                { assert report.adapter_cutting.adapter_trimmed_reads > 0 },
+
+                // The gate's unit is read pairs, so the count is read1's alone: the run-wide
+                // `summary.after_filtering.total_reads` sums both mates and would make every
+                // comparison against --min_arm_reads exactly twice as lenient.
+                { assert report.summary.after_filtering.total_reads == 2 * report.read1_after_filtering.total_reads },
+                { assert workflow.out.gate[0][0] == arm_meta },
+                { assert workflow.out.gate[0][1] == report.read1_after_filtering.total_reads },
+                { assert workflow.out.gate[0][2] == 'PASS' },
+                // Trimming removed something, and the reads bowtie2 was given are the ones that
+                // survived it rather than the 13332 pairs prepare-reads wrote.
+                { assert workflow.out.gate[0][1] < 13332 },
+                { assert bowtie2_reads == workflow.out.gate[0][1] },
+                { assert bowtie2_log[1].contains('(100.00%) were paired') },
+
+                // The contract fastp and bowtie2 both have to honour: a SAM QNAME is truncated at
+                // the first whitespace, carmack's composite name carries none, so every read name
+                // reaches the BAM exactly as prepare-reads wrote it. TAGQNAME and `umi_tools dedup`
+                // read the barcode and the UMI back out of it, so breakage here would be silent.
                 { assert !r1_headers.isEmpty() && r1_headers == r2_headers },
                 { assert r1_headers.every { header -> header ==~ /^\S+\|CB=[ACGTN]{30}\|UR=[ACGTN]{8}$/ } },
                 { assert aligned_qnames.toUnique().toSorted() == r1_headers.toSorted() },
@@ -127,14 +179,163 @@ nextflow_workflow {
                 { assert dedup_command.contains('--cell-tag=CB') },
                 // Something was actually collapsed, and something actually survived: a dedup that
                 // removed everything or nothing would pass every assertion above.
-                { assert reads_out > 0 && reads_out < reads_in },
+                { assert reads_out > 0 && reads_out < reads_in }
+            )
+        }
+    }
 
-                // bowtie2's own count of what it read, which is both the arm's size in the gate
-                // table and the proof that it was handed a pair rather than one mate.
+    test("SK609 - skip_trimming still produces a BAM") {
+
+        tag "sctip_arm_skip_trimming"
+
+        setup {
+            run("CARMACK_READPREP") {
+                script "../../carmack_readprep/main.nf"
+                workflow {
+                    """
+                    input[0] = channel.of([
+                        [ id:'SK609' ],
+                        [
+                            file("${baseDir}/tests/data/SK609_L5_R1.fastq.gz", checkIfExists: true),
+                            file("${baseDir}/tests/data/SK609_L5_R2.fastq.gz", checkIfExists: true),
+                        ],
+                    ])
+                    input[1] = 'carmack_custom_seq_1_0'
+                    input[2] = [ 'barcodes', 'umis', 'targets', 'readprep', 'gate', 'arms' ]
+                    """
+                }
+            }
+            run("ARM_FANOUT") {
+                script "../../arm_fanout/main.nf"
+                workflow {
+                    """
+                    input[0] = CARMACK_READPREP.out.scrna
+                    input[1] = CARMACK_READPREP.out.sctip
+                    input[2] = CARMACK_READPREP.out.stats_json
+                    input[3] = 1000
+                    """
+                }
+            }
+        }
+
+        when {
+            params {
+                outdir = "$outputDir"
+            }
+            workflow {
+                """
+                input[0] = ARM_FANOUT.out.sctip
+                input[1] = params.modules_testdata_base_path + 'genomics/homo_sapiens/genome/chr21/sequence/genome.fasta'
+                input[2] = null
+                input[3] = channel.value([])
+                input[4] = true
+                input[5] = 1000
+                """
+            }
+        }
+
+        then {
+            def bowtie2_log = path(workflow.out.log_align[0][1]).readLines()
+
+            assertAll(
+                { assert workflow.success },
+                // The bypass is a Groovy branch, not `ext.when`: a process switched off by `ext.when`
+                // emits nothing, so the arm would produce no output at all while the run exited 0.
+                { assert workflow.trace.tasks().findAll { task -> task.name.contains('FASTP') }.isEmpty() },
+                { assert workflow.out.trim_json.isEmpty() },
+                { assert workflow.out.gate.isEmpty() },
+                { assert file(workflow.out.bam[0][1]).name == 'SK609.TATAGCCT.bam' },
+                // Every pair prepare-reads wrote reached the aligner, untrimmed.
                 { assert bowtie2_log.take(2) == [
                     '13332 reads; of these:',
                     '  13332 (100.00%) were paired; of these:',
                 ] }
+            )
+        }
+    }
+
+    test("SK609 - an arm trimming leaves below the threshold is dropped") {
+
+        tag "sctip_arm_trim_drop"
+
+        setup {
+            run("CARMACK_READPREP") {
+                script "../../carmack_readprep/main.nf"
+                workflow {
+                    """
+                    input[0] = channel.of([
+                        [ id:'SK609' ],
+                        [
+                            file("${baseDir}/tests/data/SK609_L5_R1.fastq.gz", checkIfExists: true),
+                            file("${baseDir}/tests/data/SK609_L5_R2.fastq.gz", checkIfExists: true),
+                        ],
+                    ])
+                    input[1] = 'carmack_custom_seq_1_0'
+                    input[2] = [ 'barcodes', 'umis', 'targets', 'readprep', 'gate', 'arms' ]
+                    """
+                }
+            }
+            run("ARM_FANOUT") {
+                script "../../arm_fanout/main.nf"
+                workflow {
+                    """
+                    input[0] = CARMACK_READPREP.out.scrna
+                    input[1] = CARMACK_READPREP.out.sctip
+                    input[2] = CARMACK_READPREP.out.stats_json
+                    input[3] = 1000
+                    """
+                }
+            }
+            run("CHEMISTRYADAPTERS") {
+                script "../../../../modules/local/chemistryadapters/main.nf"
+                process {
+                    """
+                    input[0] = 'carmack_custom_seq_1_0'
+                    """
+                }
+            }
+        }
+
+        when {
+            params {
+                outdir = "$outputDir"
+            }
+            workflow {
+                """
+                input[0] = ARM_FANOUT.out.sctip
+                input[1] = params.modules_testdata_base_path + 'genomics/homo_sapiens/genome/chr21/sequence/genome.fasta'
+                input[2] = null
+                input[3] = CHEMISTRYADAPTERS.out.fasta.map { adapters -> adapters.size() > 0 ? adapters : [] }.first()
+                input[4] = false
+                // The arm's own pre-trim count. It cleared the fan-out gate at 1000, so whatever
+                // trimming removes is what takes it below this — no default trimming empties SK609,
+                // and testing for zero reads would miss an arm falling from 13332 to 40.
+                input[5] = 13332
+                """
+            }
+        }
+
+        then {
+            def trimmed = workflow.out.gate[0][1]
+
+            assertAll(
+                // A tripped gate never aborts, here as at the fan-out: the arm is dropped and the
+                // run finishes.
+                { assert workflow.success },
+                { assert workflow.out.gate[0][2] == 'FAIL_TRIM' },
+                { assert trimmed > 0 && trimmed < 13332 },
+                // Dropped on the one channel every consumer reads, so nothing downstream of fastp
+                // saw the arm — a FastQC report published for a dropped arm would claim in MultiQC
+                // that it had been processed.
+                { assert workflow.out.bam.isEmpty() },
+                { assert workflow.trace.tasks().findAll { task -> task.name.contains('FASTQC_PREPARED') }.isEmpty() },
+                // The index build rides the post-trim channel, so an arm trimming killed costs the
+                // run no reference it has nothing to align against.
+                { assert workflow.trace.tasks().findAll { task -> task.name.contains('BOWTIE2_') }.isEmpty() },
+                { assert Fixtures.warnings("$workDir").contains("Arm 'SK609.TATAGCCT' carries ${trimmed} read pair(s) after trimming, below --min_arm_reads 13332; it is dropped and the run continues.".toString()) },
+                // The trimming report still reaches MultiQC, since it is the only place the reason
+                // for the drop is legible.
+                { assert workflow.out.multiqc_files.collect { mqc -> file(mqc).name } == [ 'SK609.TATAGCCT.fastp.json' ] }
             )
         }
     }
@@ -152,6 +353,9 @@ nextflow_workflow {
                 input[0] = channel.empty()
                 input[1] = params.modules_testdata_base_path + 'genomics/homo_sapiens/genome/chr21/sequence/genome.fasta'
                 input[2] = null
+                input[3] = channel.value([])
+                input[4] = false
+                input[5] = 1000
                 """
             }
         }
@@ -163,6 +367,7 @@ nextflow_workflow {
                 // an index build costs more than the arm it would have served, so a gate that
                 // dropped every scTIP arm has to leave bowtie2 unstarted rather than merely unused.
                 { assert workflow.trace.tasks().findAll { task -> task.name.contains('BOWTIE2_') }.isEmpty() },
+                { assert workflow.trace.tasks().findAll { task -> task.name.contains('FASTP') }.isEmpty() },
                 { assert workflow.out.bam.isEmpty() },
             )
         }
@@ -181,6 +386,9 @@ nextflow_workflow {
                 input[0] = channel.empty()
                 input[1] = null
                 input[2] = null
+                input[3] = channel.value([])
+                input[4] = false
+                input[5] = 1000
                 """
             }
         }

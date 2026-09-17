@@ -1,7 +1,7 @@
 {
     "SK609 - r1_tgidx fastq.gz + raw R2": {
         "content": [
-            "# Carmack version: 0.0.0+6816691\n# Prepare Reads Stats\n# unmatched_written + sum(target_written.values()) == total_reads\nTotal reads: 19561\nUnmatched (scRNA arm): 6229 (31.84%)\nMatched (scTIP arms): 13332 (68.16%)\n\n# Target Distribution\n\tTATAGCCT\t13332 (68.16%)",
+            "# Carmack version: 0.0.0+ffa5349\n# Prepare Reads Stats\n# unmatched_written + sum(target_written.values()) + insert_not_sequenced == total_reads\nTotal reads: 19561\nUnmatched (scRNA arm): 6229 (31.84%)\nMatched (scTIP arms): 13332 (68.16%)\nRejected (insert_not_sequenced): 0 (0.00%)\n\n# Target Distribution\n\tTATAGCCT\t13332 (68.16%)",
             [
                 [
                     {
@@ -16,8 +16,8 @@
                         "id": "SK609"
                     },
                     [
-                        "SK609.prepare_general_stats_mqc.json:md5,7c9c137d58d167734b27066652761f90",
-                        "SK609.prepare_target_distribution_mqc.json:md5,c68ef0f2397e78b8eb229adc651d1dbc"
+                        "SK609.prepare_general_stats_mqc.json:md5,02383c0afa7176ee798185656b84d5dd",
+                        "SK609.prepare_target_distribution_mqc.json:md5,cf366372d6d880c6e514eb1459442cb7"
                     ]
                 ]
             ],
@@ -25,11 +25,11 @@
                 [
                     "CARMACK_PREPAREREADS",
                     "carmack",
-                    "0.0.0+6816691"
+                    "0.0.0+ffa5349"
                 ]
             ]
         ],
-        "timestamp": "2026-09-14T13:46:03.307744556",
+        "timestamp": "2026-09-17T15:17:05.752543748",
         "meta": {
             "nf-test": "0.9.5",
             "nextflow": "26.04.6"

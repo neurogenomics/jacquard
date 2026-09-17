@@ -38,8 +38,6 @@ nextflow_workflow {
                     input[1] = CARMACK_READPREP.out.sctip
                     input[2] = CARMACK_READPREP.out.stats_json
                     input[3] = 1000
-                    input[4] = false
-                    input[5] = "${outputDir}"
                     """
                 }
             }
@@ -55,6 +53,8 @@ nextflow_workflow {
                 input[1] = params.modules_testdata_base_path + 'genomics/homo_sapiens/genome/chr21/sequence/genome.fasta'
                 input[2] = params.modules_testdata_base_path + 'genomics/homo_sapiens/genome/chr21/sequence/chr21_gencode.gtf'
                 input[3] = null
+                input[4] = false
+                input[5] = 1000
                 """
             }
         }
@@ -70,25 +70,42 @@ nextflow_workflow {
                 names.sort()
             }
 
+            // The arguments the process was actually given. A selector that matched nothing would
+            // leave fastp on stock defaults — quality-filtering this arm — while the run exited 0.
+            def report = new groovy.json.JsonSlurper().parseText(path(workflow.out.trim_json[0][1]).text)
+            def trim_command = report.command
+
             // The one thing the whole arm turns on: what STAR was actually told to read, in what
             // order. carmack's `.r1` is the cDNA insert and `.barcodes` the synthesized
             // barcode-plus-UMI record, and STARsolo takes them cDNA first.
-            def star_command = new File(solo_out).parentFile
-            def read_files_in = new File(star_command, '.command.sh')
+            def star_dir = new File(solo_out).parentFile
+            def read_files_in = new File(star_dir, '.command.sh')
                 .readLines()
                 .find { it.contains('--readFilesIn') }
                 .split(/\s+/)
                 .findAll { it.endsWith('.fastq.gz') }
                 .collect { it.tokenize('/').last() }
 
+            // Read back off the two files staged beside STAR's own task, so the comparison is
+            // against what the aligner actually saw rather than a path guessed at.
+            def readIds = { name ->
+                path("${star_dir}/${name}").linesGzip
+                    .toList()
+                    .withIndex()
+                    .findAll { _line, index -> index % 4 == 0 }
+                    .collect { line, _index -> line.substring(1).split(/\s+/).first().replaceAll(/\/[12]$/, '') }
+            }
+            def cdna_ids = readIds('SK609.none_R1.fastp.fastq.gz')
+            def barcode_ids = readIds('SK609.none.resynced.barcodes.fastq.gz')
+
             def cell_barcodes = path("${solo_out}/Gene/raw/barcodes.tsv.gz").linesGzip
 
             // Every barcode STARsolo called, read back out of the file it was handed as the barcode
             // read. Length alone cannot show which file that was — the 65 base cDNA read would give
             // 30 character strings too — so each called barcode is matched to the leading 30 bases
-            // of a record in the synthesized barcodes FASTQ staged beside the command.
+            // of a record in the resynced barcodes FASTQ staged beside the command.
             def barcode_read_prefixes = new java.util.zip.GZIPInputStream(
-                new File(star_command, 'SK609.none.barcodes.fastq.gz').newInputStream()
+                new File(star_dir, 'SK609.none.resynced.barcodes.fastq.gz').newInputStream()
             ).withReader('UTF-8') { reader ->
                 def prefixes = [] as Set
                 def position = 0
@@ -110,11 +127,46 @@ nextflow_workflow {
                 { assert workflow.out.counts[0][0] == arm_meta },
                 { assert file(workflow.out.counts[0][1]).name == 'SK609.none.Solo.out' },
                 { assert file(workflow.out.log_final[0][1]).name == 'SK609.none.Log.final.out' },
+                { assert file(workflow.out.trim_json[0][1]).name == 'SK609.none.fastp.json' },
                 { assert workflow.out.multiqc_files.collect { file(it).name }.sort() == [
                     'SK609.none.Log.final.out',
+                    'SK609.none.fastp.json',
                     'SK609.none_fastqc.zip',
                 ] },
-                { assert read_files_in == [ 'SK609.none.r1.fastq.gz', 'SK609.none.barcodes.fastq.gz' ] },
+                { assert read_files_in == [ 'SK609.none_R1.fastp.fastq.gz', 'SK609.none.resynced.barcodes.fastq.gz' ] },
+
+                // The arguments this arm's config block sets, read off fastp's own record of the
+                // command line rather than trusted to the selector having matched.
+                { assert trim_command.contains('--disable_quality_filtering') },
+                { assert trim_command.contains('--length_required 1') },
+                // Overlap-only: this arm declares no adapter set, and a FASTA leaking in from the
+                // scTIP arm's block would show here.
+                { assert !trim_command.contains('--adapter_fasta') },
+                // Quality trimming shortens the cDNA read, and --umi rewrites the read name the
+                // barcode resync pairs the two streams on. Neither may reach this arm.
+                { assert !trim_command.contains('--cut_right') },
+                { assert !trim_command.contains('--cut_tail') },
+                { assert !trim_command.contains('--umi ') },
+
+                // The gate's unit is read pairs, so the count is read1's alone: the run-wide
+                // `summary.after_filtering.total_reads` sums both mates and would make every
+                // comparison against --min_arm_reads exactly twice as lenient.
+                { assert report.summary.after_filtering.total_reads == 2 * report.read1_after_filtering.total_reads },
+                { assert workflow.out.gate[0][0] == arm_meta },
+                { assert workflow.out.gate[0][1] == report.read1_after_filtering.total_reads },
+                { assert workflow.out.gate[0][2] == 'PASS' },
+                // The measured cost of trimming this arm on the SK609 fixtures: 6229 pairs in,
+                // 6227 out — a 0.03% drop, all of it adapter read-through, since quality filtering
+                // is disabled and the length floor is 1. Small, and the point is that it is not
+                // zero: those two pairs are what the barcode resync below has to remove too.
+                { assert workflow.out.gate[0][1] == 6227 },
+
+                // The pairing STARsolo depends on: one barcode record per surviving cDNA read, in
+                // the same order and naming the same reads. A resync that dropped or reordered a
+                // record would still produce a whole matrix, keyed on the wrong cells.
+                { assert !cdna_ids.isEmpty() && barcode_ids == cdna_ids },
+                { assert barcode_ids.size() == workflow.out.gate[0][1] },
+
                 // The acceptance criterion itself: a Solo.out tree with a cell-by-gene matrix in it.
                 // Both feature trees are named: `GeneFull` is what --solo_features asks for and
                 // `Gene` is what the module's non-optional summary output needs to exist.
@@ -135,7 +187,164 @@ nextflow_workflow {
                 // without this the assertion would pass on a Solo.out that called no cell.
                 { assert !cell_barcodes.isEmpty() && cell_barcodes.every { it.length() == 30 } },
                 { assert cell_barcodes.every { barcode -> barcode_read_prefixes.contains(barcode) } },
+                // STAR counts what it was handed, so this is the post-trim pair count seen from the
+                // other end of the resync.
+                { assert file(workflow.out.summary[0][1]).readLines().contains("Number of Reads,${workflow.out.gate[0][1]}".toString()) },
+            )
+        }
+    }
+
+    test("SK609 - skip_trimming still produces a Solo.out") {
+
+        tag "scrna_arm_skip_trimming"
+
+        setup {
+            run("CARMACK_READPREP") {
+                script "../../carmack_readprep/main.nf"
+                workflow {
+                    """
+                    input[0] = channel.of([
+                        [ id:'SK609' ],
+                        [
+                            file("${baseDir}/tests/data/SK609_L5_R1.fastq.gz", checkIfExists: true),
+                            file("${baseDir}/tests/data/SK609_L5_R2.fastq.gz", checkIfExists: true),
+                        ],
+                    ])
+                    input[1] = 'carmack_custom_seq_1_0'
+                    input[2] = [ 'barcodes', 'umis', 'targets', 'readprep', 'gate', 'arms' ]
+                    """
+                }
+            }
+            run("ARM_FANOUT") {
+                script "../../arm_fanout/main.nf"
+                workflow {
+                    """
+                    input[0] = CARMACK_READPREP.out.scrna
+                    input[1] = CARMACK_READPREP.out.sctip
+                    input[2] = CARMACK_READPREP.out.stats_json
+                    input[3] = 1000
+                    """
+                }
+            }
+        }
+
+        when {
+            params {
+                outdir = "$outputDir"
+            }
+            workflow {
+                """
+                input[0] = ARM_FANOUT.out.scrna
+                input[1] = params.modules_testdata_base_path + 'genomics/homo_sapiens/genome/chr21/sequence/genome.fasta'
+                input[2] = params.modules_testdata_base_path + 'genomics/homo_sapiens/genome/chr21/sequence/chr21_gencode.gtf'
+                input[3] = null
+                input[4] = true
+                input[5] = 1000
+                """
+            }
+        }
+
+        then {
+            def star_dir = new File(workflow.out.counts[0][1]).parentFile
+            def read_files_in = new File(star_dir, '.command.sh')
+                .readLines()
+                .find { it.contains('--readFilesIn') }
+                .split(/\s+/)
+                .findAll { it.endsWith('.fastq.gz') }
+                .collect { it.tokenize('/').last() }
+
+            assertAll(
+                { assert workflow.success },
+                // The bypass is a Groovy branch, not `ext.when`: a process switched off by `ext.when`
+                // emits nothing, so the arm would produce no output at all while the run exited 0.
+                { assert workflow.trace.tasks().findAll { task -> task.name.contains('FASTP') }.isEmpty() },
+                { assert workflow.trace.tasks().findAll { task -> task.name.contains('RESYNCBARCODES') }.isEmpty() },
+                { assert workflow.out.trim_json.isEmpty() },
+                { assert workflow.out.gate.isEmpty() },
+                // carmack's own two files, untouched: the resync exists only to repair what fastp
+                // dropped, so with no fastp there is nothing to repair.
+                { assert read_files_in == [ 'SK609.none.r1.fastq.gz', 'SK609.none.barcodes.fastq.gz' ] },
+                // Every read pair prepare-reads wrote reached STAR, untrimmed.
                 { assert file(workflow.out.summary[0][1]).readLines().contains('Number of Reads,6229') },
+            )
+        }
+    }
+
+    test("SK609 - an arm trimming leaves below the threshold is dropped") {
+
+        tag "scrna_arm_trim_drop"
+
+        setup {
+            run("CARMACK_READPREP") {
+                script "../../carmack_readprep/main.nf"
+                workflow {
+                    """
+                    input[0] = channel.of([
+                        [ id:'SK609' ],
+                        [
+                            file("${baseDir}/tests/data/SK609_L5_R1.fastq.gz", checkIfExists: true),
+                            file("${baseDir}/tests/data/SK609_L5_R2.fastq.gz", checkIfExists: true),
+                        ],
+                    ])
+                    input[1] = 'carmack_custom_seq_1_0'
+                    input[2] = [ 'barcodes', 'umis', 'targets', 'readprep', 'gate', 'arms' ]
+                    """
+                }
+            }
+            run("ARM_FANOUT") {
+                script "../../arm_fanout/main.nf"
+                workflow {
+                    """
+                    input[0] = CARMACK_READPREP.out.scrna
+                    input[1] = CARMACK_READPREP.out.sctip
+                    input[2] = CARMACK_READPREP.out.stats_json
+                    input[3] = 1000
+                    """
+                }
+            }
+        }
+
+        when {
+            params {
+                outdir = "$outputDir"
+            }
+            workflow {
+                """
+                input[0] = ARM_FANOUT.out.scrna
+                input[1] = params.modules_testdata_base_path + 'genomics/homo_sapiens/genome/chr21/sequence/genome.fasta'
+                input[2] = params.modules_testdata_base_path + 'genomics/homo_sapiens/genome/chr21/sequence/chr21_gencode.gtf'
+                input[3] = null
+                input[4] = false
+                // The arm's own pre-trim count. It cleared the fan-out gate at 1000, so whatever
+                // trimming removes is what takes it below this — no default trimming empties SK609,
+                // and testing for zero reads would miss an arm falling from 6229 to 40.
+                input[5] = 6229
+                """
+            }
+        }
+
+        then {
+            def trimmed = workflow.out.gate[0][1]
+
+            assertAll(
+                // A tripped gate never aborts, here as at the fan-out: the arm is dropped and the
+                // run finishes.
+                { assert workflow.success },
+                { assert workflow.out.gate[0][2] == 'FAIL_TRIM' },
+                { assert trimmed > 0 && trimmed < 6229 },
+                // Dropped on the one channel every consumer reads, so nothing downstream of fastp
+                // saw the arm — a FastQC report published for a dropped arm would claim in MultiQC
+                // that it had been processed, and the resync would cost a task for no one.
+                { assert workflow.out.counts.isEmpty() },
+                { assert workflow.trace.tasks().findAll { task -> task.name.contains('FASTQC_PREPARED') }.isEmpty() },
+                { assert workflow.trace.tasks().findAll { task -> task.name.contains('RESYNCBARCODES') }.isEmpty() },
+                // The index build rides the post-trim channel, so an arm trimming killed costs the
+                // run no reference it has nothing to align against.
+                { assert workflow.trace.tasks().findAll { task -> task.name.contains('STAR_') }.isEmpty() },
+                { assert Fixtures.warnings("$workDir").contains("Arm 'SK609.none' carries ${trimmed} read pair(s) after trimming, below --min_arm_reads 6229; it is dropped and the run continues.".toString()) },
+                // The trimming report still reaches MultiQC, since it is the only place the reason
+                // for the drop is legible.
+                { assert workflow.out.multiqc_files.collect { mqc -> file(mqc).name } == [ 'SK609.none.fastp.json' ] }
             )
         }
     }
@@ -154,6 +363,8 @@ nextflow_workflow {
                 input[1] = params.modules_testdata_base_path + 'genomics/homo_sapiens/genome/chr21/sequence/genome.fasta'
                 input[2] = params.modules_testdata_base_path + 'genomics/homo_sapiens/genome/chr21/sequence/chr21_gencode.gtf'
                 input[3] = null
+                input[4] = false
+                input[5] = 1000
                 """
             }
         }
@@ -165,6 +376,7 @@ nextflow_workflow {
                 // an index build costs more than the arm it would have served, so a gate that
                 // dropped every scRNA arm has to leave STAR unstarted rather than merely unused.
                 { assert workflow.trace.tasks().findAll { task -> task.name.contains('STAR_') }.isEmpty() },
+                { assert workflow.trace.tasks().findAll { task -> task.name.contains('FASTP') }.isEmpty() },
                 { assert workflow.out.counts.isEmpty() },
             )
         }
@@ -184,6 +396,8 @@ nextflow_workflow {
                 input[1] = null
                 input[2] = null
                 input[3] = null
+                input[4] = false
+                input[5] = 1000
                 """
             }
         }

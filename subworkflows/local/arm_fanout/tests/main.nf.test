@@ -43,8 +43,6 @@ nextflow_workflow {
                 input[1] = CARMACK_READPREP.out.sctip
                 input[2] = CARMACK_READPREP.out.stats_json
                 input[3] = 1000
-                input[4] = false
-                input[5] = "${outputDir}"
                 """
             }
         }
@@ -74,28 +72,9 @@ nextflow_workflow {
                     'SK609.TATAGCCT.r1.fastq.gz',
                     'SK609.TATAGCCT.r2.fastq.gz',
                 ] },
-                { assert workflow.out.gate_tsv[0] ==~ /.*\/pipeline_info\/arm_gate\.tsv$/ },
-                { assert path(workflow.out.gate_tsv[0]).text == [
-                    'sample\tarm\ttgidx\treads\tthreshold\tstatus',
-                    'SK609\tscrna\tNONE\t6229\t1000\tPASS',
-                    'SK609\tsctip\tTATAGCCT\t13332\t1000\tPASS',
-                ].join('\n') + '\n' },
                 // Asserted absent, not merely unasserted: a `contains` check cannot catch a warning
                 // that fires when it should not, and SK609 carries a target arm.
-                { assert !Fixtures.warnings("$workDir").any { warning -> warning.contains('pure scRNA run') } },
-                { assert file(workflow.out.multiqc_files[0]).name == 'arm_gate_mqc.tsv' },
-                { assert path(workflow.out.multiqc_files[0]).text == [
-                    "# id: 'arm_gate'",
-                    "# section_name: 'Arm gate'",
-                    "# description: 'Reads assigned to each arm by carmack prepare-reads, and whether the arm met --min_arm_reads.'",
-                    "# plot_type: 'table'",
-                    "# pconfig:",
-                    "#     id: 'arm_gate_table'",
-                    "#     namespace: 'Arm gate'",
-                    'Sample\tArm\tTarget index\tReads\tThreshold\tStatus',
-                    'SK609.TATAGCCT\tsctip\tTATAGCCT\t13332\t1000\tPASS',
-                    'SK609.none\tscrna\tNONE\t6229\t1000\tPASS',
-                ].join('\n') + '\n' }
+                { assert !Fixtures.warnings("$workDir").any { warning -> warning.contains('pure scRNA run') } }
             )
         }
     }
@@ -133,8 +112,6 @@ nextflow_workflow {
                 input[1] = CARMACK_READPREP.out.sctip
                 input[2] = CARMACK_READPREP.out.stats_json
                 input[3] = 8000
-                input[4] = false
-                input[5] = "${outputDir}"
                 """
             }
         }
@@ -148,17 +125,12 @@ nextflow_workflow {
                 { assert workflow.out.sctip[0][0].id == 'SK609.TATAGCCT' },
                 { assert workflow.out.gate.find { it[0].tgidx == 'NONE' }[1..2] == [ 6229, 'FAIL' ] },
                 { assert workflow.out.gate.find { it[0].tgidx == 'TATAGCCT' }[1..2] == [ 13332, 'PASS' ] },
-                { assert path(workflow.out.gate_tsv[0]).text == [
-                    'sample\tarm\ttgidx\treads\tthreshold\tstatus',
-                    'SK609\tscrna\tNONE\t6229\t8000\tFAIL',
-                    'SK609\tsctip\tTATAGCCT\t13332\t8000\tPASS',
-                ].join('\n') + '\n' },
                 { assert Fixtures.warnings("$workDir").contains("Arm 'SK609.none' carries 6229 read(s), below --min_arm_reads 8000; it is dropped and the run continues.") }
             )
         }
     }
 
-    test("SK609 - min_arm_reads 20000 drops the sample without failing the run") {
+    test("SK609 - min_arm_reads 20000 drops every arm of the sample") {
 
         tag "arm_fanout_20000"
 
@@ -191,8 +163,6 @@ nextflow_workflow {
                 input[1] = CARMACK_READPREP.out.sctip
                 input[2] = CARMACK_READPREP.out.stats_json
                 input[3] = 20000
-                input[4] = false
-                input[5] = "${outputDir}"
                 """
             }
         }
@@ -204,60 +174,7 @@ nextflow_workflow {
                 { assert workflow.out.sctip.size() == 0 },
                 // The verdict survives the sample it dropped, so the run record is still complete.
                 { assert workflow.out.gate.size() == 2 },
-                { assert workflow.out.gate.every { it[2] == 'FAIL' } },
-                { assert path(workflow.out.gate_tsv[0]).text == [
-                    'sample\tarm\ttgidx\treads\tthreshold\tstatus',
-                    'SK609\tscrna\tNONE\t6229\t20000\tFAIL',
-                    'SK609\tsctip\tTATAGCCT\t13332\t20000\tFAIL',
-                ].join('\n') + '\n' },
-                { assert Fixtures.warnings("$workDir").contains("Sample 'SK609' has no arm meeting --min_arm_reads 20000 (NONE=6229, TATAGCCT=13332); the sample is dropped and the run continues.") }
-            )
-        }
-    }
-
-    test("SK609 - fail_on_no_arms turns a fully dropped sample into an error") {
-
-        tag "arm_fanout_fail_on_no_arms"
-
-        setup {
-            run("CARMACK_READPREP") {
-                script "../../carmack_readprep/main.nf"
-                workflow {
-                    """
-                    input[0] = channel.of([
-                        [ id:'SK609' ],
-                        [
-                            file("${baseDir}/tests/data/SK609_L5_R1.fastq.gz", checkIfExists: true),
-                            file("${baseDir}/tests/data/SK609_L5_R2.fastq.gz", checkIfExists: true),
-                        ],
-                    ])
-                    input[1] = 'carmack_custom_seq_1_0'
-                    input[2] = [ 'barcodes', 'umis', 'targets', 'readprep', 'gate', 'arms' ]
-                    """
-                }
-            }
-        }
-
-        when {
-            params {
-                outdir = "$outputDir"
-            }
-            workflow {
-                """
-                input[0] = CARMACK_READPREP.out.scrna
-                input[1] = CARMACK_READPREP.out.sctip
-                input[2] = CARMACK_READPREP.out.stats_json
-                input[3] = 20000
-                input[4] = true
-                input[5] = "${outputDir}"
-                """
-            }
-        }
-
-        then {
-            assertAll(
-                { assert workflow.failed },
-                { assert workflow.stdout.join('\n').contains("Sample 'SK609' has no arm meeting --min_arm_reads 20000 (NONE=6229, TATAGCCT=13332), and --fail_on_no_arms is set.") }
+                { assert workflow.out.gate.every { it[2] == 'FAIL' } }
             )
         }
     }
@@ -306,8 +223,6 @@ nextflow_workflow {
                 input[1] = CARMACK_READPREP.out.sctip
                 input[2] = CARMACK_READPREP.out.stats_json
                 input[3] = 8000
-                input[4] = false
-                input[5] = "${outputDir}"
                 """
             }
         }
@@ -342,16 +257,13 @@ nextflow_workflow {
                 // SK609SCRNA reaches no arm channel at all, under any arm.
                 { assert workflow.out.sctip.every { it[0].sample != 'SK609SCRNA' } },
                 { assert workflow.out.gate.findAll { it[0].sample == 'SK609SCRNA' }.collect { it[2] } == [ 'FAIL' ] },
-                // The record covers every candidate arm of both samples, dropped or not.
-                { assert path(workflow.out.gate_tsv[0]).text == [
-                    'sample\tarm\ttgidx\treads\tthreshold\tstatus',
-                    'SK609\tscrna\tNONE\t6229\t8000\tFAIL',
-                    'SK609\tsctip\tTATAGCCT\t13332\t8000\tPASS',
-                    'SK609SCRNA\tscrna\tNONE\t2000\t8000\tFAIL',
-                ].join('\n') + '\n' },
-                { assert warnings.contains("Sample 'SK609SCRNA' has no arm meeting --min_arm_reads 8000 (NONE=2000); the sample is dropped and the run continues.") },
-                // The sample that kept an arm gets no sample-level drop message.
-                { assert !warnings.any { warning -> warning.startsWith("Sample 'SK609' has no arm meeting") } }
+                // The verdict covers every candidate arm of both samples, dropped or not.
+                { assert workflow.out.gate.collect { [ it[0].sample, it[0].tgidx, it[1], it[2] ] }.toSorted() == [
+                    [ 'SK609', 'NONE', 6229, 'FAIL' ],
+                    [ 'SK609', 'TATAGCCT', 13332, 'PASS' ],
+                    [ 'SK609SCRNA', 'NONE', 2000, 'FAIL' ],
+                ] },
+                { assert warnings.contains("Arm 'SK609SCRNA.none' carries 2000 read(s), below --min_arm_reads 8000; it is dropped and the run continues.") }
             )
         }
     }
@@ -391,8 +303,6 @@ nextflow_workflow {
                 input[1] = CARMACK_READPREP.out.sctip
                 input[2] = CARMACK_READPREP.out.stats_json
                 input[3] = 1000
-                input[4] = false
-                input[5] = "${outputDir}"
                 """
             }
         }
@@ -403,8 +313,8 @@ nextflow_workflow {
                 { assert workflow.out.scrna.size() == 1 },
                 { assert workflow.out.scrna[0][0].id == 'SK609SCRNA.none' },
                 { assert workflow.out.sctip.size() == 0 },
-                { assert Fixtures.warnings("$workDir").contains("Sample 'SK609SCRNA': prepare-reads assigned no read to a target index, so this is a pure scRNA run.") },
-                { assert snapshot(path(workflow.out.gate_tsv[0]).text).match() }
+                { assert workflow.out.gate.collect { [ it[0].tgidx, it[1], it[2] ] } == [ [ 'NONE', 2000, 'PASS' ] ] },
+                { assert Fixtures.warnings("$workDir").contains("Sample 'SK609SCRNA': prepare-reads assigned no read to a target index, so this is a pure scRNA run.") }
             )
         }
     }
@@ -446,8 +356,6 @@ nextflow_workflow {
                 input[1] = CARMACK_READPREP.out.sctip.map { meta, _fastqs -> [ meta, [] ] }
                 input[2] = CARMACK_READPREP.out.stats_json
                 input[3] = 1000
-                input[4] = false
-                input[5] = "${outputDir}"
                 """
             }
         }

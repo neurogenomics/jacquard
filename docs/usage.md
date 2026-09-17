@@ -63,6 +63,21 @@ cleared the gate earlier may already be aligning. Expect it to abort a run partw
 than before any alignment work starts; what it buys you is that the failure is reported rather than
 left as a sample quietly missing from the results.
 
+### Trimming
+
+| Parameter         | Default | Description                                                                                              |
+| ----------------- | ------- | ---------------------------------------------------------------------------------------------------------- |
+| `--skip_trimming` | `false` | Align and quantify the reads `prepare-reads` wrote, untrimmed. Every downstream step still runs. |
+
+Each arm that clears the gate is trimmed with fastp against an adapter FASTA built from the sequences
+the selected `--chemistry` declares, in both orientations — read-through reaches R2 as the reverse
+complement, and fastp does not reverse-complement a FASTA entry for you. No adapter sequence is ever
+configured; a chemistry declaring none falls back to fastp's read-pair overlap detection.
+
+Trimming can leave an arm below `--min_arm_reads`. Such an arm is dropped exactly as the gate drops
+one, and its row in `arm_gate.tsv` is **replaced** with a `FAIL_TRIM` verdict carrying the post-trim
+count — see [Arm gate](output.md#arm-gate).
+
 ### scRNA arm
 
 | Parameter         | Default    | Description                                                                                                                                                                                                                                                                                                                                                     |

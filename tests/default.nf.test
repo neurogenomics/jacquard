@@ -22,24 +22,24 @@ nextflow_pipeline {
             // `topic: versions` output drops its entry silently, and a refreshed snapshot would
             // then simply record the loss.
             def software_versions = path("$outputDir/pipeline_info/jacquard_software_mqc_versions.yml").text
-            // Every section MultiQC built from a carmack payload, in the order the report lays them
-            // out. Taken from multiqc_data.json's insertion-ordered plot data rather than the
-            // rendered HTML; the file as a whole is too volatile to snapshot, so only this list is
-            // read off it.
-            def carmack_sections = new groovy.json.JsonSlurper()
+            // Every section MultiQC built, in the order the report lays them out. Taken from
+            // multiqc_data.json's insertion-ordered plot data rather than the rendered HTML; the
+            // file as a whole is too volatile to snapshot, so only this list is read off it.
+            def plot_sections = new groovy.json.JsonSlurper()
                 .parseText(path("$outputDir/multiqc/multiqc_data/multiqc_data.json").text)
                 .report_plot_data
                 .keySet()
-                .toList() // a keySet's own findAll returns a Set, which never equals the list below
-                .findAll { section -> section.startsWith('carmack_') }
+                .toList() // a keySet's own findAll returns a Set, which never equals a List
+            def carmack_sections = plot_sections.findAll { section -> section.startsWith('carmack_') }
+
             assert workflow.success
             assertAll(
                 // Asserted by name as well as snapshotted: at the default threshold both arms of
                 // the fixture clear the gate, and a refreshed snapshot would record a loss quietly.
                 { assert path("$outputDir/pipeline_info/arm_gate.tsv").readLines() == [
                     'sample\tarm\ttgidx\treads\tthreshold\tstatus',
-                    'SK609\tscrna\tNONE\t6229\t1000\tPASS',
-                    'SK609\tsctip\tTATAGCCT\t13332\t1000\tPASS',
+                    'SK609\tscrna\tNONE\t6227\t1000\tPASS',
+                    'SK609\tsctip\tTATAGCCT\t13051\t1000\tPASS',
                 ] },
                 // The fixture is built to exercise both arms, so this file listing exactly these
                 // two tokens is what makes every downstream per-arm assertion meaningful. Its counts
@@ -56,12 +56,15 @@ nextflow_pipeline {
                     'CARMACK_PREPAREREADS',
                 ].every { process -> software_versions.contains("${process}:\n  carmack: ") } },
                 { assert [
+                    'CHEMISTRYADAPTERS',
+                    'FASTP',
                     'STAR_GENOMEGENERATE',
                     'STAR_STARSOLO',
                     'BOWTIE2_BUILD',
                     'BOWTIE2_ALIGN',
                     'SAMTOOLS_SORT',
                     'SAMTOOLS_STATS',
+                    'RESYNCBARCODES',
                     'TAGQNAME',
                     'UMITOOLS_DEDUP',
                 ].every { process -> software_versions.contains("${process}:\n") } },
@@ -77,19 +80,23 @@ nextflow_pipeline {
                 { assert path("$outputDir/multiqc/multiqc_data/multiqc_fastqc.txt").readLines().count { it.startsWith('SK609.none\t') } == 1 },
                 { assert path("$outputDir/multiqc/multiqc_data/multiqc_star.txt").readLines().count { it.startsWith('SK609.none\t') } == 1 },
                 { assert path("$outputDir/multiqc/multiqc_data/multiqc_fastqc.txt").readLines().count { it.startsWith('SK609.TATAGCCT_') } == 2 },
+                { assert path("$outputDir/multiqc/multiqc_data/multiqc_fastp.txt").readLines().count { it.startsWith('SK609.TATAGCCT\t') } == 1 },
                 { assert path("$outputDir/multiqc/multiqc_data/multiqc_bowtie2.txt").readLines().count { it.startsWith('SK609.TATAGCCT\t') } == 1 },
                 { assert path("$outputDir/multiqc/multiqc_data/multiqc_samtools_stats.txt").readLines().count { it.startsWith('SK609.TATAGCCT\t') } == 1 },
                 // umi_tools deduplicated per cell and MultiQC read its log: the row carries fewer
                 // reads out than in, which is the one number a silently misconfigured dedup loses.
+                // Both counts are higher than the same fixture reaches untrimmed (1016 in, 300 out):
+                // bowtie2 maps end to end, so an adapter read-through costs the whole alignment.
                 { assert path("$outputDir/multiqc/multiqc_data/multiqc_umitools_dedup.txt").readLines().findAll { it.startsWith('SK609.TATAGCCT\t') }.collect { row ->
                     def fields = row.split('\t')
                     [ fields[1] as int, fields[2] as int ]
-                } == [ [ 1016, 300 ] ] },
+                } == [ [ 1078, 410 ] ] },
                 // All four read-preparation stages reach the report, under the one `carmack_`
                 // parent, and in the order the reads pass through them rather than alphabetically —
                 // which is what `report_section_order` in assets/multiqc_config.yml buys.
                 { assert carmack_sections == [
                     'carmack_extraction_breakdown_plot',
+                    'carmack_extraction_barcode_rank_plot',
                     'carmack_extraction_edit_distance_plot',
                     'carmack_umi_breakdown_plot',
                     'carmack_umi_anchor_run_plot',
@@ -99,6 +106,11 @@ nextflow_pipeline {
                     'carmack_tgidx_anchor_run_plot',
                     'carmack_prepare_target_distribution_plot',
                 ] },
+                // Trimming renders between read preparation and the gate it re-runs, rather than
+                // at the end among the other tool sections, which is what the `fastp` entry in
+                // `report_section_order` buys.
+                { assert plot_sections.findIndexOf { section -> section.startsWith('fastp') } > plot_sections.findLastIndexOf { section -> section.startsWith('carmack_') } },
+                { assert plot_sections.findIndexOf { section -> section.startsWith('fastp') } < plot_sections.indexOf('arm_gate_table') },
                 // Each of those sections was parsed, not merely ordered: MultiQC wrote a data file
                 // for every one of them.
                 { assert carmack_sections.every { section -> path("$outputDir/multiqc/multiqc_data/multiqc_${section}.txt").exists() } },

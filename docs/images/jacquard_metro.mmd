@@ -20,7 +20,9 @@
 %%metro off_track: prep_out, gate_out, star_fasta, star_gtf, bt2_fasta, dedup_out
 
 %%metro marker: arm_gate | square, #e63946
-%%metro marker_legend: square, #e63946 | Gate — an arm below params.min_arm_reads is dropped; the other arms continue
+%%metro marker: fastp_scrna | square, #e63946
+%%metro marker: fastp_sctip | square, #e63946
+%%metro marker_legend: square, #e63946 | Gate — an arm below params.min_arm_reads, or left empty by trimming, is dropped; the other arms continue
 
 %%metro grid: scrna_arm, reporting | 2,0
 %%metro grid: sctip_arm | 2,1
@@ -31,9 +33,12 @@
 %%metro process: extract_umis     | CARMACK_READPREP:CARMACK_EXTRACTUMIS
 %%metro process: assign_targets   | CARMACK_READPREP:CARMACK_ASSIGNTARGETS
 %%metro process: prepare_reads    | CARMACK_READPREP:CARMACK_PREPAREREADS
+%%metro process: fastp_scrna      | SCRNA_ARM:FASTP
 %%metro process: fastqc_scrna     | SCRNA_ARM:FASTQC_PREPARED
+%%metro process: resync_barcodes  | SCRNA_ARM:RESYNCBARCODES
 %%metro process: star_index       | SCRNA_ARM:STAR_GENOMEGENERATE
 %%metro process: star_align       | SCRNA_ARM:STAR_STARSOLO
+%%metro process: fastp_sctip      | SCTIP_ARM:FASTP
 %%metro process: fastqc_sctip     | SCTIP_ARM:FASTQC_PREPARED
 %%metro process: bt2_build        | SCTIP_ARM:BOWTIE2_BUILD
 %%metro process: bt2_align        | SCTIP_ARM:BOWTIE2_ALIGN
@@ -69,13 +74,17 @@ graph LR
     end
 
     subgraph scrna_arm[scRNA arm]
+        fastp_scrna[fastp]
         fastqc_scrna[FastQC]
+        resync_barcodes[Resync barcodes]
         star_fasta[ ]
         star_gtf[ ]
         star_index[STAR genomeGenerate]
         star_align[STARsolo]
         solo_out[ ]
-        fastqc_scrna -->|scrna| star_align
+        fastp_scrna -->|scrna| fastqc_scrna
+        fastqc_scrna -->|scrna| resync_barcodes
+        resync_barcodes -->|scrna| star_align
         star_fasta -->|scrna| star_index
         star_gtf -->|scrna| star_index
         star_index -->|scrna| star_align
@@ -83,6 +92,7 @@ graph LR
     end
 
     subgraph sctip_arm[scTIP arms]
+        fastp_sctip[fastp]
         fastqc_sctip[FastQC]
         bt2_fasta[ ]
         bt2_build[bowtie2-build]
@@ -91,6 +101,7 @@ graph LR
         umi_dedup[umi_tools dedup]
         sctip_stats[samtools stats]
         dedup_out[ ]
+        fastp_sctip -->|sctip| fastqc_sctip
         fastqc_sctip -->|sctip| bt2_align
         bt2_fasta -->|sctip| bt2_build
         bt2_build -->|sctip| bt2_align
@@ -108,7 +119,7 @@ graph LR
 
     input_in -->|prep,qc| fastqc_raw
     prepare_reads -->|qc| multiqc
-    arm_gate -->|scrna| fastqc_scrna
-    arm_gate -->|sctip| fastqc_sctip
+    arm_gate -->|scrna| fastp_scrna
+    arm_gate -->|sctip| fastp_sctip
     star_align -->|qc| multiqc
     sctip_stats -->|qc| multiqc

@@ -1,0 +1,39 @@
+name: Task
+description: A single unit of work, typically a sub-issue of an epic
+labels: task
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Attach this task to its epic with GitHub's native **sub-issue** relationship, not by adding
+        it to a task list in the epic body.
+  - type: textarea
+    id: context
+    attributes:
+      label: Context
+      description: One or two sentences on why this task exists and how it fits its epic.
+    validations:
+      required: true
+  - type: textarea
+    id: task
+    attributes:
+      label: Task
+      description: Specifically what needs to be done.
+    validations:
+      required: true
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Acceptance criteria
+      description: Checkboxes, so each one can be ticked off as it is met.
+      value: |
+        - [ ]
+        - [ ]
+    validations:
+      required: true
+  - type: textarea
+    id: dependencies
+    attributes:
+      label: Dependencies
+      description: Blocking or blocked issues as `#N`, or "None".
+      value: None
