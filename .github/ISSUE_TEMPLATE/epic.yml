@@ -1,0 +1,43 @@
+name: Epic
+description: A large initiative comprising multiple tasks
+labels: epic
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Keep this epic **general**. Do not enumerate or link its sub-issues, and leave out task
+        breakdowns, file or function pointers, and milestone lists — sub-issues attach natively and
+        carry all the specifics, so this body should never need editing as they come and go. Edit it
+        only on a genuine scope change.
+  - type: textarea
+    id: context
+    attributes:
+      label: Context
+      description: Why this initiative exists. Ground it in the code, or state the problem generally.
+    validations:
+      required: true
+  - type: textarea
+    id: goal
+    attributes:
+      label: Goal
+      description: One or two sentences on what a finished version of this achieves.
+    validations:
+      required: true
+  - type: textarea
+    id: scope
+    attributes:
+      label: Scope
+      description: What this epic covers, closing with an "Out of scope:" line for what it does not.
+      placeholder: |
+        - An area this epic covers
+        - Another area
+
+        Out of scope: adjacent work, except where it consumes what changes here.
+    validations:
+      required: true
+  - type: textarea
+    id: status
+    attributes:
+      label: Status
+      description: Optional. For epics captured but not yet designed — pair with the `future work` label.
+      placeholder: Captured, not designed.
