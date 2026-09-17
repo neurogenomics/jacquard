@@ -66,12 +66,17 @@ The same table appears in the MultiQC report as the "Arm gate" section.
 <details markdown="1">
 <summary>Output files</summary>
 
-- `fastqc/prepared/<sample>.none/`: FastQC on the cDNA read STARsolo aligns.
+- `fastp/<sample>.none/`: the fastp JSON, HTML and log for the arm.
+- `fastqc/prepared/<sample>.none/`: FastQC on the trimmed cDNA read STARsolo aligns.
 - `star/<sample>.none/`
   - `<sample>.none.Solo.out/`: the count matrices, one directory per feature — `Gene`, plus whatever `--solo_features` asked for.
   - `<sample>.none.Log.final.out` and the other STAR logs.
 
 </details>
+
+The cDNA pair is trimmed first, paired-end and trim-only: `--disable_quality_filtering --length_required 1`. STAR soft-clips what it cannot align, so this arm trims to stop adapter read-through from displacing the cDNA rather than to raise its quality — a read fastp discards is a cell STARsolo never counts. The length floor of 1 keeps a read that adapter trimming consumed entirely from reaching STAR as a zero-length record. No adapter FASTA is passed: the arm is left on fastp's own overlap analysis, which is what the measured comparison on this chemistry found sufficient.
+
+Trimming drops whole records from the cDNA read, and STARsolo pairs its two input files positionally, record for record — so the read ids that survived are replayed onto carmack's synthesized barcode read before STAR sees it. Without that step every read after the first dropped one would be counted against the wrong cell, and the run would still succeed. The trimmed FASTQs and the resynced barcode read are intermediates and are not published.
 
 No alignment file is written: the matrices are the product, so STARsolo runs with `--outSAMtype None`. The STAR index is an intermediate and is not published.
 

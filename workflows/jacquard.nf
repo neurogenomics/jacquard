@@ -132,6 +132,8 @@ workflow JACQUARD {
             fasta,
             gtf,
             star_index,
+            params.skip_trimming,
+            params.min_arm_reads,
         )
         ch_versions = ch_versions.mix(SCRNA_ARM.out.versions)
         ch_multiqc_files = ch_multiqc_files.mix(SCRNA_ARM.out.multiqc_files)
@@ -166,7 +168,11 @@ workflow JACQUARD {
         //
         def ch_verdicts = ARM_FANOUT.out.gate
             .map { verdict -> [ verdict[0].id, verdict ] }
-            .join(SCTIP_ARM.out.gate.map { verdict -> [ verdict[0].id, verdict ] }, failOnDuplicate: true, remainder: true)
+            .join(
+                SCRNA_ARM.out.gate.mix(SCTIP_ARM.out.gate).map { verdict -> [ verdict[0].id, verdict ] },
+                failOnDuplicate: true,
+                remainder: true,
+            )
             .map { _id, gated, trimmed -> trimmed ?: gated }
 
         // The sample-level messages ride on the run record rather than on a channel of their own.

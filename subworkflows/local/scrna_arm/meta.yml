@@ -1,12 +1,14 @@
 # yaml-language-server: $schema=https://raw.githubusercontent.com/nf-core/modules/master/subworkflows/yaml-schema.json
 name: "scrna_arm"
-description: QC and quantify the scRNA arm of a prepared sample with FastQC and STARsolo
+description: Trim, QC and quantify the scRNA arm of a prepared sample with fastp, FastQC and STARsolo
 keywords:
   - single-cell
   - rnaseq
   - starsolo
   - quantification
 components:
+  - fastp
+  - resyncbarcodes
   - fastqc
   - star/genomegenerate
   - star/starsolo
@@ -27,6 +29,12 @@ input:
   - star_index:
       type: string
       description: Prebuilt STAR index directory, or null to build one from `fasta` and `gtf`
+  - skip_trimming:
+      type: boolean
+      description: Run the arm on the reads prepare-reads wrote, bypassing fastp and the barcode resync
+  - min_arm_reads:
+      type: integer
+      description: Read pairs an arm must still carry after trimming to proceed; one below it is dropped and the run continues
 output:
   - counts:
       type: directory
@@ -43,16 +51,34 @@ output:
       description: |
         STAR's alignment summary for the arm, which is what MultiQC's STAR section is built from.
         Structure: [ val(meta), path("*Log.final.out") ]
+  - reads:
+      type: file
+      description: |
+        The arm as STARsolo saw it: the trimmed cDNA pair and the barcode read resynced to it, or
+        the untouched trio under `skip_trimming`.
+        Structure: [ val(meta), path(r1), path(r2), path(barcodes) ]
   - index:
       type: directory
       description: |
         The STAR index the arm was mapped against, built here unless one was given. Only ever
         emitted once a gated arm exists, so a run with no scRNA arm left builds nothing.
         Structure: [ val(meta), path("star") ]
+  - trim_json:
+      type: file
+      description: |
+        fastp's own report for the arm, empty under `skip_trimming`. It carries the post-trim read
+        count the gate reads, and is the only place a dropped arm's reason is legible.
+        Structure: [ val(meta), path("*.fastp.json") ]
+  - gate:
+      type: file
+      description: |
+        The post-trim verdict per arm, empty under `skip_trimming`. The caller records it in
+        `arm_gate.tsv`, replacing the arm's pre-trim row.
+        Structure: [ val(meta), val(reads), val(status) ]
   - multiqc_files:
       type: file
       description: |
-        The arm's FastQC archive and STAR log, ready to mix into the report.
+        The arm's fastp report, FastQC archive and STAR log, ready to mix into the report.
         Structure: path(mqc_file)
   - versions:
       type: file
