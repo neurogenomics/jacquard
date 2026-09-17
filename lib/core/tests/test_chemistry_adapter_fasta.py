@@ -94,9 +94,7 @@ class TestRender:
         assert records["ME"] == MOSAIC_END
         assert records["ME_rc"] == MOSAIC_END_RC
         for name in ("PRIMER_A", "PRIMER_C"):
-            assert records[f"{name}_rc"] == chemistry_adapter_fasta.reverse_complement(
-                records[name]
-            )
+            assert records[f"{name}_rc"] == chemistry_adapter_fasta.reverse_complement(records[name])
 
     def test_hydrop_renders_its_spacers_rather_than_warning(self):
         body, warning = chemistry_adapter_fasta.render("hydrop")
@@ -107,9 +105,7 @@ class TestRender:
 class TestCli:
     def test_writes_the_fasta(self, tmp_path):
         out = tmp_path / "adapters.fasta"
-        rc = chemistry_adapter_fasta.main(
-            ["--chemistry", "carmack_custom_seq_1_0", "--output", str(out)]
-        )
+        rc = chemistry_adapter_fasta.main(["--chemistry", "carmack_custom_seq_1_0", "--output", str(out)])
         assert rc == 0
         assert parse(out.read_text())["ME"] == MOSAIC_END
 

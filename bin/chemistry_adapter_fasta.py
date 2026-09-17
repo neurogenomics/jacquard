@@ -35,10 +35,7 @@ def validate(sequence: str, name: str, chemistry_name: str) -> str:
     if not normalised:
         raise ValueError(f"Chemistry '{chemistry_name}' declares an empty sequence for {name}.")
     if set(normalised) - set("ACGT"):
-        raise ValueError(
-            f"Chemistry '{chemistry_name}' declares a non-ACGT sequence for {name}: "
-            f"'{sequence}'. Refusing to use it as an adapter."
-        )
+        raise ValueError(f"Chemistry '{chemistry_name}' declares a non-ACGT sequence for {name}: " f"'{sequence}'. Refusing to use it as an adapter.")
     return normalised
 
 
@@ -54,10 +51,7 @@ def render(chemistry_name: str) -> tuple[str, str | None]:
     """
     sequences = known_sequences(chemistry_name)
     if not sequences:
-        return "", (
-            f"Chemistry '{chemistry_name}' declares no known sequences; fastp will fall back to "
-            f"read-pair overlap detection alone."
-        )
+        return "", (f"Chemistry '{chemistry_name}' declares no known sequences; fastp will fall back to " f"read-pair overlap detection alone.")
     records = []
     for name, sequence in sequences.items():
         adapter = validate(sequence, name, chemistry_name)
