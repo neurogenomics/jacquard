@@ -102,6 +102,20 @@
                 }
             }
         },
+        "trimming_options": {
+            "title": "Trimming options",
+            "type": "object",
+            "fa_icon": "fas fa-cut",
+            "description": "Adapter and quality trimming applied to each arm that cleared the gate.",
+            "properties": {
+                "skip_trimming": {
+                    "type": "boolean",
+                    "description": "Align and quantify the reads prepare-reads wrote, untrimmed.",
+                    "help_text": "Both arms are trimmed with fastp by default, against an adapter FASTA derived from the sequences the selected `--chemistry` declares. Set this to bypass fastp on both arms; every downstream step still runs, so the run produces the same outputs from untrimmed reads. Trimming can leave an arm below `--min_arm_reads`, in which case it is dropped and recorded as `FAIL_TRIM`; with this set no arm can be dropped after the gate.",
+                    "fa_icon": "fas fa-forward"
+                }
+            }
+        },
         "scrna_arm_options": {
             "title": "scRNA arm options",
             "type": "object",
@@ -345,6 +359,9 @@
         },
         {
             "$ref": "#/$defs/arm_gate_options"
+        },
+        {
+            "$ref": "#/$defs/trimming_options"
         },
         {
             "$ref": "#/$defs/scrna_arm_options"

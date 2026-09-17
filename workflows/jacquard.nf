@@ -4,6 +4,7 @@
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 */
 include { CARMACK_READPREP       } from '../subworkflows/local/carmack_readprep/main'
+include { CHEMISTRYADAPTERS      } from '../modules/local/chemistryadapters/main'
 include { ARM_FANOUT             } from '../subworkflows/local/arm_fanout/main'
 include { SCRNA_ARM              } from '../subworkflows/local/scrna_arm/main'
 include { SCTIP_ARM              } from '../subworkflows/local/sctip_arm/main'
@@ -37,6 +38,22 @@ def stagesUpTo(String stop_after) {
         error("--stop_after '${stop_after}' is not a stage this pipeline knows: ${stages.join(', ')}.")
     }
     stop_after ? stages[0..stages.indexOf(stop_after)] : stages
+}
+
+//
+// The MultiQC custom-content header that turns the gate table into a report section.
+//
+def armGateMqcHeader() {
+    [
+        "# id: 'arm_gate'",
+        "# section_name: 'Arm gate'",
+        "# description: 'Reads assigned to each arm by carmack prepare-reads, and whether the arm met --min_arm_reads.'",
+        "# plot_type: 'table'",
+        "# pconfig:",
+        "#     id: 'arm_gate_table'",
+        "#     namespace: 'Arm gate'",
+        [ 'Sample', 'Arm', 'Target index', 'Reads', 'Threshold', 'Status' ].join('\t'),
+    ]
 }
 
 /*
@@ -77,9 +94,10 @@ workflow JACQUARD {
     ch_versions = ch_versions.mix(CARMACK_READPREP.out.versions)
     ch_multiqc_files = ch_multiqc_files.mix(CARMACK_READPREP.out.multiqc_files)
 
-    // The fan-out writes the gate record and its report section, so a run that stops short of the
-    // gate skips it outright: an empty input channel would still leave a header-only table behind,
-    // claiming a gate the run never reached. The arms have no such sink and are cut on their input.
+    // The gate record and its report section are written at the end of this block, so a run that
+    // stops short of the gate skips it outright: an empty input channel would still leave a
+    // header-only table behind, claiming a gate the run never reached. The arms have no such sink
+    // and are cut on their input.
     if ('gate' in stages) {
         //
         // SUBWORKFLOW: Fan each sample out into its arms and gate each arm on its read count
@@ -89,11 +107,22 @@ workflow JACQUARD {
             CARMACK_READPREP.out.sctip,
             CARMACK_READPREP.out.stats_json,
             params.min_arm_reads,
-            params.fail_on_no_arms,
-            outdir,
         )
         ch_versions = ch_versions.mix(ARM_FANOUT.out.versions)
-        ch_multiqc_files = ch_multiqc_files.mix(ARM_FANOUT.out.multiqc_files)
+
+        //
+        // MODULE: Derive the adapters to trim against from the chemistry carmack ran under
+        //
+        // One FASTA per run, not per arm: the chemistry is a run-level parameter, so `first()`
+        // makes it a value channel every arm can read. A chemistry declaring no sequence at all
+        // still writes the file — an empty *channel* would starve fastp — and the empty file is
+        // mapped to `[]` here so the module simply receives no `--adapter_fasta`.
+        //
+        def ch_adapter_fasta = channel.empty()
+        if ('arms' in stages && !params.skip_trimming) {
+            CHEMISTRYADAPTERS(chemistry)
+            ch_adapter_fasta = CHEMISTRYADAPTERS.out.fasta.map { adapters -> adapters.size() > 0 ? adapters : [] }.first()
+        }
 
         //
         // SUBWORKFLOW: QC and quantify every scRNA arm that cleared the gate
@@ -114,9 +143,65 @@ workflow JACQUARD {
             'arms' in stages ? ARM_FANOUT.out.sctip : channel.empty(),
             fasta,
             bowtie2_index,
+            ch_adapter_fasta,
+            params.skip_trimming,
+            params.min_arm_reads,
         )
         ch_versions = ch_versions.mix(SCTIP_ARM.out.versions)
         ch_multiqc_files = ch_multiqc_files.mix(SCTIP_ARM.out.multiqc_files)
+
+        //
+        // The gate record and its report section, written once from both verdicts.
+        //
+        // Trimming re-gates every arm the fan-out passed, so the post-trim verdict **replaces** the
+        // pre-trim row rather than being appended to it. Two rows under one `meta.id` would collide
+        // on MultiQC's row key, and a stale PASS beside a post-trim `FAIL_TRIM` would leave the
+        // rollup below finding one arm still passing — so a sample whose every arm trimming killed
+        // would trigger neither `--fail_on_no_arms` nor the drop warning. `remainder: true` covers
+        // the arms that have no post-trim verdict: the ones the fan-out already dropped, and every
+        // arm of a run using `--skip_trimming` or stopping at `--stop_after gate`.
+        //
+        // Writing here rather than in ARM_FANOUT delays `arm_gate.tsv` until the last fastp task has
+        // finished, so a run that dies in an aligner leaves no gate file behind.
+        //
+        def ch_verdicts = ARM_FANOUT.out.gate
+            .map { verdict -> [ verdict[0].id, verdict ] }
+            .join(SCTIP_ARM.out.gate.map { verdict -> [ verdict[0].id, verdict ] }, failOnDuplicate: true, remainder: true)
+            .map { _id, gated, trimmed -> trimmed ?: gated }
+
+        // The sample-level messages ride on the run record rather than on a channel of their own.
+        // They need the same per-sample rollup the record's rows do, and putting them on a chain
+        // that ends in a published file keeps --fail_on_no_arms out of reach of anyone tidying away
+        // an emit nothing consumes. groupTuple cannot be given a `size:` — a sample's arm count is
+        // only known once its prepare-reads has run — so it holds every sample until the last one is
+        // ready: --fail_on_no_arms aborts a run whose other samples' arms are already aligning,
+        // rather than failing fast.
+        ch_verdicts
+            .map { meta, reads, status -> [ meta.sample, [ arm: meta.arm, tgidx: meta.tgidx, reads: reads, status: status ] ] }
+            .groupTuple()
+            .map { sample, arms ->
+                // Tested for the absence of a PASS rather than for `FAIL` alone, so an arm trimming
+                // dropped counts against the sample under whichever token records the cause.
+                if (arms.every { arm -> arm.status != 'PASS' }) {
+                    def detail = arms.collect { arm -> "${arm.tgidx}=${arm.reads}" }.sort().join(', ')
+                    if (params.fail_on_no_arms) {
+                        error("Sample '${sample}' has no arm meeting --min_arm_reads ${params.min_arm_reads} (${detail}), and --fail_on_no_arms is set.")
+                    }
+                    log.warn("Sample '${sample}' has no arm meeting --min_arm_reads ${params.min_arm_reads} (${detail}); the sample is dropped and the run continues.")
+                }
+                arms.collect { arm -> [ sample, arm.arm, arm.tgidx, arm.reads, params.min_arm_reads, arm.status ].join('\t') }
+            }
+            .toList()
+            .map { rows -> ([ [ 'sample', 'arm', 'tgidx', 'reads', 'threshold', 'status' ].join('\t') ] + rows.flatten().sort()).join('\n') + '\n' }
+            .collectFile(name: 'arm_gate.tsv', storeDir: "${outdir}/pipeline_info")
+
+        ch_multiqc_files = ch_multiqc_files.mix(
+            ch_verdicts
+                .map { meta, reads, status -> [ meta.id, meta.arm, meta.tgidx, reads, params.min_arm_reads, status ].join('\t') }
+                .toList()
+                .map { rows -> (armGateMqcHeader() + rows.sort()).join('\n') + '\n' }
+                .collectFile(name: 'arm_gate_mqc.tsv')
+        )
     }
 
     //

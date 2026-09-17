@@ -38,8 +38,6 @@ nextflow_workflow {
                     input[1] = CARMACK_READPREP.out.sctip
                     input[2] = CARMACK_READPREP.out.stats_json
                     input[3] = 1000
-                    input[4] = false
-                    input[5] = "${outputDir}"
                     """
                 }
             }

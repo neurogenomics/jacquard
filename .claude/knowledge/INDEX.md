@@ -13,4 +13,5 @@ Add an entry when something cost real time to work out and would cost it again.
 - [nft-bam getSamLines truncates](nft-bam-getsamlines-truncates.md) — never count BAM records under nf-test; assert set equality or read the tool's log.
 - [Changing a take: signature](changing-a-take-signature.md) — breaks every nf-test that instantiates it; `tests/` alone will not catch it.
 - [MultiQC report_section_order sorts ascending](multiqc-report-section-order.md) — lower renders earlier; take section ids from a real run.
+- [A `.*:SUBWORKFLOW:PROCESS` selector matches in a run but not under nf-test](withname-selector-under-nf-test.md) — drop the colon after `.*`.
 - [Toolchain PATH in non-interactive shells](toolchain-path-noninteractive.md) — `conda activate` fails; prefix the env's bin.

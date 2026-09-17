@@ -1,0 +1,151 @@
+nextflow_workflow {
+
+    name "Test subworkflow ARM_TRIM_GATE"
+    script "../main.nf"
+    workflow "ARM_TRIM_GATE"
+
+    tag "subworkflows"
+    tag "subworkflows_local"
+    tag "arm_trim_gate"
+
+    test("an arm still above the threshold is kept") {
+
+        tag "arm_trim_gate_pass"
+
+        when {
+            params {
+                outdir = "$outputDir"
+            }
+            workflow {
+                """
+                input[0] = channel.of([ [ id:'SK609.TATAGCCT' ], [ 'r1.fastq.gz', 'r2.fastq.gz' ] ])
+                input[1] = channel.of([ [ id:'SK609.TATAGCCT' ], file("${baseDir}/tests/data/fastp_report.json", checkIfExists: true) ])
+                input[2] = 1000
+                """
+            }
+        }
+
+        then {
+            assertAll(
+                { assert workflow.success },
+                { assert workflow.out.arms == [ [ [ id:'SK609.TATAGCCT' ], [ 'r1.fastq.gz', 'r2.fastq.gz' ] ] ] },
+                // The gate's unit is read pairs. The fixture's own
+                // `summary.after_filtering.total_reads` is 26102, which is what reading the wrong
+                // field would report and would make every threshold check twice as lenient.
+                { assert workflow.out.gate == [ [ [ id:'SK609.TATAGCCT' ], 13051, 'PASS' ] ] }
+            )
+        }
+    }
+
+    test("an arm trimming left below the threshold is dropped") {
+
+        tag "arm_trim_gate_fail"
+
+        when {
+            params {
+                outdir = "$outputDir"
+            }
+            workflow {
+                """
+                input[0] = channel.of([ [ id:'SK609.TATAGCCT' ], [ 'r1.fastq.gz', 'r2.fastq.gz' ] ])
+                input[1] = channel.of([ [ id:'SK609.TATAGCCT' ], file("${baseDir}/tests/data/fastp_report.json", checkIfExists: true) ])
+                // Above the fixture's 13051 surviving pairs and below the 26102 reads the wrong
+                // field would report, so a gate reading that field would pass this arm instead.
+                input[2] = 20000
+                """
+            }
+        }
+
+        then {
+            assertAll(
+                // A tripped gate never aborts: the arm is dropped and the run finishes.
+                { assert workflow.success },
+                { assert workflow.out.arms.isEmpty() },
+                { assert workflow.out.gate == [ [ [ id:'SK609.TATAGCCT' ], 13051, 'FAIL_TRIM' ] ] },
+                { assert Fixtures.warnings("$workDir").contains("Arm 'SK609.TATAGCCT' carries 13051 read pair(s) after trimming, below --min_arm_reads 20000; it is dropped and the run continues.") }
+            )
+        }
+    }
+
+    test("an arm tuple of any shape passes through unchanged") {
+
+        tag "arm_trim_gate_shape"
+
+        when {
+            params {
+                outdir = "$outputDir"
+            }
+            workflow {
+                """
+                // The scRNA arm carries a barcode read the scTIP arm has no equivalent of, so both
+                // arms can share this helper only if it never looks past the meta.
+                input[0] = channel.of([ [ id:'SK609.none' ], 'r1.fastq.gz', 'r2.fastq.gz', 'barcodes.fastq.gz' ])
+                input[1] = channel.of([ [ id:'SK609.none' ], file("${baseDir}/tests/data/fastp_report.json", checkIfExists: true) ])
+                input[2] = 1000
+                """
+            }
+        }
+
+        then {
+            assertAll(
+                { assert workflow.success },
+                { assert workflow.out.arms == [ [ [ id:'SK609.none' ], 'r1.fastq.gz', 'r2.fastq.gz', 'barcodes.fastq.gz' ] ] }
+            )
+        }
+    }
+
+    test("a report with no read1 count fails the run") {
+
+        tag "arm_trim_gate_no_count"
+
+        when {
+            params {
+                outdir = "$outputDir"
+            }
+            workflow {
+                """
+                input[0] = channel.of([ [ id:'SK609.TATAGCCT' ], [ 'r1.fastq.gz', 'r2.fastq.gz' ] ])
+                input[1] = channel.of([ [ id:'SK609.TATAGCCT' ], file("${baseDir}/tests/data/fastp_report_no_read1.json", checkIfExists: true) ])
+                input[2] = 1000
+                """
+            }
+        }
+
+        then {
+            assertAll(
+                // A report this cannot read is a fastp whose JSON schema moved. Passing the arm on
+                // unchecked would reinstate exactly the gap this gate exists to close.
+                { assert workflow.failed },
+                { assert workflow.stdout.join('\n').contains("Arm 'SK609.TATAGCCT': fastp_report_no_read1.json carries no read1_after_filtering.total_reads") }
+            )
+        }
+    }
+
+    test("a reported arm with no trimmed reads fails the run") {
+
+        tag "arm_trim_gate_no_reads"
+
+        when {
+            params {
+                outdir = "$outputDir"
+            }
+            workflow {
+                """
+                // fastp's `reads` output is `optional: true`, so a glob that stopped matching would
+                // empty the arm while the report went on describing it — the arm would vanish and
+                // the run would still report success.
+                input[0] = channel.empty()
+                input[1] = channel.of([ [ id:'SK609.TATAGCCT' ], file("${baseDir}/tests/data/fastp_report.json", checkIfExists: true) ])
+                input[2] = 1000
+                """
+            }
+        }
+
+        then {
+            assertAll(
+                { assert workflow.failed },
+                { assert workflow.stdout.join('\n').contains("Arm 'SK609.TATAGCCT' reports 13051 read pair(s) after trimming, but fastp left no trimmed read file behind.") }
+            )
+        }
+    }
+}

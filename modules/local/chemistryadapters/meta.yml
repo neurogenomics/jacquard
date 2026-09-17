@@ -1,0 +1,43 @@
+name: "chemistryadapters"
+description: Write the selected carmack chemistry's known sequences as an adapter FASTA for fastp
+keywords:
+  - single-cell
+  - multiome
+  - adapter
+  - trimming
+  - fastp
+tools:
+  - "carmack":
+      description: "Single-cell multiome read preparation"
+      homepage: "https://github.com/crick-pipelines-stp/carmack"
+      documentation: "https://github.com/crick-pipelines-stp/carmack"
+      tool_dev_url: "https://github.com/crick-pipelines-stp/carmack"
+
+input:
+  - - chemistry:
+        type: string
+        description: Name of the carmack chemistry describing the read layout, e.g. `carmack_custom_seq_1_0`
+
+output:
+  fasta:
+    - "*.adapters.fasta":
+        type: file
+        description: |
+          Every sequence the chemistry declares, in both orientations. Empty when the chemistry
+          declares none, so the channel carrying it is never empty.
+        pattern: "*.adapters.fasta"
+  versions_carmack:
+    - - "${task.process}":
+          type: string
+          description: Name of the emitting process
+      - "carmack":
+          type: string
+          description: Name of the tool
+      - version:
+          type: string
+          description: Version of carmack, emitted on the `versions` topic
+
+authors:
+  - "@HDash"
+maintainers:
+  - "@HDash"

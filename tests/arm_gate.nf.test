@@ -27,13 +27,13 @@ nextflow_pipeline {
                 { assert gate == [
                     'sample\tarm\ttgidx\treads\tthreshold\tstatus',
                     'SK609\tscrna\tNONE\t6229\t8000\tFAIL',
-                    'SK609\tsctip\tTATAGCCT\t13332\t8000\tPASS',
+                    'SK609\tsctip\tTATAGCCT\t13051\t8000\tPASS',
                 ] },
                 // The gate reaches the report as its own table, one row per arm, rather than
                 // collapsing both arms of a sample onto one row.
                 { assert path("$outputDir/multiqc/multiqc_data/multiqc_arm_gate_table.txt").readLines() == [
                     'Sample\tArm\tTarget index\tReads\tThreshold\tStatus',
-                    'SK609.TATAGCCT\tsctip\tTATAGCCT\t13332\t8000\tPASS',
+                    'SK609.TATAGCCT\tsctip\tTATAGCCT\t13051\t8000\tPASS',
                     'SK609.none\tscrna\tNONE\t6229\t8000\tFAIL',
                 ] },
                 { assert Fixtures.warnings("$workDir").contains("Arm 'SK609.none' carries 6229 read(s), below --min_arm_reads 8000; it is dropped and the run continues.") },
@@ -47,6 +47,37 @@ nextflow_pipeline {
                 // halfway would fail here rather than passing on workflow.success alone.
                 { assert !workflow.trace.tasks().findAll { task -> task.name.contains('BOWTIE2_ALIGN') }.isEmpty() },
                 { assert path("$outputDir/umitools/SK609.TATAGCCT/SK609.TATAGCCT.bam").exists() }
+            )
+        }
+    }
+
+    test("-profile test --skip_trimming") {
+
+        tag "arm_gate_skip_trimming"
+
+        when {
+            params {
+                input         = Fixtures.absolutise("$baseDir", "$outputDir")
+                outdir        = "$outputDir"
+                skip_trimming = true
+            }
+        }
+
+        then {
+            assertAll(
+                { assert workflow.success },
+                // Nothing trims, so nothing derives an adapter set either, and every gate row is the
+                // one the fan-out decided.
+                { assert workflow.trace.tasks().findAll { task -> task.name.contains('FASTP') || task.name.contains('CHEMISTRYADAPTERS') }.isEmpty() },
+                { assert path("$outputDir/pipeline_info/arm_gate.tsv").readLines() == [
+                    'sample\tarm\ttgidx\treads\tthreshold\tstatus',
+                    'SK609\tscrna\tNONE\t6229\t1000\tPASS',
+                    'SK609\tsctip\tTATAGCCT\t13332\t1000\tPASS',
+                ] },
+                // Both arms still run to their product, which is the claim `--skip_trimming` makes.
+                { assert path("$outputDir/umitools/SK609.TATAGCCT/SK609.TATAGCCT.bam").exists() },
+                { assert path("$outputDir/star/SK609.none").exists() },
+                { assert !path("$outputDir/fastp").exists() }
             )
         }
     }
@@ -76,7 +107,7 @@ nextflow_pipeline {
                 { assert path("$outputDir/pipeline_info/arm_gate.tsv").readLines() == [
                     'sample\tarm\ttgidx\treads\tthreshold\tstatus',
                     'SK609\tscrna\tNONE\t6229\t8000\tFAIL',
-                    'SK609\tsctip\tTATAGCCT\t13332\t8000\tPASS',
+                    'SK609\tsctip\tTATAGCCT\t13051\t8000\tPASS',
                 ] }
             )
         }

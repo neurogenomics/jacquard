@@ -1,0 +1,20 @@
+{
+    "summary": {
+        "after_filtering": {
+            "total_reads": 26102,
+            "total_bases": 2000000
+        }
+    },
+    "filtering_result": {
+        "passed_filter_reads": 26102,
+        "too_short_reads": 236
+    },
+    "adapter_cutting": {
+        "adapter_trimmed_reads": 5209
+    },
+    "read2_after_filtering": {
+        "total_reads": 13051,
+        "total_bases": 1600000
+    },
+    "command": "fastp --in1 arm_R1.fastq.gz --in2 arm_R2.fastq.gz --adapter_fasta adapters.fasta --trim_poly_g --length_required 25"
+}

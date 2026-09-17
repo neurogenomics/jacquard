@@ -14,6 +14,7 @@ carmack/**/*_stats.txt
 pipeline_info/*.{html,json,txt,yml}
 star/**/*Log.*
 fastqc/prepared/**/*_fastqc.{html,zip}
+fastp/**/*.{json,html,log}
 bowtie2/**/*.log
 samtools/**/*.stats
 umitools/**/*.{bam,bai,log}
