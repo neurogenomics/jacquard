@@ -20,3 +20,7 @@ samtools/**/*.stats
 umitools/**/*.{bam,bai,log}
 lineardedup/**/*.{bam,bai}
 lineardedup/**/*_stats.txt
+# The fixture writes this with absolute paths, so its checksum is the checkout's location and
+# nothing else: it differs between a worktree, the main checkout and CI. Its name still reaches
+# the snapshot through stable_path, which is relative.
+samplesheet_test.csv

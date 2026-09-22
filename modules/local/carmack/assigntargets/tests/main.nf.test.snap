@@ -1,7 +1,7 @@
 {
     "SK609 - r1_umi fastq.gz": {
         "content": [
-            "# Carmack version: 0.0.0+ffa5349\n# Target Index Assignment Stats\n# Input is {prefix}.r1_umi.fastq.gz, which extract-umis has already subset:\n# a read whose anchor was never recorded, or which ends inside its UMI, does\n# not arrive here, so the matched fraction below is not the scTIP fraction of\n# the library. See the matching .umi_stats.txt for the run's total read count.\nTotal reads: 19561\nMatched: 13332 (68.16%)\nUnmatched (no_match): 6229 (31.84%)\nUnmatched (no_left_anchor_pos): 0 (0.00%)\nUnmatched (short_window): 0 (0.00%)\n\n# Target Distribution\n\tTATAGCCT\t13332 (100.00%)\n\n# Edit Distance Distribution\n\t0\t13012 (97.60%)\n\t1\t320 (2.40%)\n\n# Anchor G-run Length Distribution\n\t0\t98 (0.50%)\n\t1\t57 (0.29%)\n\t2\t125 (0.64%)\n\t3\t4241 (21.68%)\n\t4\t1095 (5.60%)\n\t5\t708 (3.62%)\n\t6\t11690 (59.76%)\n\t7\t1374 (7.02%)\n\t8\t121 (0.62%)\n\t9\t31 (0.16%)\n\t10\t15 (0.08%)\n\t11\t1 (0.01%)\n\t12\t5 (0.03%)",
+            "# Carmack version: 0.0.0+6d7d1ec\n# Target Index Assignment Stats\n# Input is {prefix}.r1_umi.fastq.gz, which extract-umis has already subset:\n# a read whose anchor was never recorded, or which ends inside its UMI, does\n# not arrive here, so the matched fraction below is not the scTIP fraction of\n# the library. See the matching .umi_stats.txt for the run's total read count.\nTotal reads: 19561\nMatched: 13332 (68.16%)\nUnmatched (no_match): 6229 (31.84%)\nUnmatched (no_left_anchor_pos): 0 (0.00%)\nUnmatched (short_window): 0 (0.00%)\n\n# Target Distribution\n\tTATAGCCT\t13332 (100.00%)\n\n# Edit Distance Distribution\n\t0\t13012 (97.60%)\n\t1\t320 (2.40%)\n\n# Anchor G-run Length Distribution\n\t0\t98 (0.50%)\n\t1\t57 (0.29%)\n\t2\t125 (0.64%)\n\t3\t4241 (21.68%)\n\t4\t1095 (5.60%)\n\t5\t708 (3.62%)\n\t6\t11690 (59.76%)\n\t7\t1374 (7.02%)\n\t8\t121 (0.62%)\n\t9\t31 (0.16%)\n\t10\t15 (0.08%)\n\t11\t1 (0.01%)\n\t12\t5 (0.03%)",
             [
                 [
                     {
@@ -20,11 +20,11 @@
                 [
                     "CARMACK_ASSIGNTARGETS",
                     "carmack",
-                    "0.0.0+ffa5349"
+                    "0.0.0+6d7d1ec"
                 ]
             ]
         ],
-        "timestamp": "2026-09-17T15:09:06.696327182",
+        "timestamp": "2026-09-22T19:21:55.920655655",
         "meta": {
             "nf-test": "0.9.5",
             "nextflow": "26.04.6"

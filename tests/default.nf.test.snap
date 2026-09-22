@@ -11,19 +11,22 @@
                     "bowtie2": "2.5.4"
                 },
                 "CARMACK_ASSIGNTARGETS": {
-                    "carmack": "0.0.0+ffa5349"
+                    "carmack": "0.0.0+6d7d1ec"
                 },
                 "CARMACK_EXTRACTBARCODES": {
-                    "carmack": "0.0.0+ffa5349"
+                    "carmack": "0.0.0+6d7d1ec"
                 },
                 "CARMACK_EXTRACTUMIS": {
-                    "carmack": "0.0.0+ffa5349"
+                    "carmack": "0.0.0+6d7d1ec"
+                },
+                "CARMACK_LINEARDEDUP": {
+                    "carmack": "0.0.0+6d7d1ec"
                 },
                 "CARMACK_PREPAREREADS": {
-                    "carmack": "0.0.0+ffa5349"
+                    "carmack": "0.0.0+6d7d1ec"
                 },
                 "CHEMISTRYADAPTERS": {
-                    "carmack": "0.0.0+ffa5349"
+                    "carmack": "0.0.0+6d7d1ec"
                 },
                 "FASTP": {
                     "fastp": "1.3.6"
@@ -137,6 +140,14 @@
                 "fastqc/prepared/SK609.none",
                 "fastqc/prepared/SK609.none/SK609.none_fastqc.html",
                 "fastqc/prepared/SK609.none/SK609.none_fastqc.zip",
+                "lineardedup",
+                "lineardedup/SK609.TATAGCCT",
+                "lineardedup/SK609.TATAGCCT/SK609.TATAGCCT.linear_dedup.bam",
+                "lineardedup/SK609.TATAGCCT/SK609.TATAGCCT.linear_dedup.bam.bai",
+                "lineardedup/SK609.TATAGCCT/SK609.TATAGCCT.linear_dedup_breakdown_mqc.json",
+                "lineardedup/SK609.TATAGCCT/SK609.TATAGCCT.linear_dedup_chromosome_breakdown_mqc.json",
+                "lineardedup/SK609.TATAGCCT/SK609.TATAGCCT.linear_dedup_general_stats_mqc.json",
+                "lineardedup/SK609.TATAGCCT/SK609.TATAGCCT.linear_dedup_stats.txt",
                 "multiqc",
                 "multiqc/multiqc_data",
                 "multiqc/multiqc_data/bowtie2_pe_plot.txt",
@@ -174,6 +185,8 @@
                 "multiqc/multiqc_data/multiqc_carmack_extraction_barcode_rank_plot.txt",
                 "multiqc/multiqc_data/multiqc_carmack_extraction_breakdown_plot.txt",
                 "multiqc/multiqc_data/multiqc_carmack_extraction_edit_distance_plot.txt",
+                "multiqc/multiqc_data/multiqc_carmack_linear_dedup_breakdown_plot.txt",
+                "multiqc/multiqc_data/multiqc_carmack_linear_dedup_chromosome_breakdown_plot.txt",
                 "multiqc/multiqc_data/multiqc_carmack_prepare_target_distribution_plot.txt",
                 "multiqc/multiqc_data/multiqc_carmack_tgidx_anchor_run_plot.txt",
                 "multiqc/multiqc_data/multiqc_carmack_tgidx_breakdown_plot.txt",
@@ -208,6 +221,10 @@
                 "multiqc/multiqc_plots/pdf/carmack_extraction_breakdown_plot-cnt.pdf",
                 "multiqc/multiqc_plots/pdf/carmack_extraction_breakdown_plot-pct.pdf",
                 "multiqc/multiqc_plots/pdf/carmack_extraction_edit_distance_plot.pdf",
+                "multiqc/multiqc_plots/pdf/carmack_linear_dedup_breakdown_plot-cnt.pdf",
+                "multiqc/multiqc_plots/pdf/carmack_linear_dedup_breakdown_plot-pct.pdf",
+                "multiqc/multiqc_plots/pdf/carmack_linear_dedup_chromosome_breakdown_plot-cnt.pdf",
+                "multiqc/multiqc_plots/pdf/carmack_linear_dedup_chromosome_breakdown_plot-pct.pdf",
                 "multiqc/multiqc_plots/pdf/carmack_prepare_target_distribution_plot-cnt.pdf",
                 "multiqc/multiqc_plots/pdf/carmack_prepare_target_distribution_plot-pct.pdf",
                 "multiqc/multiqc_plots/pdf/carmack_tgidx_anchor_run_plot.pdf",
@@ -265,6 +282,10 @@
                 "multiqc/multiqc_plots/png/carmack_extraction_breakdown_plot-cnt.png",
                 "multiqc/multiqc_plots/png/carmack_extraction_breakdown_plot-pct.png",
                 "multiqc/multiqc_plots/png/carmack_extraction_edit_distance_plot.png",
+                "multiqc/multiqc_plots/png/carmack_linear_dedup_breakdown_plot-cnt.png",
+                "multiqc/multiqc_plots/png/carmack_linear_dedup_breakdown_plot-pct.png",
+                "multiqc/multiqc_plots/png/carmack_linear_dedup_chromosome_breakdown_plot-cnt.png",
+                "multiqc/multiqc_plots/png/carmack_linear_dedup_chromosome_breakdown_plot-pct.png",
                 "multiqc/multiqc_plots/png/carmack_prepare_target_distribution_plot-cnt.png",
                 "multiqc/multiqc_plots/png/carmack_prepare_target_distribution_plot-pct.png",
                 "multiqc/multiqc_plots/png/carmack_tgidx_anchor_run_plot.png",
@@ -322,6 +343,10 @@
                 "multiqc/multiqc_plots/svg/carmack_extraction_breakdown_plot-cnt.svg",
                 "multiqc/multiqc_plots/svg/carmack_extraction_breakdown_plot-pct.svg",
                 "multiqc/multiqc_plots/svg/carmack_extraction_edit_distance_plot.svg",
+                "multiqc/multiqc_plots/svg/carmack_linear_dedup_breakdown_plot-cnt.svg",
+                "multiqc/multiqc_plots/svg/carmack_linear_dedup_breakdown_plot-pct.svg",
+                "multiqc/multiqc_plots/svg/carmack_linear_dedup_chromosome_breakdown_plot-cnt.svg",
+                "multiqc/multiqc_plots/svg/carmack_linear_dedup_chromosome_breakdown_plot-pct.svg",
                 "multiqc/multiqc_plots/svg/carmack_prepare_target_distribution_plot-cnt.svg",
                 "multiqc/multiqc_plots/svg/carmack_prepare_target_distribution_plot-pct.svg",
                 "multiqc/multiqc_plots/svg/carmack_tgidx_anchor_run_plot.svg",
@@ -435,6 +460,9 @@
                 "SK609.prepare_general_stats_mqc.json:md5,02383c0afa7176ee798185656b84d5dd",
                 "SK609.prepare_target_distribution_mqc.json:md5,cf366372d6d880c6e514eb1459442cb7",
                 "carmack_custom_seq_1_0.adapters.fasta:md5,462b074fb155fa2c3e0ae9eab9de2473",
+                "SK609.TATAGCCT.linear_dedup_breakdown_mqc.json:md5,2e7bfa2207e59ea83330af1adc78328a",
+                "SK609.TATAGCCT.linear_dedup_chromosome_breakdown_mqc.json:md5,144b75557eb6815219ed57309023b51b",
+                "SK609.TATAGCCT.linear_dedup_general_stats_mqc.json:md5,fffca620f49b55f8a9f25bab0c74b496",
                 "bowtie2_pe_plot.txt:md5,49da565da54f08d090ff6cb7e16c4116",
                 "fastp-insert-size-plot.txt:md5,e19359d314c7bfdcac33ec516469d801",
                 "fastp-seq-content-gc-plot_Read_1_After_filtering.txt:md5,9e4a351700ba911ad9d436410fd0d49b",
@@ -466,6 +494,8 @@
                 "multiqc_carmack_extraction_barcode_rank_plot.txt:md5,1e71577d53ccebfba6fbed08064a637d",
                 "multiqc_carmack_extraction_breakdown_plot.txt:md5,696f98000d37104be7299ffa004b1e2a",
                 "multiqc_carmack_extraction_edit_distance_plot.txt:md5,602677bb0a5d43f7fb573cb685bd3b5d",
+                "multiqc_carmack_linear_dedup_breakdown_plot.txt:md5,4120bb7b164a1a3a9c93fba5d01a9e4a",
+                "multiqc_carmack_linear_dedup_chromosome_breakdown_plot.txt:md5,915f097f2fc71975437fc246611d4924",
                 "multiqc_carmack_prepare_target_distribution_plot.txt:md5,a6bd373c2bc6c4246a62eebd2b4a6964",
                 "multiqc_carmack_tgidx_anchor_run_plot.txt:md5,af0b688e4c814a9f8b6b7904ca4d1c98",
                 "multiqc_carmack_tgidx_breakdown_plot.txt:md5,1a92b99bf3445f63c183067502c38584",
@@ -476,20 +506,19 @@
                 "multiqc_citations.txt:md5,2dbf68f27d2865e859f51f1132050790",
                 "multiqc_fastp.txt:md5,3c20704ac1f07c8a42af9f157ac5b4b0",
                 "multiqc_fastqc.txt:md5,296010f5e27945d946c17ceb09aebcef",
-                "multiqc_general_stats.txt:md5,8441aad434e931ddcccd50222aa0197a",
-                "multiqc_samtools_stats.txt:md5,db5de6312b4766fcb3eb8dabf80ee721",
+                "multiqc_general_stats.txt:md5,b4a90519588006e3e11fba4e7ab175af",
+                "multiqc_samtools_stats.txt:md5,c1e4c05d89d42472a33d5d6b880276cb",
                 "multiqc_star.txt:md5,631e1a3aa045b5eec11952faa43b0483",
                 "multiqc_umitools_dedup.txt:md5,6ffd72481f702508120526276f8c2346",
                 "multiqc_umitools_extract.txt:md5,d41d8cd98f00b204e9800998ecf8427e",
-                "samtools-stats-dp.txt:md5,37109593f1e81692b0ce93e2067f6ed5",
-                "samtools_alignment_plot.txt:md5,759f1c0ebd76e356afa45375b21e8737",
-                "samtools_insert_size.txt:md5,487b0055145ea805ec8df2a66dc50f62",
+                "samtools-stats-dp.txt:md5,eb7d2548f00458bd7b6259968d95de8d",
+                "samtools_alignment_plot.txt:md5,c4f0c22ebb5b33d809bffdf314678430",
+                "samtools_insert_size.txt:md5,00c1c8a3f3925f7375f1c9069e1918e4",
                 "star_alignment_plot.txt:md5,afde49303cdb9ac9de870e818ed51fea",
                 "star_summary_table.txt:md5,4f7c6576c66b9886140cc5d91a934c5e",
                 "umitools_deduplication_barplot.txt:md5,db708283ac915d373b019110d8951bb2",
                 "umitools_stats_violin.txt:md5,08ef049301d6d4ac17b1cd485e921eb2",
                 "arm_gate.tsv:md5,87f2e53f468c395e610a18cf6d8de1aa",
-                "samplesheet_test.csv:md5,1df8433c74663856db98115d28c8271e",
                 "Barcodes.stats:md5,4c9c5e67e4f55e6eebd040eba4c9224b",
                 "Features.stats:md5,97d77aacd2ed42af32144eac5fce0de0",
                 "Summary.csv:md5,f068eb99277357fc6e6503ef15a075d3",
@@ -511,7 +540,7 @@
                 "matrix.mtx.gz:md5,be9d1e95efdbe4db369252112580ad4e"
             ]
         ],
-        "timestamp": "2026-09-17T15:26:10.572141261",
+        "timestamp": "2026-09-22T20:47:58.410387778",
         "meta": {
             "nf-test": "0.9.5",
             "nextflow": "26.04.6"

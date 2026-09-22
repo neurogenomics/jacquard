@@ -91,9 +91,25 @@ nextflow_pipeline {
                     def fields = row.split('\t')
                     [ fields[1] as int, fields[2] as int ]
                 } == [ [ 1078, 410 ] ] },
-                // All four read-preparation stages reach the report, under the one `carmack_`
-                // parent, and in the order the reads pass through them rather than alphabetically —
-                // which is what `report_section_order` in assets/multiqc_config.yml buys.
+                // Linear dedup's general-statistics payload builds no section of its own, so the
+                // table is the only place it shows. Its columns have to land on the row umi_tools'
+                // are already on: a sample name drifting by so much as a suffix would split the
+                // arm across two rows and leave both halves looking merely sparse.
+                { assert path("$outputDir/multiqc/multiqc_data/multiqc_general_stats.txt").readLines().with { lines ->
+                    def columns = lines.first().split('\t', -1).toList()
+                    def row = lines.find { line -> line.startsWith('SK609.TATAGCCT\t') }.split('\t', -1).toList()
+                    [
+                        'custom_content_carmack-pct_duplication',
+                        'custom_content_carmack-pct_missing_as',
+                        'umi_tools-dedup_percent_passing',
+                    ].every { column -> columns.contains(column) && row[columns.indexOf(column)] }
+                } },
+                // All four read-preparation stages and linear dedup reach the report, under the one
+                // `carmack_` parent, and in the order the reads pass through them rather than
+                // alphabetically — which is what `report_section_order` in
+                // assets/multiqc_config.yml buys. Linear dedup comes last because it runs last:
+                // the whole `carmack_` parent is placed as a single block, so no entry can move
+                // one of its sections down beside umi_tools', where the step itself belongs.
                 { assert carmack_sections == [
                     'carmack_extraction_breakdown_plot',
                     'carmack_extraction_barcode_rank_plot',
@@ -105,6 +121,8 @@ nextflow_pipeline {
                     'carmack_tgidx_edit_distance_plot',
                     'carmack_tgidx_anchor_run_plot',
                     'carmack_prepare_target_distribution_plot',
+                    'carmack_linear_dedup_breakdown_plot',
+                    'carmack_linear_dedup_chromosome_breakdown_plot',
                 ] },
                 // Trimming renders between read preparation and the gate it re-runs, rather than
                 // at the end among the other tool sections, which is what the `fastp` entry in
