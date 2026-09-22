@@ -17,6 +17,8 @@
 - [carmack](https://github.com/crick-pipelines-stp/carmack)
 
 > Crick Institute Science Technology Platform. carmack: single-cell multiome read preparation.
+>
+> carmack's `linear-dedup` pass is the single-cell form of the duplicate correction in [nf-core/cutandrun](https://github.com/nf-core/cutandrun), which collapses reads sharing chromosome, strand and 5' insertion site for bulk assays; the single-cell form adds the cell barcode to that key, so two cells sharing an insertion site are never collapsed into one.
 
 - [fastp](https://pubmed.ncbi.nlm.nih.gov/30423086/)
 

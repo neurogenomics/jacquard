@@ -17,8 +17,9 @@ fastqc/prepared/<sample>.<tgidx>/    per arm, on the reads that arm aligns
 fastp/<sample>.<tgidx>/              per arm, the trimming reports
 star/<sample>.none/                  scRNA arm — Solo.out lives here
 bowtie2/<sample>.<tgidx>/            scTIP arm — alignment log
-umitools/<sample>.<tgidx>/           scTIP arm — deduplicated BAM
-samtools/<sample>.<tgidx>/           scTIP arm — stats on that BAM
+umitools/<sample>.<tgidx>/           scTIP arm — UMI-deduplicated BAM
+lineardedup/<sample>.<tgidx>/        scTIP arm — final BAM, linear duplicates collapsed
+samtools/<sample>.<tgidx>/           scTIP arm — stats on the final BAM
 multiqc/
 pipeline_info/
 ```
@@ -90,15 +91,20 @@ No alignment file is written: the matrices are the product, so STARsolo runs wit
 - `fastqc/prepared/<sample>.<tgidx>/`: FastQC on the pair bowtie2 aligns, after trimming.
 - `bowtie2/<sample>.<tgidx>/<sample>.<tgidx>.bowtie2.log`: the alignment summary.
 - `umitools/<sample>.<tgidx>/`
-  - `<sample>.<tgidx>.bam` and `.bam.bai`: deduplicated per cell.
+  - `<sample>.<tgidx>.bam` and `.bam.bai`: deduplicated per cell and UMI.
   - `<sample>.<tgidx>.log`: the `umi_tools dedup` run log.
-- `samtools/<sample>.<tgidx>/<sample>.<tgidx>.stats`: `samtools stats` on the deduplicated BAM.
+- `lineardedup/<sample>.<tgidx>/`
+  - `<sample>.<tgidx>.linear_dedup.bam` and `.bam.bai`: the arm's final BAM, linear-amplification duplicates collapsed.
+  - `<sample>.<tgidx>.linear_dedup_stats.txt`, plus one `*_mqc.json` per MultiQC payload.
+- `samtools/<sample>.<tgidx>/<sample>.<tgidx>.stats`: `samtools stats` on whichever BAM the arm ended on.
 
 </details>
 
-bowtie2 runs end to end, so adapter read-through costs the whole alignment rather than a soft clip: the arm is trimmed first, with `--trim_poly_g` and `--length_required 25`. Quality trimming is deliberately absent — it would shorten reads, moving the leftmost coordinate of a reverse-strand alignment, which is the key `umi_tools dedup` groups on. The trimmed FASTQs are intermediates and are not published.
+bowtie2 runs end to end, so adapter read-through costs the whole alignment rather than a soft clip: the arm is trimmed first, with `--trim_poly_g` and `--length_required 25`. Quality trimming is deliberately absent — it would shorten reads, moving the leftmost coordinate of a reverse-strand alignment, which is both the key `umi_tools dedup` groups on and the insertion site carmack's linear pass groups on. The trimmed FASTQs are intermediates and are not published.
 
 The aligned BAM is not published — it is superseded by the sort and the retagging before the arm finishes. Read names carry carmack's barcode and UMI through bowtie2 intact; those fields are lifted into `CB` and `UB` tags before deduplication, so the published BAM has bare read names and `CB:Z:`/`UB:Z:` tags. The bowtie2 index is an intermediate and is not published.
+
+The arm deduplicates twice. `umi_tools dedup --paired` keys on the UMI together with the coordinates of both mates, which leaves intact the copies linear (T7 IVT) amplification made of one template: they share R1's 5' end but terminate independently, so they carry different mate ends and different UMIs and read as distinct molecules, inflating per-cell signal at each Tn5 insertion site. carmack's `linear-dedup` pass then keys per cell on that shared start alone — R1's strand-aware fragment position — keeping the highest-scoring pair of each group, and sorts and indexes its own output, so `lineardedup/<sample>.<tgidx>/<sample>.<tgidx>.linear_dedup.bam` is the arm's final BAM. `--skip_linear_dedup` leaves the `umitools/` BAM as the arm's result instead; `samtools stats` reports on whichever the arm ended on.
 
 ### MultiQC
 
@@ -114,9 +120,11 @@ The aligned BAM is not published — it is superseded by the sort and the retagg
 
 [MultiQC](http://multiqc.info) is a visualization tool that generates a single HTML report summarising all samples in your project. The report carries one FastQC row per raw read file and per arm, the arm-gate table, and the fastp, bowtie2, `umi_tools` and `samtools stats` logs, alongside the software versions used by the run.
 
-carmack's own `*_mqc.json` payloads reach the report too, gathered under one **Carmack** section and ordered as the reads pass through the stages — barcode extraction, UMI extraction, target assignment, prepare-reads — rather than alphabetically, which is what the `report_section_order` block in `assets/multiqc_config.yml` is for. Each stage also contributes its headline percentages to the General Statistics table.
+carmack's own `*_mqc.json` payloads reach the report too, gathered under one **Carmack** section and ordered as the reads pass through the stages — barcode extraction, UMI extraction, target assignment, prepare-reads, then the scTIP arm's linear dedup — rather than alphabetically, which is what the `report_section_order` block in `assets/multiqc_config.yml` is for. Each stage also contributes its headline percentages to the General Statistics table.
 
 Prepare-reads' own section is the **Prepare Reads Output Arm Distribution** bargraph: one bar per output arm, a category per scTIP target bucket plus `NONE` for the scRNA arm, so the categories partition every read the run saw. It is the same distribution the arm fan-out gates on, which makes it the fastest place to see why an arm was dropped.
+
+Linear dedup adds two bargraphs: **Linear Dedup Breakdown**, one bar per arm split into pairs kept, pairs removed and the pairs skipped as ineligible, and **Linear Dedup: Duplicates Removed per Chromosome**. Its General Statistics columns are **% Duplication** and **% Missing AS**, both over eligible pairs. Neither section nor column is present under `--skip_linear_dedup`.
 
 ### Pipeline information
 

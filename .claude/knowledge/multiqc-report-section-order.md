@@ -42,3 +42,16 @@ report_section_order:
 custom-content id (`carmack_prepare_target_distribution`) or a module anchor (`bowtie2`) did nothing at
 all — silently, as an unknown key always does. Probe candidates by re-running MultiQC over the staged
 inputs in the MULTIQC task's work directory rather than by re-running the pipeline.
+
+## A `parent_id` block is placed as one unit, so a section cannot leave it
+
+Every section carrying carmack's `parent_id` renders inside the single `<h2 id="carmack">` group,
+and that group is placed as a whole. So a section's `order:` only ranks it *within* its parent — it
+cannot be moved down beside a different module's sections, however much the pipeline's own order
+says it belongs there. Measured on 2026-09-22 while placing linear deduplication, which runs after
+alignment and after umi_tools: `after: umitools` on both new ids left the report byte-identical to
+having no entry at all, silently, as an unignored key always does. Last within the parent block is
+as late as such a section can go.
+
+Also verified in passing: `tests/.nftignore` accepts `#` comment lines — the entry below one still
+applies.
