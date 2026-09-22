@@ -54,6 +54,7 @@ nextflow_pipeline {
                     'CARMACK_EXTRACTUMIS',
                     'CARMACK_ASSIGNTARGETS',
                     'CARMACK_PREPAREREADS',
+                    'CARMACK_LINEARDEDUP',
                 ].every { process -> software_versions.contains("${process}:\n  carmack: ") } },
                 { assert [
                     'CHEMISTRYADAPTERS',

@@ -1,5 +1,5 @@
 name: "carmack_lineardedup"
-description: Deduplicate an aligned BAM by cell barcode and strand-aware fragment position, for chemistries carrying no UMI
+description: Deduplicate an aligned BAM per cell on the strand-aware fragment position of read 1
 keywords:
   - single-cell
   - multiome
