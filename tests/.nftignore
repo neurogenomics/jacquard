@@ -18,3 +18,5 @@ fastp/**/*.{json,html,log}
 bowtie2/**/*.log
 samtools/**/*.stats
 umitools/**/*.{bam,bai,log}
+lineardedup/**/*.{bam,bai}
+lineardedup/**/*_stats.txt

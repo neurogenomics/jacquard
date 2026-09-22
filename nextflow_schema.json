@@ -116,6 +116,20 @@
                 }
             }
         },
+        "deduplication_options": {
+            "title": "Deduplication options",
+            "type": "object",
+            "fa_icon": "fas fa-clone",
+            "description": "Duplicate removal applied to the scTIP arm's alignments.",
+            "properties": {
+                "skip_linear_dedup": {
+                    "type": "boolean",
+                    "description": "Leave the scTIP arm's alignments as `umi_tools dedup` left them.",
+                    "help_text": "The scTIP arm deduplicates twice. `umi_tools dedup --paired` collapses PCR duplicates, keying on the UMI together with the coordinates of both mates. It cannot collapse linear-amplification duplicates: the copies linear amplification makes of one template all share R1's 5' end but terminate at different points, so they carry different mate ends and different UMIs and read as distinct molecules. That shared start is what carmack's linear-dedup pass keys on — per cell, R1's strand-aware fragment position alone — keeping the highest-scoring pair of each group. Set this to stop after the UMI pass; the arm still emits a BAM and its index, and `samtools stats` still reports on it.",
+                    "fa_icon": "fas fa-forward"
+                }
+            }
+        },
         "scrna_arm_options": {
             "title": "scRNA arm options",
             "type": "object",
@@ -362,6 +376,9 @@
         },
         {
             "$ref": "#/$defs/trimming_options"
+        },
+        {
+            "$ref": "#/$defs/deduplication_options"
         },
         {
             "$ref": "#/$defs/scrna_arm_options"

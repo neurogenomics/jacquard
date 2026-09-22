@@ -63,6 +63,7 @@ nextflow_workflow {
                 input[3] = CHEMISTRYADAPTERS.out.fasta.map { adapters -> adapters.size() > 0 ? adapters : [] }.first()
                 input[4] = false
                 input[5] = 1000
+                input[6] = false
                 """
             }
         }
@@ -98,7 +99,16 @@ nextflow_workflow {
             def dedup_lines = bam(workflow.out.bam[0][1]).getSamLines().collect { line -> line.trim() }
             def dedup_qnames = dedup_lines.collect { line -> line.tokenize('\t').first() }
 
-            def dedup_command = new File(new File(workflow.out.bam[0][1]).parentFile, '.command.sh').text
+            // carmack's own report, staged beside the BAM it describes, since the subworkflow emits
+            // no linear-dedup stats channel and the BAM cannot be counted under nf-test.
+            def linear_stats = new File(new File(workflow.out.bam[0][1]).parentFile, 'SK609.TATAGCCT.linear_dedup_stats.txt').text
+            def linear_eligible = (linear_stats =~ /Eligible: (\d+)/)[0][1] as int
+            def linear_kept = (linear_stats =~ /Pairs kept: (\d+)/)[0][1] as int
+            def linear_removed = (linear_stats =~ /Pairs removed \(duplicates\): (\d+)/)[0][1] as int
+
+            // Read off the umi_tools task, found through its own log: the arm's BAM is carmack's now,
+            // so its task directory holds the linear-dedup command line rather than this one.
+            def dedup_command = new File(new File(workflow.out.log_dedup[0][1]).parentFile, '.command.sh').text
             // umi_tools' own count of what it read and what it wrote. Read off the log rather than
             // off the BAM because only umi_tools knows how many records it considered: the BAM also
             // lost every unaligned read, which is most of this arm.
@@ -113,8 +123,10 @@ nextflow_workflow {
                 // Every output is named off meta.id alone, with no ext.prefix on anything MultiQC
                 // reads, which is what keeps an arm's files and its report rows spelled the same.
                 { assert workflow.out.bam[0][0] == arm_meta },
-                { assert file(workflow.out.bam[0][1]).name == 'SK609.TATAGCCT.bam' },
-                { assert file(workflow.out.bam[0][2]).name == 'SK609.TATAGCCT.bam.bai' },
+                // The arm's result is the linear-deduped BAM, and carmack's own index of it: the
+                // module sorts and indexes what it writes, so no SAMTOOLS_INDEX follows it.
+                { assert file(workflow.out.bam[0][1]).name == 'SK609.TATAGCCT.linear_dedup.bam' },
+                { assert file(workflow.out.bam[0][2]).name == 'SK609.TATAGCCT.linear_dedup.bam.bai' },
                 { assert file(workflow.out.log_align[0][1]).name == 'SK609.TATAGCCT.bowtie2.log' },
                 { assert file(workflow.out.log_dedup[0][1]).name == 'SK609.TATAGCCT.log' },
                 { assert file(workflow.out.stats[0][1]).name == 'SK609.TATAGCCT.stats' },
@@ -122,6 +134,12 @@ nextflow_workflow {
                 { assert workflow.out.multiqc_files.collect { mqc -> file(mqc).name }.sort() == [
                     'SK609.TATAGCCT.bowtie2.log',
                     'SK609.TATAGCCT.fastp.json',
+                    // carmack's JSON payloads, not its human-readable stats file: these are what
+                    // MultiQC reads, and the report section they build is the only place the second
+                    // dedup pass is accounted for.
+                    'SK609.TATAGCCT.linear_dedup_breakdown_mqc.json',
+                    'SK609.TATAGCCT.linear_dedup_chromosome_breakdown_mqc.json',
+                    'SK609.TATAGCCT.linear_dedup_general_stats_mqc.json',
                     'SK609.TATAGCCT.log',
                     'SK609.TATAGCCT.stats',
                     'SK609.TATAGCCT_1_fastqc.zip',
@@ -179,7 +197,12 @@ nextflow_workflow {
                 { assert dedup_command.contains('--cell-tag=CB') },
                 // Something was actually collapsed, and something actually survived: a dedup that
                 // removed everything or nothing would pass every assertion above.
-                { assert reads_out > 0 && reads_out < reads_in }
+                { assert reads_out > 0 && reads_out < reads_in },
+                // The second pass ran on this arm's records rather than on an empty or mistagged
+                // BAM: a pair missing the `CB` tag TAGQNAME wrote is ineligible and never counted.
+                // How much it removes is the module's own test to assert, on a fixture built for it
+                // — this slice of SK609 is 410 pairs and carries almost no linear duplicate.
+                { assert linear_eligible > 0 && linear_kept + linear_removed == linear_eligible }
             )
         }
     }
@@ -230,6 +253,7 @@ nextflow_workflow {
                 input[3] = channel.value([])
                 input[4] = true
                 input[5] = 1000
+                input[6] = false
                 """
             }
         }
@@ -244,12 +268,87 @@ nextflow_workflow {
                 { assert workflow.trace.tasks().findAll { task -> task.name.contains('FASTP') }.isEmpty() },
                 { assert workflow.out.trim_json.isEmpty() },
                 { assert workflow.out.gate.isEmpty() },
-                { assert file(workflow.out.bam[0][1]).name == 'SK609.TATAGCCT.bam' },
+                { assert file(workflow.out.bam[0][1]).name == 'SK609.TATAGCCT.linear_dedup.bam' },
                 // Every pair prepare-reads wrote reached the aligner, untrimmed.
                 { assert bowtie2_log.take(2) == [
                     '13332 reads; of these:',
                     '  13332 (100.00%) were paired; of these:',
                 ] }
+            )
+        }
+    }
+
+    test("SK609 - skip_linear_dedup leaves the arm on the umi-deduped BAM") {
+
+        tag "sctip_arm_skip_linear_dedup"
+
+        setup {
+            run("CARMACK_READPREP") {
+                script "../../carmack_readprep/main.nf"
+                workflow {
+                    """
+                    input[0] = channel.of([
+                        [ id:'SK609' ],
+                        [
+                            file("${baseDir}/tests/data/SK609_L5_R1.fastq.gz", checkIfExists: true),
+                            file("${baseDir}/tests/data/SK609_L5_R2.fastq.gz", checkIfExists: true),
+                        ],
+                    ])
+                    input[1] = 'carmack_custom_seq_1_0'
+                    input[2] = [ 'barcodes', 'umis', 'targets', 'readprep', 'gate', 'arms' ]
+                    """
+                }
+            }
+            run("ARM_FANOUT") {
+                script "../../arm_fanout/main.nf"
+                workflow {
+                    """
+                    input[0] = CARMACK_READPREP.out.scrna
+                    input[1] = CARMACK_READPREP.out.sctip
+                    input[2] = CARMACK_READPREP.out.stats_json
+                    input[3] = 1000
+                    """
+                }
+            }
+        }
+
+        when {
+            params {
+                outdir = "$outputDir"
+            }
+            workflow {
+                """
+                input[0] = ARM_FANOUT.out.sctip
+                input[1] = params.modules_testdata_base_path + 'genomics/homo_sapiens/genome/chr21/sequence/genome.fasta'
+                input[2] = null
+                // Trimming is skipped too, to spend the run on the branch under test rather than on
+                // fastp; the two bypasses are independent, and the trimmed path is covered above.
+                input[3] = channel.value([])
+                input[4] = true
+                input[5] = 1000
+                input[6] = true
+                """
+            }
+        }
+
+        then {
+            // samtools' own record of the file it was handed, rather than the BAM's name guessed at
+            // from the emit: the assertion is that the step ran on the umi-deduped BAM, and a
+            // SAMTOOLS_STATS left reading carmack's output would still emit a plausible `.stats`.
+            def stats_command = path(workflow.out.stats[0][1]).readLines().find { line -> line.startsWith('# The command line was:') }
+
+            assertAll(
+                { assert workflow.success },
+                // The bypass is a Groovy branch, not `ext.when`, so neither the `bam` emit nor the
+                // stats channel it feeds goes empty when the step is switched off.
+                { assert workflow.trace.tasks().findAll { task -> task.name.contains('CARMACK_LINEARDEDUP') }.isEmpty() },
+                { assert file(workflow.out.bam[0][1]).name == 'SK609.TATAGCCT.bam' },
+                { assert file(workflow.out.bam[0][2]).name == 'SK609.TATAGCCT.bam.bai' },
+                { assert stats_command.endsWith('SK609.TATAGCCT.bam') },
+                { assert file(workflow.out.stats[0][1]).name == 'SK609.TATAGCCT.stats' },
+                // Nothing claims a dedup pass that never ran: carmack's payloads are the only
+                // `_mqc.json` this arm produces.
+                { assert workflow.out.multiqc_files.collect { mqc -> file(mqc).name }.findAll { name -> name.endsWith('_mqc.json') }.isEmpty() }
             )
         }
     }
@@ -311,6 +410,7 @@ nextflow_workflow {
                 // trimming removes is what takes it below this — no default trimming empties SK609,
                 // and testing for zero reads would miss an arm falling from 13332 to 40.
                 input[5] = 13332
+                input[6] = false
                 """
             }
         }
@@ -356,6 +456,7 @@ nextflow_workflow {
                 input[3] = channel.value([])
                 input[4] = false
                 input[5] = 1000
+                input[6] = false
                 """
             }
         }
@@ -389,6 +490,7 @@ nextflow_workflow {
                 input[3] = channel.value([])
                 input[4] = false
                 input[5] = 1000
+                input[6] = false
                 """
             }
         }
