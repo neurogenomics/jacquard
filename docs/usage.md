@@ -65,8 +65,8 @@ left as a sample quietly missing from the results.
 
 ### Trimming
 
-| Parameter         | Default | Description                                                                                              |
-| ----------------- | ------- | ---------------------------------------------------------------------------------------------------------- |
+| Parameter         | Default | Description                                                                                      |
+| ----------------- | ------- | ------------------------------------------------------------------------------------------------ |
 | `--skip_trimming` | `false` | Align and quantify the reads `prepare-reads` wrote, untrimmed. Every downstream step still runs. |
 
 Each arm that clears the gate is trimmed with fastp against an adapter FASTA built from the sequences
@@ -80,8 +80,8 @@ count — see [Arm gate](output.md#arm-gate).
 
 ### Deduplication
 
-| Parameter             | Default | Description                                                                              |
-| --------------------- | ------- | ------------------------------------------------------------------------------------------ |
+| Parameter             | Default | Description                                                                                         |
+| --------------------- | ------- | --------------------------------------------------------------------------------------------------- |
 | `--skip_linear_dedup` | `false` | Leave the scTIP arm's alignments as `umi_tools dedup` left them, with no second deduplication pass. |
 
 The scTIP arm deduplicates twice. `umi_tools dedup --paired` keys on the UMI together with the
