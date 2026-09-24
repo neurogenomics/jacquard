@@ -1,7 +1,7 @@
 {
     "SK609 - paired fastq.gz": {
         "content": [
-            "# Carmack version: 0.0.0+ffa5349\n# Prepare Reads Stats\n# unmatched_written + sum(target_written.values()) + insert_not_sequenced == total_reads\nTotal reads: 19561\nUnmatched (scRNA arm): 6229 (31.84%)\nMatched (scTIP arms): 13332 (68.16%)\nRejected (insert_not_sequenced): 0 (0.00%)\n\n# Target Distribution\n\tTATAGCCT\t13332 (68.16%)",
+            "# Carmack version: 0.0.0+01f2d18\n# Prepare Reads Stats\n# unmatched_written + sum(target_written.values()) + insert_not_sequenced == total_reads\nTotal reads: 19561\nUnmatched (scRNA arm): 6229 (31.84%)\nMatched (scTIP arms): 13332 (68.16%)\nRejected (insert_not_sequenced): 0 (0.00%)\n\n# Target Distribution\n\tTATAGCCT\t13332 (68.16%)",
             [
                 [
                     {
@@ -11,7 +11,7 @@
                 ]
             ]
         ],
-        "timestamp": "2026-09-17T15:18:55.923586903",
+        "timestamp": "2026-09-24T09:47:45.925858428",
         "meta": {
             "nf-test": "0.9.5",
             "nextflow": "26.04.6"

@@ -65,8 +65,8 @@ left as a sample quietly missing from the results.
 
 ### Trimming
 
-| Parameter         | Default | Description                                                                                              |
-| ----------------- | ------- | ---------------------------------------------------------------------------------------------------------- |
+| Parameter         | Default | Description                                                                                      |
+| ----------------- | ------- | ------------------------------------------------------------------------------------------------ |
 | `--skip_trimming` | `false` | Align and quantify the reads `prepare-reads` wrote, untrimmed. Every downstream step still runs. |
 
 Each arm that clears the gate is trimmed with fastp against an adapter FASTA built from the sequences
@@ -77,6 +77,23 @@ configured; a chemistry declaring none falls back to fastp's read-pair overlap d
 Trimming can leave an arm below `--min_arm_reads`. Such an arm is dropped exactly as the gate drops
 one, and its row in `arm_gate.tsv` is **replaced** with a `FAIL_TRIM` verdict carrying the post-trim
 count — see [Arm gate](output.md#arm-gate).
+
+### Deduplication
+
+| Parameter             | Default | Description                                                                                         |
+| --------------------- | ------- | --------------------------------------------------------------------------------------------------- |
+| `--skip_linear_dedup` | `false` | Leave the scTIP arm's alignments as `umi_tools dedup` left them, with no second deduplication pass. |
+
+The scTIP arm deduplicates twice. `umi_tools dedup --paired` keys on the UMI together with the
+coordinates of both mates, which collapses PCR duplicates but not the copies linear (T7 IVT)
+amplification made of one template: those share R1's 5' end and terminate independently, so they
+carry different mate ends and different UMIs and read as distinct molecules, inflating per-cell
+signal at each Tn5 insertion site. carmack's `linear-dedup` pass keys on that shared start alone —
+per cell, R1's strand-aware fragment position — and keeps the highest-scoring pair of each group.
+
+`--skip_linear_dedup` ends the arm on the `umi_tools` BAM instead, which `samtools stats` then
+reports on; the two linear-dedup MultiQC sections are absent — see
+[scTIP arm](output.md#sctip-arm).
 
 ### scRNA arm
 

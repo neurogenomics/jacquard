@@ -8,10 +8,10 @@ type: gotcha
 Nextflow full-regex-matches a colon-bearing `withName:` selector against the **entire** qualified
 process name, and that name is shorter when an nf-test instantiates a subworkflow directly:
 
-| Context | Qualified name |
-|---|---|
-| `nextflow run .` | `NEUROGENOMICS_JACQUARD:JACQUARD:SCTIP_ARM:FASTP` |
-| `nextflow_workflow` test of `SCTIP_ARM` | `SCTIP_ARM:FASTP` |
+| Context                                 | Qualified name                                    |
+| --------------------------------------- | ------------------------------------------------- |
+| `nextflow run .`                        | `NEUROGENOMICS_JACQUARD:JACQUARD:SCTIP_ARM:FASTP` |
+| `nextflow_workflow` test of `SCTIP_ARM` | `SCTIP_ARM:FASTP`                                 |
 
 So `'.*:SCTIP_ARM:FASTP'` — the form that fixes the well-known "partial path matches nothing" trap —
 matches the run and **not** the test: the `.*:` demands a preceding colon the test's name has not got.

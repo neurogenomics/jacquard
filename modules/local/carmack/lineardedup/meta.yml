@@ -1,0 +1,82 @@
+name: "carmack_lineardedup"
+description: Deduplicate an aligned BAM per cell on the strand-aware fragment position of read 1
+keywords:
+  - single-cell
+  - multiome
+  - deduplication
+  - bam
+tools:
+  - "carmack":
+      description: "Helper tools for the analysis of single-cell multi-omic data"
+      homepage: "https://github.com/crick-pipelines-stp/carmack"
+      documentation: "https://github.com/crick-pipelines-stp/carmack"
+      tool_dev_url: "https://github.com/crick-pipelines-stp/carmack"
+
+input:
+  - - meta:
+        type: map
+        description: |
+          Groovy Map containing sample information, e.g. `[ id:'sample1' ]`
+    - bam:
+        type: file
+        description: Coordinate-sorted BAM carrying a cell barcode tag on every primary, paired, mapped read
+        pattern: "*.bam"
+    - bai:
+        type: file
+        description: Index of the input BAM
+        pattern: "*.bai"
+
+output:
+  bam:
+    - - meta:
+          type: map
+          description: |
+            Groovy Map containing sample information, e.g. `[ id:'sample1' ]`
+      - "*.linear_dedup.bam":
+          type: file
+          description: Coordinate-sorted BAM holding both mates of the highest-scoring pair per duplicate group
+          pattern: "*.linear_dedup.bam"
+  bai:
+    - - meta:
+          type: map
+          description: |
+            Groovy Map containing sample information, e.g. `[ id:'sample1' ]`
+      - "*.linear_dedup.bam.bai":
+          type: file
+          description: Index carmack writes for its own output, so no separate indexing step is needed
+          pattern: "*.linear_dedup.bam.bai"
+  stats:
+    - - meta:
+          type: map
+          description: |
+            Groovy Map containing sample information, e.g. `[ id:'sample1' ]`
+      - "*.linear_dedup_stats.txt":
+          type: file
+          description: Human-readable deduplication report, reconciling pairs kept and removed against the pairs skipped as ineligible
+          pattern: "*.linear_dedup_stats.txt"
+  multiqc:
+    - - meta:
+          type: map
+          description: |
+            Groovy Map containing sample information, e.g. `[ id:'sample1' ]`
+      - "*_mqc.json":
+          type: file
+          description: MultiQC custom-content payloads for the dedup summary, the kept/removed breakdown and the per-chromosome breakdown
+          pattern: "*_mqc.json"
+  versions_carmack:
+    - - "${task.process}":
+          type: string
+          description: Name of the emitting process
+      - "carmack":
+          type: string
+          description: Name of the tool
+      - version:
+          type: string
+          description: Version of carmack, emitted on the `versions` topic
+
+authors:
+  - "@HDash"
+  - "@chris-cheshire"
+maintainers:
+  - "@HDash"
+  - "@chris-cheshire"

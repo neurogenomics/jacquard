@@ -148,6 +148,7 @@ workflow JACQUARD {
             ch_adapter_fasta,
             params.skip_trimming,
             params.min_arm_reads,
+            params.skip_linear_dedup,
         )
         ch_versions = ch_versions.mix(SCTIP_ARM.out.versions)
         ch_multiqc_files = ch_multiqc_files.mix(SCTIP_ARM.out.multiqc_files)

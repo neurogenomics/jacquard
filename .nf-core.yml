@@ -5,6 +5,7 @@ nf_core_version: 4.1.0
 lint:
   template_strings:
     - justfile # just interpolates recipe args with doubled braces, not Jinja
+    - .claude/knowledge/carmack-image-tag-is-global.md # quotes that justfile recipe verbatim
   files_unchanged:
     - .gitattributes # carries the uv.lock merge=binary directive
     - .gitignore # un-ignores tests/data/ (the template's bare `data/` swallows the fixtures)
