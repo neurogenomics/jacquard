@@ -1,7 +1,7 @@
 {
     "SK609 - r1_annotated fastq.gz": {
         "content": [
-            "# Carmack version: 0.0.0+6d7d1ec\n# UMI Extraction Stats\n# The UMI is the fixed 8 bases following the left anchor, so its\n# length is not a measurement and no length distribution is reported.\nTotal reads: 19561\nAccepted: 19561 (100.00%)\nRejected (missing_left_anchor): 0 (0.00%)\nRejected (truncated): 0 (0.00%)\n\n# Anchor G-run Length Distribution\n# Measured from the first base after the UMI, over accepted reads. A zero is a\n# read whose anchor run does not begin where the chemistry says it does.\n\t0\t145 (0.74%)\n\t1\t77 (0.39%)\n\t2\t135 (0.69%)\n\t3\t4371 (22.35%)\n\t4\t1122 (5.74%)\n\t5\t701 (3.58%)\n\t6\t11659 (59.60%)\n\t7\t1253 (6.41%)\n\t8\t82 (0.42%)\n\t9\t11 (0.06%)\n\t10\t5 (0.03%)",
+            "# Carmack version: 0.0.0+01f2d18\n# UMI Extraction Stats\n# The UMI is the fixed 8 bases following the left anchor, so its\n# length is not a measurement and no length distribution is reported.\nTotal reads: 19561\nAccepted: 19561 (100.00%)\nRejected (missing_left_anchor): 0 (0.00%)\nRejected (truncated): 0 (0.00%)\n\n# Anchor G-run Length Distribution\n# Measured from the first base after the UMI, over accepted reads. A zero is a\n# read whose anchor run does not begin where the chemistry says it does.\n\t0\t145 (0.74%)\n\t1\t77 (0.39%)\n\t2\t135 (0.69%)\n\t3\t4371 (22.35%)\n\t4\t1122 (5.74%)\n\t5\t701 (3.58%)\n\t6\t11659 (59.60%)\n\t7\t1253 (6.41%)\n\t8\t82 (0.42%)\n\t9\t11 (0.06%)\n\t10\t5 (0.03%)",
             [
                 [
                     {
@@ -18,11 +18,11 @@
                 [
                     "CARMACK_EXTRACTUMIS",
                     "carmack",
-                    "0.0.0+6d7d1ec"
+                    "0.0.0+01f2d18"
                 ]
             ]
         ],
-        "timestamp": "2026-09-22T19:26:36.664829274",
+        "timestamp": "2026-09-24T09:30:40.854168276",
         "meta": {
             "nf-test": "0.9.5",
             "nextflow": "26.04.6"

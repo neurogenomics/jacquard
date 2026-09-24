@@ -1,7 +1,7 @@
 {
     "aligned BAM - one pair survives each duplicate group": {
         "content": [
-            "# Carmack version: 0.0.0+6d7d1ec\n# Linear Dedup Stats\nTotal pairs: 16\nEligible: 12 (75.00%)\nSkipped (unmapped): 2 (12.50%)\nSkipped (non_primary): 2 (12.50%)\nSkipped (unpaired): 0 (0.00%)\nPairs kept: 9 (75.00%)\nPairs removed (duplicates): 3 (25.00%)\nMissing AS: 2 (16.67%)",
+            "# Carmack version: 0.0.0+01f2d18\n# Linear Dedup Stats\nTotal pairs: 16\nEligible: 12 (75.00%)\nSkipped (unmapped): 2 (12.50%)\nSkipped (non_primary): 2 (12.50%)\nSkipped (unpaired): 0 (0.00%)\nPairs kept: 9 (75.00%)\nPairs removed (duplicates): 3 (25.00%)\nMissing AS: 2 (16.67%)",
             [
                 [
                     {
@@ -18,11 +18,11 @@
                 [
                     "CARMACK_LINEARDEDUP",
                     "carmack",
-                    "0.0.0+6d7d1ec"
+                    "0.0.0+01f2d18"
                 ]
             ]
         ],
-        "timestamp": "2026-09-22T18:08:10.795228413",
+        "timestamp": "2026-09-24T09:32:32.106789879",
         "meta": {
             "nf-test": "0.9.5",
             "nextflow": "26.04.6"
