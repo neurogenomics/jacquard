@@ -25,34 +25,7 @@ by hand.
 | `just nf-lint`           | `nf-core pipelines lint`                                           |
 | `just nf-test`           | nf-test suite                                                      |
 | `just smoke`             | `nextflow run . -profile test,docker`                              |
-| `just metro`             | Re-render the metro diagram from `docs/images/jacquard_metro.mmd`  |
 | `just sync`              | Pull template updates into the `TEMPLATE` branch                   |
-
-## Metro diagram
-
-`docs/images/jacquard_metro.svg` — the figure `README.md` embeds — is generated from
-`docs/images/jacquard_metro.mmd` by [nf-metro](https://github.com/seqeralabs/nf-metro), a uv tool
-(`uv tool install nf-metro`) that lives outside the `jac` env. Never hand-edit the SVG.
-
-**Any change to the process graph updates the `.mmd` and re-renders in the same commit.** That means
-a module added, removed, renamed or re-wired; an arm's steps re-ordered; a subworkflow or
-`include ... as` alias renamed, since `%%metro process:` lines match fully-qualified process names. A
-parameter that only gates a step already on the map changes nothing — but the step it gates has to be
-on the map.
-
-```bash
-just metro
-```
-
-To check the map against what a run actually executed, use `--processes` from a
-`pipeline_info/execution_trace_*.txt`, not `--dag`: a `-preview -with-dag` export writes bare process
-names and reports every station as stale.
-
-```bash
-awk -F'\t' 'NR>1{print $4}' <outdir>/pipeline_info/execution_trace_*.txt \
-    | sed 's/ (.*)$//' | sort -u > /tmp/processes.txt
-nf-metro check-mapping docs/images/jacquard_metro.mmd --processes /tmp/processes.txt
-```
 
 ## Layout
 

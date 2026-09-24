@@ -50,12 +50,6 @@ carmack-image:
 smoke OUTDIR="results_test": carmack-image
     nextflow run . -profile test,docker --outdir {{OUTDIR}}
 
-# Re-render docs/images/jacquard_metro.svg from its .mmd source. Run whenever the
-# process graph changes; see CLAUDE.md. nf-metro is a uv tool, not part of the jac env.
-metro:
-    nf-metro validate docs/images/jacquard_metro.mmd
-    nf-metro render docs/images/jacquard_metro.mmd -o docs/images/jacquard_metro.svg
-
 # Sync the nf-core template into the TEMPLATE branch
 sync:
     source .venv/bin/activate && nf-core pipelines sync
