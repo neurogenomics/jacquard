@@ -129,6 +129,20 @@
                     "description": "Genomic features STARsolo counts UMIs against, space-separated.",
                     "help_text": "One or more of `Gene`, `GeneFull`, `GeneFull_ExonOverIntron`, `GeneFull_Ex50pAS`, `SJ` and `Velocyto`, separated by spaces — STARsolo writes one count matrix per feature and `--soloFeatures` takes a list, so this does too. `GeneFull` counts reads overlapping a gene's introns as well as its exons. This is Tn5-derived multiome material, where intronic reads are a large fraction of real signal, so exon-only `Gene` counting discards most of it. `Gene` is always produced in addition to whatever is asked for here, because the report and the per-arm run summary are read off it.",
                     "fa_icon": "fas fa-layer-group"
+                },
+                "solo_multimappers": {
+                    "type": "string",
+                    "default": "Unique",
+                    "pattern": "^(Unique|Uniform|PropUnique|EM|Rescue)( (Unique|Uniform|PropUnique|EM|Rescue))*$",
+                    "description": "How STARsolo counts reads that map to more than one gene, space-separated.",
+                    "help_text": "One or more of `Unique`, `Uniform`, `PropUnique`, `EM` and `Rescue`, passed to `--soloMultiMappers`. `Unique` counts only reads that map to one gene, as Cell Ranger does. Each other mode shares multimapping reads out between the genes they hit and writes its own `UniqueAndMult-<mode>.mtx` next to the unique matrix, which is always written. Nuclear RNA carries many intronic reads in repeats and paralogous loci, and `EM` recovers those.",
+                    "fa_icon": "fas fa-random"
+                },
+                "solo_bam": {
+                    "type": "boolean",
+                    "description": "Publish a coordinate-sorted, indexed STARsolo BAM carrying cell barcode and UMI tags.",
+                    "help_text": "By default the scRNA arm writes no alignments, since the count matrices are its product. Set this to publish `<id>.Aligned.sortedByCoord.out.bam` and its index, with every record tagged `CB`/`UB` (corrected cell barcode and UMI), `CR`/`UR` (as read) and `GX`/`GN` (gene), for genotype demultiplexing and RNA velocity. STARsolo writes the corrected `CB`/`UB` tags only into a BAM it sorts itself, so this also enables STAR's in-process coordinate sort.",
+                    "fa_icon": "fas fa-file-archive"
                 }
             }
         },

@@ -9,12 +9,13 @@
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 */
 
-include { FASTP                     } from '../../../modules/nf-core/fastp/main'
-include { ARM_TRIM_GATE             } from '../arm_trim_gate/main'
-include { RESYNCBARCODES            } from '../../../modules/local/resyncbarcodes/main'
-include { FASTQC as FASTQC_PREPARED } from '../../../modules/nf-core/fastqc/main'
-include { STAR_GENOMEGENERATE       } from '../../../modules/nf-core/star/genomegenerate/main'
-include { STAR_STARSOLO             } from '../../../modules/nf-core/star/starsolo/main'
+include { FASTP                                 } from '../../../modules/nf-core/fastp/main'
+include { ARM_TRIM_GATE                         } from '../arm_trim_gate/main'
+include { RESYNCBARCODES                        } from '../../../modules/local/resyncbarcodes/main'
+include { FASTQC as FASTQC_PREPARED             } from '../../../modules/nf-core/fastqc/main'
+include { STAR_GENOMEGENERATE                   } from '../../../modules/nf-core/star/genomegenerate/main'
+include { STAR_STARSOLO                         } from '../../../modules/nf-core/star/starsolo/main'
+include { SAMTOOLS_INDEX as SAMTOOLS_INDEX_SOLO } from '../../../modules/nf-core/samtools/index/main'
 
 /*
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -141,6 +142,11 @@ workflow SCRNA_ARM {
         ch_index,
     )
 
+    // STARsolo writes a BAM only when --solo_bam asks for one, so on a default run this indexes
+    // nothing and `bam` stays empty.
+    SAMTOOLS_INDEX_SOLO(STAR_STARSOLO.out.bam)
+    def ch_bam = STAR_STARSOLO.out.bam.join(SAMTOOLS_INDEX_SOLO.out.index, failOnDuplicate: true, failOnMismatch: true)
+
     // fastp's JSON goes to MultiQC for every arm it trimmed, including one the gate then dropped:
     // the report is the only place the reason for the drop is legible.
     def ch_multiqc_files = channel.empty()
@@ -154,6 +160,7 @@ workflow SCRNA_ARM {
     counts        = STAR_STARSOLO.out.counts    // channel: [ val(meta), path(*.Solo.out) ]
     summary       = STAR_STARSOLO.out.summary   // channel: [ val(meta), path(Gene/Summary.csv) ]
     log_final     = STAR_STARSOLO.out.log_final // channel: [ val(meta), path(*Log.final.out) ]
+    bam           = ch_bam                      // channel: [ val(meta), path(*.bam), path(*.bai) ]
     reads         = ch_reads                    // channel: [ val(meta), path(r1), path(r2), path(barcodes) ]
     index         = ch_index                    // channel: [ val(meta), path(star) ]
     trim_json     = ch_trim_json                // channel: [ val(meta), path(*.fastp.json) ]

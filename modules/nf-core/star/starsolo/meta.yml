@@ -112,6 +112,20 @@ output:
           pattern: "*/Gene/Summary.csv"
           ontologies:
             - edam: http://edamontology.org/format_3752 # CSV
+  bam:
+    - - meta:
+          type: map
+          description: |
+            Groovy Map containing sample information.
+            Here, you should add all the specific barcode/umi
+            information for each sample.
+            e.g. `[ id:'test_starsolo', umi_len:'12', cb_start:1 ]`
+      - "*.bam":
+          type: file
+          description: Alignments, written only when `--outSAMtype` in `ext.args` asks for a BAM.
+          pattern: "*.bam"
+          ontologies:
+            - edam: http://edamontology.org/format_2572 # BAM
   versions_star:
     - - ${task.process}:
           type: string

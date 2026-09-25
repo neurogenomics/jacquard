@@ -79,6 +79,7 @@ nextflow_workflow {
             // order. carmack's `.r1` is the cDNA insert and `.barcodes` the synthesized
             // barcode-plus-UMI record, and STARsolo takes them cDNA first.
             def star_dir = new File(solo_out).parentFile
+            def star_command = new File(star_dir, '.command.sh').text
             def read_files_in = new File(star_dir, '.command.sh')
                 .readLines()
                 .find { it.contains('--readFilesIn') }
@@ -190,6 +191,110 @@ nextflow_workflow {
                 // STAR counts what it was handed, so this is the post-trim pair count seen from the
                 // other end of the resync.
                 { assert file(workflow.out.summary[0][1]).readLines().contains("Number of Reads,${workflow.out.gate[0][1]}".toString()) },
+
+                // The library is unstranded, and STAR's own default, `Forward`, would discard every
+                // antisense insert as unassigned. The other two are the defaults of the
+                // --solo_multimappers and --solo_bam parameters: unique reads only, and no BAM.
+                { assert star_command.contains('--soloStrand Unstranded') },
+                { assert star_command.contains('--soloMultiMappers Unique') },
+                { assert star_command.contains('--outSAMtype None') },
+                { assert workflow.out.bam.isEmpty() },
+                { assert workflow.trace.tasks().findAll { task -> task.name.contains('SAMTOOLS_INDEX_SOLO') }.isEmpty() },
+            )
+        }
+    }
+
+    test("SK609 - --solo_bam and --solo_multimappers EM") {
+
+        tag "scrna_arm_bam"
+
+        setup {
+            run("CARMACK_READPREP") {
+                script "../../carmack_readprep/main.nf"
+                workflow {
+                    """
+                    input[0] = channel.of([
+                        [ id:'SK609' ],
+                        [
+                            file("${baseDir}/tests/data/SK609_L5_R1.fastq.gz", checkIfExists: true),
+                            file("${baseDir}/tests/data/SK609_L5_R2.fastq.gz", checkIfExists: true),
+                        ],
+                    ])
+                    input[1] = 'carmack_custom_seq_1_0'
+                    // Read preparation is setup here, not the thing under test, so it is given every stage.
+                    input[2] = [ 'barcodes', 'umis', 'targets', 'readprep', 'gate', 'arms' ]
+                    """
+                }
+            }
+            run("ARM_FANOUT") {
+                script "../../arm_fanout/main.nf"
+                workflow {
+                    """
+                    input[0] = CARMACK_READPREP.out.scrna
+                    input[1] = CARMACK_READPREP.out.sctip
+                    input[2] = CARMACK_READPREP.out.stats_json
+                    input[3] = 1000
+                    """
+                }
+            }
+        }
+
+        when {
+            params {
+                outdir = "$outputDir"
+                solo_bam = true
+                solo_multimappers = 'EM'
+            }
+            workflow {
+                """
+                input[0] = ARM_FANOUT.out.scrna
+                input[1] = params.modules_testdata_base_path + 'genomics/homo_sapiens/genome/chr21/sequence/genome.fasta'
+                input[2] = params.modules_testdata_base_path + 'genomics/homo_sapiens/genome/chr21/sequence/chr21_gencode.gtf'
+                input[3] = null
+                input[4] = false
+                input[5] = 1000
+                """
+            }
+        }
+
+        then {
+            def solo_out = workflow.out.counts[0][1]
+            def star_command = new File(new File(solo_out).parentFile, '.command.sh').text
+            def solo_bam = workflow.out.bam[0][1]
+            def records = bam(solo_bam).getSamLines().collect { line -> line.trim().tokenize('\t') }
+            def tags = { record -> record.drop(11).collect { tag -> tag.take(2) } as Set }
+            def tag_value = { record, name -> record.drop(11).find { tag -> tag.startsWith("${name}:") }?.drop(5) }
+            // STAR sets a record's CB to `-` when it could not assign a cell, so only the reads
+            // that were assigned one are expected to carry a real barcode.
+            def barcoded = records.findAll { record -> tag_value(record, 'CB') && tag_value(record, 'CB') != '-' }
+
+            assertAll(
+                { assert workflow.success },
+                { assert star_command.contains('--soloMultiMappers EM') },
+                { assert star_command.contains('--outSAMtype BAM SortedByCoordinate') },
+                // The sort buffer follows the task's memory instead of STAR's default, which sizes it
+                // off the genome and fails on a large arm.
+                { assert star_command =~ /--limitBAMsortRAM \d+/ },
+                // Each non-Unique mode writes its own matrix beside the unique one.
+                { assert new File("${solo_out}/Gene/raw/UniqueAndMult-EM.mtx.gz").exists() },
+                { assert new File("${solo_out}/Gene/raw/matrix.mtx.gz").exists() },
+
+                { assert workflow.out.bam[0][0].id == 'SK609.none' },
+                { assert file(solo_bam).name == 'SK609.none.Aligned.sortedByCoord.out.bam' },
+                { assert file(workflow.out.bam[0][2]).name == 'SK609.none.Aligned.sortedByCoord.out.bam.bai' },
+                // STAR writes the corrected CB/UB only into a BAM it sorted itself, so the tags
+                // being there on every record is what shows the in-process sort was used.
+                { assert !records.isEmpty() },
+                { assert records.every { record -> tags(record).containsAll([ 'CB', 'UB', 'CR', 'UR', 'GX', 'GN' ]) } },
+                // Coordinate order: each reference is one contiguous run of records, and positions
+                // never fall within it.
+                { assert records.collect { record -> record[2] }.unique(false) == records.collect { record -> record[2] }.toUnique() },
+                { assert records.collate(2, 1, false).every { a, b -> a[2] != b[2] || (a[3] as long) <= (b[3] as long) } },
+                { assert !barcoded.isEmpty() && barcoded.every { record -> tag_value(record, 'CB').length() == 30 } },
+                { assert barcoded.every { record -> tag_value(record, 'UB') == '-' || tag_value(record, 'UB').length() == 8 } },
+                // The published copies, beside the Solo.out tree.
+                { assert path("${params.outdir}/star/SK609.none/SK609.none.Aligned.sortedByCoord.out.bam").exists() },
+                { assert path("${params.outdir}/star/SK609.none/SK609.none.Aligned.sortedByCoord.out.bam.bai").exists() },
             )
         }
     }

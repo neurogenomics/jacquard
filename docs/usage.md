@@ -65,8 +65,8 @@ left as a sample quietly missing from the results.
 
 ### Trimming
 
-| Parameter         | Default | Description                                                                                              |
-| ----------------- | ------- | ---------------------------------------------------------------------------------------------------------- |
+| Parameter         | Default | Description                                                                                      |
+| ----------------- | ------- | ------------------------------------------------------------------------------------------------ |
 | `--skip_trimming` | `false` | Align and quantify the reads `prepare-reads` wrote, untrimmed. Every downstream step still runs. |
 
 Each arm that clears the gate is trimmed with fastp against an adapter FASTA built from the sequences
@@ -80,9 +80,11 @@ count — see [Arm gate](output.md#arm-gate).
 
 ### scRNA arm
 
-| Parameter         | Default    | Description                                                                                                                                                                                                                                                                                                                                                     |
-| ----------------- | ---------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `--solo_features` | `GeneFull` | Features STARsolo counts UMIs against, space-separated — one or more of `Gene`, `GeneFull`, `GeneFull_ExonOverIntron`, `GeneFull_Ex50pAS`, `SJ`, `Velocyto`, one count matrix each. `GeneFull` counts intronic reads too, which are a large fraction of real signal in Tn5-derived multiome material. `Gene` is always counted alongside whatever is asked for. |
+| Parameter             | Default    | Description                                                                                                                                                                                                                                                                                                                                                                                                                  |
+| --------------------- | ---------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `--solo_features`     | `GeneFull` | Features STARsolo counts UMIs against, space-separated — one or more of `Gene`, `GeneFull`, `GeneFull_ExonOverIntron`, `GeneFull_Ex50pAS`, `SJ`, `Velocyto`, one count matrix each. `GeneFull` counts intronic reads too, which are a large fraction of real signal in Tn5-derived multiome material. `Gene` is always counted alongside whatever is asked for.                                                              |
+| `--solo_multimappers` | `Unique`   | How STARsolo counts reads mapping to more than one gene, space-separated: one or more of `Unique`, `Uniform`, `PropUnique`, `EM`, `Rescue`. `Unique` counts only reads that map to one gene. Each other mode shares multimappers out between the genes they hit and adds a `UniqueAndMult-<mode>.mtx` beside the unique matrix. Nuclear RNA carries many intronic reads in repeats and paralogous loci, which `EM` recovers. |
+| `--solo_bam`          | `false`    | Also publish a coordinate-sorted, indexed BAM whose records carry `CB`/`UB` (corrected cell barcode and UMI), `CR`/`UR` (as read) and `GX`/`GN` (gene), for genotype demultiplexing and RNA velocity. STAR sorts it in-process, since that is the only way it writes the corrected tags, so it costs extra memory.                                                                                                           |
 
 ### References
 
