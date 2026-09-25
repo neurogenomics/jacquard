@@ -71,6 +71,7 @@ The same table appears in the MultiQC report as the "Arm gate" section.
 - `star/<sample>.none/`
   - `<sample>.none.Solo.out/`: the count matrices, one directory per feature — `Gene`, plus whatever `--solo_features` asked for.
   - `<sample>.none.Log.final.out` and the other STAR logs.
+  - `<sample>.none.Aligned.sortedByCoord.out.bam` and its `.bai`, only with `--solo_bam`: the alignments, coordinate-sorted, with every record tagged `CB`/`UB` (corrected cell barcode and UMI), `CR`/`UR` (as read) and `GX`/`GN` (the gene it was counted against).
 
 </details>
 
@@ -78,7 +79,9 @@ The cDNA pair is trimmed first, paired-end and trim-only: `--disable_quality_fil
 
 Trimming drops whole records from the cDNA read, and STARsolo pairs its two input files positionally, record for record — so the read ids that survived are replayed onto carmack's synthesized barcode read before STAR sees it. Without that step every read after the first dropped one would be counted against the wrong cell, and the run would still succeed. The trimmed FASTQs and the resynced barcode read are intermediates and are not published.
 
-No alignment file is written: the matrices are the product, so STARsolo runs with `--outSAMtype None`. The STAR index is an intermediate and is not published.
+The library is unstranded: Tn5 tagments double-stranded cDNA, so an insert lands on either strand of its gene. STARsolo therefore runs with `--soloStrand Unstranded`, and a read counts toward a gene whichever strand it aligned to.
+
+By default no alignment file is written, since the matrices are the product and STARsolo runs with `--outSAMtype None`. `--solo_bam` switches on a coordinate-sorted BAM for the tools that need one. The STAR index is an intermediate and is not published.
 
 ### scTIP arm
 

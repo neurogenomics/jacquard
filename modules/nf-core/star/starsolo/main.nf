@@ -18,6 +18,7 @@ process STAR_STARSOLO {
     tuple val(meta),  path('*Log.out')           , emit: log_out
     tuple val(meta),  path('*Log.progress.out')  , emit: log_progress
     tuple val(meta),  path('*/Gene/Summary.csv') , emit: summary
+    tuple val(meta),  path('*.bam')              , emit: bam, optional: true
     tuple val("${task.process}"), val('star'), eval('STAR --version | sed -e "s/STAR_//g"'), topic: versions, emit: versions_star
 
     when:

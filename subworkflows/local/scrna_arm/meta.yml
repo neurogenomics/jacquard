@@ -1,6 +1,6 @@
 # yaml-language-server: $schema=https://raw.githubusercontent.com/nf-core/modules/master/subworkflows/yaml-schema.json
 name: "scrna_arm"
-description: Trim, QC and quantify the scRNA arm of a prepared sample with fastp, FastQC and STARsolo
+description: Trim, QC and quantify the scRNA arm of a prepared sample with fastp, FastQC and STARsolo, optionally keeping a tagged BAM
 keywords:
   - single-cell
   - rnaseq
@@ -12,6 +12,7 @@ components:
   - fastqc
   - star/genomegenerate
   - star/starsolo
+  - samtools/index
 input:
   - ch_arm:
       type: file
@@ -51,6 +52,12 @@ output:
       description: |
         STAR's alignment summary for the arm, which is what MultiQC's STAR section is built from.
         Structure: [ val(meta), path("*Log.final.out") ]
+  - bam:
+      type: file
+      description: |
+        STARsolo's coordinate-sorted alignments and their index, tagged with the corrected cell
+        barcode and UMI (`CB`/`UB`). Written only under `--solo_bam`; empty otherwise.
+        Structure: [ val(meta), path("*.bam"), path("*.bai") ]
   - reads:
       type: file
       description: |
