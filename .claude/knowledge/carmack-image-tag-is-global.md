@@ -7,13 +7,13 @@ type: gotcha
 
 `ghcr.io/crick-pipelines-stp/carmack:local` is a tag in the **host Docker daemon**, not something
 scoped to a checkout. Every worktree that runs `just nf-test` or `just smoke` first runs the
-`carmack-image` recipe, which rebuilds that same tag from *its own* `external/carmack` pin:
+`carmack-image` recipe, which rebuilds that same tag from _its own_ `external/carmack` pin:
 
 ```
 CARMACK_IMAGE := "ghcr.io/crick-pipelines-stp/carmack:local"
 carmack-image:
     git submodule update --init external/carmack
-    docker build -t {{CARMACK_IMAGE}} --build-arg CARMACK_VERSION=0.0.0+$(...) external/carmack
+    docker build -t "$CARMACK_IMAGE" --build-arg CARMACK_VERSION=0.0.0+$(...) external/carmack
 ```
 
 Two worktrees on different carmack pins therefore **silently clobber each other**. The second
@@ -40,7 +40,7 @@ will also kill unrelated worktrees' runs. Kill a specific `just nf-test` by PID 
 
 `carmack-image` starts with `git submodule update --init external/carmack`, which resets the
 submodule to the commit recorded in the **index**. So checking out a new carmack revision without
-`git add external/carmack` does nothing: the recipe puts it back and builds the *old* pin, while
+`git add external/carmack` does nothing: the recipe puts it back and builds the _old_ pin, while
 `git status` still shows ` M external/carmack` as though the bump took. Stage the gitlink first:
 
 ```bash
