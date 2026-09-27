@@ -13,7 +13,7 @@ scoped to a checkout. Every worktree that runs `just nf-test` or `just smoke` fi
 CARMACK_IMAGE := "ghcr.io/crick-pipelines-stp/carmack:local"
 carmack-image:
     git submodule update --init external/carmack
-    docker build -t {{CARMACK_IMAGE}}-base --build-arg CARMACK_VERSION=0.0.0+$(...) external/carmack
+    docker build -t {{CARMACK_IMAGE}} --build-arg CARMACK_VERSION=0.0.0+$(...) external/carmack
 ```
 
 Two worktrees on different carmack pins therefore **silently clobber each other**. The second
@@ -56,4 +56,5 @@ docker run --rm --entrypoint /bin/bash ghcr.io/crick-pipelines-stp/carmack:local
 ```
 
 The structural fix — embedding the submodule SHA in the tag so each pin gets its own image — is
-not done; see [[carmack-container-needs-procps]] for the other half of how this image is built.
+not done. CI has no such clash: each runner builds `:local` from the checkout's own pin into a
+fresh daemon.

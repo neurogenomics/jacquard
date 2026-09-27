@@ -11,19 +11,19 @@
                     "bowtie2": "2.5.4"
                 },
                 "CARMACK_ASSIGNTARGETS": {
-                    "carmack": "0.0.0+ffa5349"
+                    "carmack": "0.0.0+24f7fbb"
                 },
                 "CARMACK_EXTRACTBARCODES": {
-                    "carmack": "0.0.0+ffa5349"
+                    "carmack": "0.0.0+24f7fbb"
                 },
                 "CARMACK_EXTRACTUMIS": {
-                    "carmack": "0.0.0+ffa5349"
+                    "carmack": "0.0.0+24f7fbb"
                 },
                 "CARMACK_PREPAREREADS": {
-                    "carmack": "0.0.0+ffa5349"
+                    "carmack": "0.0.0+24f7fbb"
                 },
                 "CHEMISTRYADAPTERS": {
-                    "carmack": "0.0.0+ffa5349"
+                    "carmack": "0.0.0+24f7fbb"
                 },
                 "FASTP": {
                     "fastp": "1.3.6"
@@ -423,7 +423,6 @@
                 "SK609.tgidx_general_stats_mqc.json:md5,e9179ed37727a35f52b5a5542a9a34fc",
                 "SK609.tgidx_target_distribution_mqc.json:md5,ad5378003fe0b6c8b9fd71a16e7b04e1",
                 "SK609.bc_counts.csv:md5,bb33d2c4509a58db16b124ff6ea40919",
-                "SK609.bc_rank.png:md5,eac7b5bb6c40cb14452904f78556be15",
                 "SK609.extraction_barcode_rank_mqc.json:md5,939152d35a1451311a328d741ef3dbe3",
                 "SK609.extraction_breakdown_mqc.json:md5,5cb0911fac869eede453f59e695cb8ee",
                 "SK609.extraction_edit_distance_mqc.json:md5,abbf8d5abb601cdfed9f58f7b4a08e3a",
@@ -489,7 +488,6 @@
                 "umitools_deduplication_barplot.txt:md5,db708283ac915d373b019110d8951bb2",
                 "umitools_stats_violin.txt:md5,08ef049301d6d4ac17b1cd485e921eb2",
                 "arm_gate.tsv:md5,87f2e53f468c395e610a18cf6d8de1aa",
-                "samplesheet_test.csv:md5,1df8433c74663856db98115d28c8271e",
                 "Barcodes.stats:md5,4c9c5e67e4f55e6eebd040eba4c9224b",
                 "Features.stats:md5,97d77aacd2ed42af32144eac5fce0de0",
                 "Summary.csv:md5,f068eb99277357fc6e6503ef15a075d3",
@@ -511,7 +509,7 @@
                 "matrix.mtx.gz:md5,be9d1e95efdbe4db369252112580ad4e"
             ]
         ],
-        "timestamp": "2026-09-17T15:26:10.572141261",
+        "timestamp": "2026-09-27T21:37:52.274792332",
         "meta": {
             "nf-test": "0.9.5",
             "nextflow": "26.04.6"
