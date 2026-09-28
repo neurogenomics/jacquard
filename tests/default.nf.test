@@ -73,6 +73,9 @@ nextflow_pipeline {
                 ].every { process -> software_versions.contains("${process}:\n") } },
                 // The counterpart of each arm test's "no aligner task was submitted": the same
                 // predicates have to find the tasks here, or their emptiness there proves nothing.
+                // A sample on one samplesheet row already is a single R1/R2 pair, so nothing is
+                // concatenated: a merge task here would be copying the run's whole input for nothing.
+                { assert workflow.trace.tasks().findAll { task -> task.name.contains('CAT_FASTQ') }.isEmpty() },
                 { assert workflow.trace.tasks().findAll { task -> task.name.contains('STAR_') }.size() == 2 },
                 { assert workflow.trace.tasks().findAll { task -> task.name.contains('BOWTIE2_') }.size() == 2 },
                 // Both arms publish under `<sample>.<tgidx>`, which is `meta.id` and nothing else.

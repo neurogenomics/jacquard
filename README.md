@@ -44,10 +44,13 @@ First, prepare a samplesheet with your input data that looks as follows:
 ```csv
 sample,fastq_1,fastq_2
 CONTROL_REP1,AEG588A1_S1_L002_R1_001.fastq.gz,AEG588A1_S1_L002_R2_001.fastq.gz
+CONTROL_REP2,AEG588A2_S2_L001_R1_001.fastq.gz,AEG588A2_S2_L001_R2_001.fastq.gz
+CONTROL_REP2,AEG588A2_S2_L002_R1_001.fastq.gz,AEG588A2_S2_L002_R2_001.fastq.gz
 ```
 
-Each row is one sample and one R1/R2 pair. All three columns are mandatory, and a sample may appear only
-once — see [usage.md](docs/usage.md) for the full contract.
+Each row is one R1/R2 pair and all three columns are mandatory. Repeat a sample name to list the
+flowcell lanes it was sequenced across, as `CONTROL_REP2` does; they are concatenated into one pair
+before read preparation — see [usage.md](docs/usage.md) for the full contract.
 
 Now, you can run the pipeline using:
 

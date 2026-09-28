@@ -35,6 +35,52 @@ class Fixtures {
     }
 
     /**
+     * Split the committed SK609 pair into two lanes under outputDir and return a samplesheet
+     * listing both of them under one sample name.
+     *
+     * The cut is on a record boundary and the halves are written in order, so concatenating lane 1
+     * and then lane 2 reproduces the committed file exactly. That is what lets a multi-lane run be
+     * asserted against the single-lane fixture's own hashes and read counts, and what makes lanes
+     * merged in the wrong order visible rather than merely differently ordered within a file.
+     */
+    static String lanes(String baseDir, String outputDir, int firstLaneRecords = 6000) {
+        def lanes = [1, 2].collect { read ->
+            def src = new File(baseDir, "tests/data/SK609_L5_R${read}.fastq.gz")
+            def lines = new java.util.zip.GZIPInputStream(new FileInputStream(src)).readLines()
+            [lines[0..<firstLaneRecords * 4], lines[firstLaneRecords * 4..<lines.size()]].withIndex().collect { chunk, lane ->
+                def dst = new File(outputDir, "SK609_L${lane + 1}_R${read}.fastq.gz")
+                dst.parentFile.mkdirs()
+                new java.util.zip.GZIPOutputStream(new FileOutputStream(dst)).withWriter('UTF-8') { writer ->
+                    chunk.each { line -> writer << line << '\n' }
+                }
+                dst.absolutePath
+            }
+        }
+        def sheet = new File(outputDir, 'samplesheet_lanes.csv')
+        sheet.text = (['sample,fastq_1,fastq_2'] + [0, 1].collect { lane -> "SK609,${lanes[0][lane]},${lanes[1][lane]}" }).join('\n') + '\n'
+        return sheet.absolutePath
+    }
+
+    /**
+     * Return the path of a file a task wrote into the run's work directory, given the test's
+     * `$workDir`.
+     *
+     * For an output no `publishDir` copies out, the work directory is the only place it can be
+     * read. Downstream tasks stage it under the same name, so matches are canonicalised: every
+     * staged copy is a symbolic link resolving to the one real file.
+     */
+    static String workFile(String workDir, String name) {
+        def found = [] as Set
+        new File(workDir).eachFileRecurse(groovy.io.FileType.FILES) { file ->
+            if (file.name == name) {
+                found << file.canonicalPath
+            }
+        }
+        assert found.size() == 1: "expected one '${name}' under ${workDir}, found ${found}"
+        return found.first()
+    }
+
+    /**
      * Return the messages a run passed to `log.warn`, given the test's `$workDir`.
      *
      * Nextflow 26 keeps `log.warn` off the console, so `workflow.stdout` never sees one — unlike

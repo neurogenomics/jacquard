@@ -10,7 +10,7 @@ each arm on its read count before aligning it. See [output.md](output.md) for wh
 
 ## Samplesheet input
 
-A comma-separated file with three columns and a header row, one row per sample:
+A comma-separated file with three columns and a header row, one row per FastQ pair:
 
 ```bash
 --input '[path to samplesheet file]'
@@ -19,12 +19,13 @@ A comma-separated file with three columns and a header row, one row per sample:
 ```csv title="samplesheet.csv"
 sample,fastq_1,fastq_2
 CONTROL_REP1,AEG588A1_S1_L002_R1_001.fastq.gz,AEG588A1_S1_L002_R2_001.fastq.gz
+CONTROL_REP2,AEG588A2_S2_L001_R1_001.fastq.gz,AEG588A2_S2_L001_R2_001.fastq.gz
 CONTROL_REP2,AEG588A2_S2_L002_R1_001.fastq.gz,AEG588A2_S2_L002_R2_001.fastq.gz
 ```
 
 | Column    | Description                                                                              |
 | --------- | ---------------------------------------------------------------------------------------- |
-| `sample`  | Sample name, unique across the samplesheet. Cannot contain spaces.                       |
+| `sample`  | Sample name. Repeat it to list one sample's lanes. Cannot contain spaces.                |
 | `fastq_1` | Full path to the reads 1 FastQ. Must be gzipped, with extension `.fastq.gz` or `.fq.gz`. |
 | `fastq_2` | Full path to the reads 2 FastQ, with the same requirements.                              |
 
@@ -32,9 +33,16 @@ All three columns are **mandatory**. Single-end input is not supported: carmack 
 target index off R1 and carries the raw R2 through to `prepare-reads`, so a row with an empty `fastq_2` is
 rejected during schema validation, before any process is submitted.
 
-The pipeline does **not** concatenate multiple runs of the same sample. A `sample` value repeated across
-rows is rejected at validation, so merge re-sequenced runs of a library into one R1/R2 pair before you
-build the samplesheet.
+### Samples sequenced across several lanes
+
+A library split over several flowcell lanes goes in as one row per lane, all carrying the same `sample`
+value, as `CONTROL_REP2` does above. The rows are concatenated into a single R1/R2 pair — in the order
+they appear in the samplesheet, R1 and R2 alike, so the two files stay mate-synchronised — before read
+preparation begins, so barcodes, UMIs and target indices are counted once over the whole library rather
+than once per lane. A sample given on a single row is used as it stands and no concatenation runs for it.
+
+One `fastq_1` cannot appear twice: an exactly repeated row is rejected at validation, since concatenating
+a lane with itself would double every read count the run reports.
 
 An [example samplesheet](../assets/samplesheet.csv) has been provided with the pipeline.
 
