@@ -19,4 +19,3 @@ fastp/**/*.{json,html,log}
 bowtie2/**/*.log
 samtools/**/*.stats
 umitools/**/*.{bam,bai,log}
-samplesheet_test.csv

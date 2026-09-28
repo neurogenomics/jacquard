@@ -11,10 +11,17 @@ class Fixtures {
      * the repo root that is the repo root, so the committed sheet's repo-relative paths resolve;
      * under nf-test launchDir is `.nf-test/tests/<hash>/` and they do not. Rewriting keeps the
      * committed sheet the single source of truth rather than maintaining a second, absolute copy.
+     *
+     * The copy is written beside the output directory rather than inside it. It is an input to the
+     * run, and anything under `params.outdir` is swept up by `getAllFilesFromDir` as though the
+     * pipeline had produced it — which put a test fixture in the output listing, and put this
+     * checkout's own absolute paths into the content snapshot, making that snapshot a function of
+     * where the repository happens to sit. A sibling of the output directory is inside the test's
+     * own scratch area and outside everything the snapshot reads.
      */
     static String absolutise(String baseDir, String outputDir, String name = 'samplesheet_test.csv') {
         def src = new File(baseDir, "tests/data/${name}")
-        def dst = new File(outputDir, name)
+        def dst = new File(new File(outputDir).parentFile, name)
         dst.parentFile.mkdirs()
         def rows = src.readLines().findAll { it.trim() }
         def out = [rows.head()]

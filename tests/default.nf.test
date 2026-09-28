@@ -16,9 +16,9 @@ nextflow_pipeline {
         then {
             // stable_path: All files + folders in ${params.outdir}/ with a stable path (including file name)
             def stable_path = getAllFilesFromDir(params.outdir, relative: true, includeDir: true, ignore: ['pipeline_info/*.{html,json,txt}'])
-            // stable_content: All files in ${params.outdir}/ with stable content. The absolutised
-            // samplesheet carries this checkout's own paths and carmack's plots carry whatever
-            // matplotlib the image resolved, so tests/.nftignore drops both: neither survives CI.
+            // stable_content: All files in ${params.outdir}/ with stable content. carmack's plots
+            // carry whatever matplotlib the image resolved, so tests/.nftignore drops them: they do
+            // not survive CI.
             def stable_content = getAllFilesFromDir(params.outdir, ignoreFile: 'tests/.nftignore')
             // Asserted by name rather than left to the snapshot alone: dropping a module's
             // `topic: versions` output drops its entry silently, and a refreshed snapshot would
