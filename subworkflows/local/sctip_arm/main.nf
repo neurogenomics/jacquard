@@ -1,6 +1,7 @@
 //
 // The scTIP arm: trim the reads prepare-reads wrote for a target index, QC them, align them with
-// bowtie2, lift the barcode and UMI out of the read name into BAM tags, then deduplicate per cell.
+// bowtie2, lift the barcode and UMI out of the read name into BAM tags, then deduplicate per cell
+// by UMI and, unless it is skipped, again by fragment position.
 //
 
 /*
@@ -19,6 +20,7 @@ include { TAGQNAME                                } from '../../../modules/local
 include { SAMTOOLS_INDEX as SAMTOOLS_INDEX_TAGGED } from '../../../modules/nf-core/samtools/index/main'
 include { UMITOOLS_DEDUP                          } from '../../../modules/nf-core/umitools/dedup/main'
 include { SAMTOOLS_INDEX as SAMTOOLS_INDEX_DEDUP  } from '../../../modules/nf-core/samtools/index/main'
+include { CARMACK_LINEARDEDUP                     } from '../../../modules/local/carmack/lineardedup/main'
 include { SAMTOOLS_STATS                          } from '../../../modules/nf-core/samtools/stats/main'
 
 /*
@@ -30,12 +32,13 @@ include { SAMTOOLS_STATS                          } from '../../../modules/nf-co
 workflow SCTIP_ARM {
 
     take:
-    ch_arm           // channel: [ val(meta), [ path(r1), path(r2) ] ]
-    fasta            //   value: genome FASTA, used to build an index when `bowtie2_index` is not given
-    bowtie2_index    //   value: prebuilt bowtie2 index directory, or null to build one from `fasta`
-    ch_adapter_fasta // channel: path(adapters.fasta) the chemistry declares, or `[]` when it declares none
-    skip_trimming    //   value: run the arm on the reads prepare-reads wrote, untrimmed
-    min_arm_reads    //   value: read pairs an arm must still carry after trimming to proceed
+    ch_arm            // channel: [ val(meta), [ path(r1), path(r2) ] ]
+    fasta             //   value: genome FASTA, used to build an index when `bowtie2_index` is not given
+    bowtie2_index     //   value: prebuilt bowtie2 index directory, or null to build one from `fasta`
+    ch_adapter_fasta  // channel: path(adapters.fasta) the chemistry declares, or `[]` when it declares none
+    skip_trimming     //   value: run the arm on the reads prepare-reads wrote, untrimmed
+    min_arm_reads     //   value: read pairs an arm must still carry after trimming to proceed
+    skip_linear_dedup //   value: keep the umi-deduped BAM as the arm's result, with no second dedup pass
 
     main:
 
@@ -142,7 +145,25 @@ workflow SCTIP_ARM {
     )
     SAMTOOLS_INDEX_DEDUP(UMITOOLS_DEDUP.out.bam)
 
-    def ch_dedup = UMITOOLS_DEDUP.out.bam.join(SAMTOOLS_INDEX_DEDUP.out.index, failOnDuplicate: true, failOnMismatch: true)
+    def ch_umi_dedup = UMITOOLS_DEDUP.out.bam.join(SAMTOOLS_INDEX_DEDUP.out.index, failOnDuplicate: true, failOnMismatch: true)
+
+    //
+    // `umi_tools dedup --paired` keys on the UMI together with both mates' coordinates, so the
+    // copies linear amplification made of one template — all sharing R1's 5' end but terminating
+    // at different points, and so carrying different mate ends and different UMIs — all survive
+    // it. That shared start is what carmack keys on: per cell, R1's strand-aware fragment position
+    // alone, keeping the highest-scoring pair of each group.
+    //
+    // Branched rather than gated by `ext.when`, for the reason given above the trimming branch.
+    //
+    def ch_dedup = ch_umi_dedup
+    def ch_linear_dedup_mqc = channel.empty()
+    if (!skip_linear_dedup) {
+        CARMACK_LINEARDEDUP(ch_umi_dedup)
+        ch_dedup = CARMACK_LINEARDEDUP.out.bam.join(CARMACK_LINEARDEDUP.out.bai, failOnDuplicate: true, failOnMismatch: true)
+        ch_linear_dedup_mqc = CARMACK_LINEARDEDUP.out.multiqc
+    }
+
     SAMTOOLS_STATS(ch_dedup, [ [:], [], [] ])
 
     // fastp's JSON goes to MultiQC for every arm it trimmed, including one the gate then dropped:
@@ -152,6 +173,7 @@ workflow SCTIP_ARM {
         .mix(FASTQC_PREPARED.out.zip)
         .mix(BOWTIE2_ALIGN.out.log)
         .mix(UMITOOLS_DEDUP.out.log)
+        .mix(ch_linear_dedup_mqc)
         .mix(SAMTOOLS_STATS.out.stats)
         .map { _meta, files -> files }
         .flatten()

@@ -1,6 +1,6 @@
 # yaml-language-server: $schema=https://raw.githubusercontent.com/nf-core/modules/master/subworkflows/yaml-schema.json
 name: "sctip_arm"
-description: QC, align, retag and per-cell deduplicate one scTIP target index with bowtie2 and umi_tools
+description: QC, align, retag and per-cell deduplicate one scTIP target index with bowtie2, umi_tools and carmack
 keywords:
   - single-cell
   - multiome
@@ -16,6 +16,7 @@ components:
   - samtools/stats
   - tagqname
   - umitools/dedup
+  - carmack/lineardedup
 input:
   - ch_arm:
       type: file
@@ -35,8 +36,10 @@ output:
   - bam:
       type: file
       description: |
-        The arm's deduplicated alignments and their index. One record per surviving cell/UMI/position
-        combination, with the barcode and UMI on `CB` and `UB` tags rather than in the read name.
+        The arm's deduplicated alignments and their index, with the barcode and UMI on `CB` and `UB`
+        tags rather than in the read name. One record per surviving cell/UMI/position combination
+        after `umi_tools dedup`, and per surviving cell/fragment-position group after carmack's
+        linear pass, unless `skip_linear_dedup` left the arm on the umi-deduped BAM.
         Structure: [ val(meta), path("*.bam"), path("*.bai") ]
   - bam_aligned:
       type: file
@@ -58,7 +61,7 @@ output:
   - stats:
       type: file
       description: |
-        `samtools stats` over the deduplicated BAM, the numbers a yield decision is read off.
+        `samtools stats` over whichever BAM the arm ended on, the numbers a yield decision is read off.
         Structure: [ val(meta), path("*.stats") ]
   - index:
       type: directory
@@ -69,8 +72,8 @@ output:
   - multiqc_files:
       type: file
       description: |
-        The arm's FastQC archives, bowtie2 log, umi_tools log and samtools stats, ready to mix into
-        the report.
+        The arm's FastQC archives, bowtie2 log, umi_tools log, carmack linear-dedup payloads and
+        samtools stats, ready to mix into the report.
         Structure: path(mqc_file)
   - versions:
       type: file

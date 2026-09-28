@@ -29,7 +29,7 @@ single MultiQC report over the whole run.
 2. Barcode, UMI and target-index extraction, and per-arm read preparation ([`carmack`](https://github.com/crick-pipelines-stp/carmack))
 3. Arm fan-out and a per-arm read-count gate
 4. scRNA arm: per-arm FastQC and quantification ([`STARsolo`](https://github.com/alexdobin/STAR))
-5. scTIP arm: adapter trimming against the chemistry's own sequences ([`fastp`](https://github.com/OpenGene/fastp)), per-arm FastQC, alignment ([`bowtie2`](https://bowtie-bio.sourceforge.net/bowtie2/)) and per-cell deduplication ([`UMI-tools`](https://github.com/CGATOxford/UMI-tools))
+5. scTIP arm: adapter trimming against the chemistry's own sequences ([`fastp`](https://github.com/OpenGene/fastp)), per-arm FastQC, alignment ([`bowtie2`](https://bowtie-bio.sourceforge.net/bowtie2/)) and per-cell deduplication, by UMI ([`UMI-tools`](https://github.com/CGATOxford/UMI-tools)) and then by insertion site ([`carmack`](https://github.com/crick-pipelines-stp/carmack))
 6. Aggregate report ([`MultiQC`](http://multiqc.info/))
 
 ## Usage
