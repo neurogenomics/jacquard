@@ -34,6 +34,27 @@ by hand.
   `package-dir = {"" = "lib"}` in `pyproject.toml` is load-bearing; `lib/core/tests/` guards it.
 - `conf/` — profiles and per-module resource config.
 
+## Comments
+
+This is a production pipeline, and its comments are read by people who were not present when the
+code was written. A comment must stand on its own: give the reason in terms of the chemistry, the
+data or the tool's behaviour, and quote the measurement that settled it where one exists.
+
+Do not appeal to context the reader has no access to. No references to a "manual analysis", a
+previous script-based pipeline, an epic, a PR, a review, a ticket, or what someone decided in a
+conversation. If a number came from somewhere, state the number and what it measures, not where it
+was produced.
+
+```groovy
+// Bad  — the reader cannot check any of this
+'--length_required 25',  // the floor the manual scTIP analysis used
+
+// Good — the reason is in the comment
+// Below 25 bases a Tn5 insert no longer places uniquely often enough to be worth aligning, so a
+// pair trimmed past that floor is dropped rather than carried into bowtie2 as a multi-mapper.
+'--length_required 25',
+```
+
 ## Branches
 
 `main` is the release branch, `dev` the integration branch, `TEMPLATE` the nf-core sync base.
