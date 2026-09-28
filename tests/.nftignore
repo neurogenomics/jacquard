@@ -11,7 +11,6 @@ multiqc/multiqc_report.html
 fastqc/*_fastqc.{html,zip}
 carmack/**/*.gz
 carmack/**/*_stats.txt
-carmack/**/*.png
 pipeline_info/*.{html,json,txt,yml}
 star/**/*Log.*
 fastqc/prepared/**/*_fastqc.{html,zip}
@@ -19,3 +18,5 @@ fastp/**/*.{json,html,log}
 bowtie2/**/*.log
 samtools/**/*.stats
 umitools/**/*.{bam,bai,log}
+lineardedup/**/*.{bam,bai}
+lineardedup/**/*_stats.txt

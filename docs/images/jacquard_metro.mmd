@@ -47,6 +47,7 @@
 %%metro process: tagqname         | SCTIP_ARM:SAMTOOLS_INDEX_TAGGED
 %%metro process: umi_dedup        | SCTIP_ARM:UMITOOLS_DEDUP
 %%metro process: umi_dedup        | SCTIP_ARM:SAMTOOLS_INDEX_DEDUP
+%%metro process: linear_dedup     | SCTIP_ARM:CARMACK_LINEARDEDUP
 %%metro process: sctip_stats      | SCTIP_ARM:SAMTOOLS_STATS
 %%metro process: multiqc          | MULTIQC
 
@@ -99,6 +100,7 @@ graph LR
         bt2_align[bowtie2]
         tagqname[QNAME → CB/UB tags]
         umi_dedup[umi_tools dedup]
+        linear_dedup[carmack linear-dedup]
         sctip_stats[samtools stats]
         dedup_out[ ]
         fastp_sctip -->|sctip| fastqc_sctip
@@ -107,8 +109,9 @@ graph LR
         bt2_build -->|sctip| bt2_align
         bt2_align -->|sctip| tagqname
         tagqname -->|sctip| umi_dedup
-        umi_dedup -->|sctip| sctip_stats
-        umi_dedup -->|sctip| dedup_out
+        umi_dedup -->|sctip| linear_dedup
+        linear_dedup -->|sctip| sctip_stats
+        linear_dedup -->|sctip| dedup_out
     end
 
     subgraph reporting[Reporting]

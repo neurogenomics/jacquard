@@ -1,0 +1,95 @@
+nextflow_process {
+
+    name "Test process CARMACK_LINEARDEDUP"
+    script "../main.nf"
+    process "CARMACK_LINEARDEDUP"
+
+    tag "modules"
+    tag "modules_local"
+    tag "carmack"
+    tag "carmack/lineardedup"
+
+    // The fixture is a byte-identical copy of the pinned external/carmack tests/data/linear_dedup_fixture.bam,
+    // built by that repo's tests/data_generators/linear_dedup_fixture.py; re-copy it when the submodule moves.
+    test("aligned BAM - one pair survives each duplicate group") {
+
+        when {
+            process {
+                """
+                input[0] = [
+                    [ id:'SK609.TATAGCCT' ],
+                    file("${baseDir}/tests/data/linear_dedup_fixture.bam", checkIfExists: true),
+                    file("${baseDir}/tests/data/linear_dedup_fixture.bam.bai", checkIfExists: true),
+                ]
+                """
+            }
+        }
+
+        then {
+            // The report carries the wall-clock time it was written at, so that line alone is dropped. The
+            // lines are rejoined because nf-test resolves a bare '' in a snapshotted list as a directory path.
+            def stats = path(process.out.stats[0][1])
+                .readLines()
+                .findAll { !it.startsWith('# Report generated at:') }
+                .join('\n')
+            // Distinct names, never a record count: getSamLines() can return half a BAM under nf-test.
+            def qnames = bam(process.out.bam[0][1])
+                .getSamLines()
+                .collect { line -> line.tokenize('\t').first() }
+                .toUnique()
+                .toSorted()
+
+            assertAll(
+                { assert process.success },
+                { assert snapshot(stats, process.out.multiqc, process.out.versions_carmack).match() },
+                { assert file(process.out.bam[0][1]).name == 'SK609.TATAGCCT.linear_dedup.bam' },
+                // carmack sorts and indexes its own output, so nothing downstream has to index it again.
+                { assert file(process.out.bai[0][1]).name == 'SK609.TATAGCCT.linear_dedup.bam.bai' },
+                // The fixture pits a high- against a low-scoring pair on each shared key, so only the
+                // winners may remain. Non-primary leakage shares a winner's QNAME, so carmack's suite owns it.
+                { assert qnames == [
+                    'diffcell_A',
+                    'diffcell_B',
+                    'diffchrom_1',
+                    'diffchrom_2',
+                    'dup_high_as',
+                    'filler_between_revdup',
+                    'noas_alone',
+                    'revdup_base',
+                    'scored_winner',
+                ] }
+            )
+        }
+    }
+
+    test("aligned BAM - stub") {
+
+        options "-stub"
+
+        when {
+            process {
+                """
+                input[0] = [
+                    [ id:'SK609.TATAGCCT' ],
+                    file("${baseDir}/tests/data/linear_dedup_fixture.bam", checkIfExists: true),
+                    file("${baseDir}/tests/data/linear_dedup_fixture.bam.bai", checkIfExists: true),
+                ]
+                """
+            }
+        }
+
+        then {
+            assertAll(
+                { assert process.success },
+                { assert file(process.out.bam[0][1]).name == 'SK609.TATAGCCT.linear_dedup.bam' },
+                { assert file(process.out.bai[0][1]).name == 'SK609.TATAGCCT.linear_dedup.bam.bai' },
+                { assert file(process.out.stats[0][1]).name == 'SK609.TATAGCCT.linear_dedup_stats.txt' },
+                { assert process.out.multiqc[0][1].collect { payload -> file(payload).name } == [
+                    'SK609.TATAGCCT.linear_dedup_breakdown_mqc.json',
+                    'SK609.TATAGCCT.linear_dedup_chromosome_breakdown_mqc.json',
+                    'SK609.TATAGCCT.linear_dedup_general_stats_mqc.json',
+                ] }
+            )
+        }
+    }
+}
