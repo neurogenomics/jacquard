@@ -164,7 +164,17 @@ nextflow_workflow {
                 // read the barcode and the UMI back out of it, so breakage here would be silent.
                 { assert !r1_headers.isEmpty() && r1_headers == r2_headers },
                 { assert r1_headers.every { header -> header ==~ /^\S+\|CB=[ACGTN]{30}\|UR=[ACGTN]{8}$/ } },
-                { assert aligned_qnames.toUnique().toSorted() == r1_headers.toSorted() },
+                // Not set equality against r1_headers any more: bowtie2 pipes through
+                // `samtools view -q -f 2 -F 780`, so a pair that aligned poorly or not at all is
+                // absent from this BAM by design. Two assertions replace it and between them cover
+                // what the equality covered. Every name present must be one prepare-reads wrote,
+                // which is what catches a QNAME truncated at whitespace — a truncated name matches
+                // no header. And the distinct count must equal the pairs umi_tools reports reading,
+                // taken from its log rather than from either BAM, which is what catches
+                // `getSamLines()` returning a partial record set: a half-read BAM would leave this
+                // short of a count nothing in this test derives from a BAM.
+                { assert aligned_qnames.toUnique().every { qname -> qname in r1_headers } },
+                { assert aligned_qnames.toUnique().size() == reads_in },
 
                 // The retagging, read off the records that survived to the end of the arm.
                 { assert !dedup_lines.isEmpty() },

@@ -146,6 +146,23 @@
                 }
             }
         },
+        "sctip_arm_options": {
+            "title": "scTIP arm options",
+            "type": "object",
+            "fa_icon": "fas fa-dna",
+            "description": "Options for aligning the scTIP arms.",
+            "properties": {
+                "min_mapq": {
+                    "type": "integer",
+                    "default": 30,
+                    "minimum": 0,
+                    "maximum": 255,
+                    "description": "Minimum MAPQ an scTIP alignment must carry to be kept.",
+                    "help_text": "Applied by the `samtools view` bowtie2 pipes into, alongside a proper-pair requirement. A Tn5 insert that places equally well in more than one repeat copy is reported with a low MAPQ, and carrying it forward would let one fragment count against several loci and deduplicate against the wrong mate end. The default of 30 keeps only alignments bowtie2 reports as effectively unique. Lower it to admit repetitive regions, at the cost of that ambiguity reaching deduplication; 0 keeps every proper pair.",
+                    "fa_icon": "fas fa-filter"
+                }
+            }
+        },
         "reference_genome_options": {
             "title": "Reference genome options",
             "type": "object",
@@ -379,6 +396,9 @@
         },
         {
             "$ref": "#/$defs/scrna_arm_options"
+        },
+        {
+            "$ref": "#/$defs/sctip_arm_options"
         },
         {
             "$ref": "#/$defs/reference_genome_options"
