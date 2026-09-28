@@ -35,16 +35,13 @@ nf-lint:
 nf-test *ARGS="": carmack-image
     nf-test test --profile=+docker {{ARGS}}
 
-# Build carmack's container from the pinned submodule, then layer on procps (see
-# containers/carmack-procps.Dockerfile for why).
+# Build carmack's container from the pinned submodule. The submodule gitlink is the pin, so
+# `:local` always means "whatever this checkout points at" — here and in CI alike.
 carmack-image:
     git submodule update --init external/carmack
-    docker build -t {{CARMACK_IMAGE}}-base \
+    docker build -t {{CARMACK_IMAGE}} \
         --build-arg CARMACK_VERSION=0.0.0+$(git -C external/carmack rev-parse --short HEAD) \
         external/carmack
-    docker build -t {{CARMACK_IMAGE}} \
-        --build-arg CARMACK_BASE={{CARMACK_IMAGE}}-base \
-        -f containers/carmack-procps.Dockerfile containers
 
 # Smoke-run the pipeline against the bundled test profile
 smoke OUTDIR="results_test": carmack-image
