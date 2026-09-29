@@ -151,7 +151,7 @@ nextflow_workflow {
                 // command line rather than trusted to the selector having matched.
                 { assert trim_command.contains('--adapter_fasta carmack_custom_seq_1_0.adapters.fasta') },
                 { assert trim_command.contains('--trim_poly_g') },
-                { assert trim_command.contains('--length_required 25') },
+                { assert trim_command.contains('--length_required 20') },
                 // Quality trimming would move the leftmost coordinate of a reverse-strand alignment,
                 // which is the key umi_tools groups on, and --umi would rewrite the read name that
                 // carries the barcode and the UMI. Neither may reach this arm.

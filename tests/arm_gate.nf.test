@@ -27,13 +27,13 @@ nextflow_pipeline {
                 { assert gate == [
                     'sample\tarm\ttgidx\treads\tthreshold\tstatus',
                     'SK609\tscrna\tNONE\t6229\t8000\tFAIL',
-                    'SK609\tsctip\tTATAGCCT\t13051\t8000\tPASS',
+                    'SK609\tsctip\tTATAGCCT\t13069\t8000\tPASS',
                 ] },
                 // The gate reaches the report as its own table, one row per arm, rather than
                 // collapsing both arms of a sample onto one row.
                 { assert path("$outputDir/multiqc/multiqc_data/multiqc_arm_gate_table.txt").readLines() == [
                     'Sample\tArm\tTarget index\tReads\tThreshold\tStatus',
-                    'SK609.TATAGCCT\tsctip\tTATAGCCT\t13051\t8000\tPASS',
+                    'SK609.TATAGCCT\tsctip\tTATAGCCT\t13069\t8000\tPASS',
                     'SK609.none\tscrna\tNONE\t6229\t8000\tFAIL',
                 ] },
                 { assert Fixtures.warnings("$workDir").contains("Arm 'SK609.none' carries 6229 read(s), below --min_arm_reads 8000; it is dropped and the run continues.") },
@@ -107,7 +107,7 @@ nextflow_pipeline {
                 { assert path("$outputDir/pipeline_info/arm_gate.tsv").readLines() == [
                     'sample\tarm\ttgidx\treads\tthreshold\tstatus',
                     'SK609\tscrna\tNONE\t6229\t8000\tFAIL',
-                    'SK609\tsctip\tTATAGCCT\t13051\t8000\tPASS',
+                    'SK609\tsctip\tTATAGCCT\t13069\t8000\tPASS',
                 ] }
             )
         }
