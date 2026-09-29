@@ -498,7 +498,7 @@
                 "multiqc_fastp.txt:md5,66382577eb9ccff5005747e4c0ede2e1",
                 "multiqc_fastqc.txt:md5,17171087f7eb53873a6fb3c6f6d3c5f6",
                 "multiqc_general_stats.txt:md5,dd41ad446599154913f6a1886c0d11d8",
-                "multiqc_samtools_stats.txt:md5,820cf5c6abc5b251e397286e45fa7f3d",
+                "multiqc_samtools_stats.txt:md5,f131292f189b80db412bb77eca975b3e",
                 "multiqc_star.txt:md5,0981c11945f553ce3b1cc82d03efdd69",
                 "multiqc_umitools_dedup.txt:md5,3c63ab1d521d69d3ca6fd73f814fd02f",
                 "multiqc_umitools_extract.txt:md5,d41d8cd98f00b204e9800998ecf8427e",
@@ -528,7 +528,7 @@
                 "matrix.mtx.gz:md5,d207689c06a72f98b3e0689fd8b6d988"
             ]
         ],
-        "timestamp": "2026-09-29T20:13:15.197120533",
+        "timestamp": "2026-09-29T21:40:16.490792359",
         "meta": {
             "nf-test": "0.9.5",
             "nextflow": "26.04.6"
