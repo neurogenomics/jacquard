@@ -303,8 +303,9 @@ nextflow_workflow {
                 // record without the paired flag, 0x1.
                 { assert records.every { record -> ((record[1] as int) & 1) != 0 } },
                 // Coordinate order: each reference is one contiguous run of records, and positions
-                // never fall within it.
-                { assert records.collect { record -> record[2] }.unique(false) == records.collect { record -> record[2] }.toUnique() },
+                // never fall within it. Consecutive repeats are collapsed first, so a reference that
+                // reappears after another leaves a duplicate the distinct list does not have.
+                { assert records.collect { record -> record[2] }.inject([]) { runs, ref -> runs && runs.last() == ref ? runs : runs + [ ref ] } == records.collect { record -> record[2] }.toUnique() },
                 { assert records.collate(2, 1, false).every { a, b -> a[2] != b[2] || (a[3] as long) <= (b[3] as long) } },
                 // The geometry is read off `CR`/`UR`, which STAR writes on every record. The
                 // corrected `CB` is `-` on every record of this fixture once the cDNA is mapped as a

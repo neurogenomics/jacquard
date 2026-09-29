@@ -445,7 +445,6 @@
                 "SK609.tgidx_general_stats_mqc.json:md5,e9179ed37727a35f52b5a5542a9a34fc",
                 "SK609.tgidx_target_distribution_mqc.json:md5,ad5378003fe0b6c8b9fd71a16e7b04e1",
                 "SK609.bc_counts.csv:md5,bb33d2c4509a58db16b124ff6ea40919",
-                "SK609.bc_rank.png:md5,48a1710a6d387b6b88a34a374de41200",
                 "SK609.extraction_barcode_rank_mqc.json:md5,939152d35a1451311a328d741ef3dbe3",
                 "SK609.extraction_breakdown_mqc.json:md5,5cb0911fac869eede453f59e695cb8ee",
                 "SK609.extraction_edit_distance_mqc.json:md5,abbf8d5abb601cdfed9f58f7b4a08e3a",

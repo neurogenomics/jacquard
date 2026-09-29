@@ -72,7 +72,7 @@ The same table appears in the MultiQC report as the "Arm gate" section.
 - `star/<sample>.none/`
   - `<sample>.none.Solo.out/`: the count matrices, one directory per feature — `Gene`, plus whatever `--solo_features` asked for.
   - `<sample>.none.Log.final.out` and the other STAR logs.
-  - `<sample>.none.Aligned.sortedByCoord.out.bam` and its `.bai`, only with `--solo_bam`: the alignments, coordinate-sorted, with every record tagged `CB`/`UB` (corrected cell barcode and UMI), `CR`/`UR` (as read) and `GX`/`GN` (the gene it was counted against).
+  - `<sample>.none.Aligned.sortedByCoord.out.bam` and its `.bai`, only with `--solo_bam`: the alignments, coordinate-sorted, with every record tagged `CR`/`UR` (cell barcode and UMI as read), `CB`/`UB` (corrected) and `GX`/`GN` (the gene it was counted against). STAR writes `CB:Z:-` and `UB:Z:-` on a record it did not assign to a barcode (about 10% of records on a whole-genome arm), so filter those out before demultiplexing or velocity.
 
 </details>
 

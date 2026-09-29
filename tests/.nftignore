@@ -20,3 +20,6 @@ samtools/**/*.stats
 umitools/**/*.{bam,bai,log}
 lineardedup/**/*.{bam,bai}
 lineardedup/**/*_stats.txt
+# carmack renders its plots with whatever matplotlib the image resolved, so their bytes are not
+# stable across builds; their names still reach the snapshot through stable_path.
+carmack/**/*.png
