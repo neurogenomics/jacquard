@@ -13,7 +13,9 @@ scoped to a checkout. Every worktree that runs `just nf-test` or `just smoke` fi
 CARMACK_IMAGE := "ghcr.io/crick-pipelines-stp/carmack:local"
 carmack-image:
     git submodule update --init external/carmack
-    docker build -t "$CARMACK_IMAGE" --build-arg CARMACK_VERSION=0.0.0+$(...) external/carmack
+    docker build -t {{CARMACK_IMAGE}} \
+        --build-arg CARMACK_VERSION=0.0.0+$(git -C external/carmack rev-parse --short HEAD) \
+        external/carmack
 ```
 
 Two worktrees on different carmack pins therefore **silently clobber each other**. The second

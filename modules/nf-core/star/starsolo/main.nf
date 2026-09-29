@@ -18,6 +18,7 @@ process STAR_STARSOLO {
     tuple val(meta),  path('*Log.out')           , emit: log_out
     tuple val(meta),  path('*Log.progress.out')  , emit: log_progress
     tuple val(meta),  path('*/Gene/Summary.csv') , emit: summary
+    tuple val(meta),  path('*.bam')              , emit: bam, optional: true
     tuple val("${task.process}"), val('star'), eval('STAR --version | sed -e "s/STAR_//g"'), topic: versions, emit: versions_star
 
     when:
@@ -27,6 +28,9 @@ process STAR_STARSOLO {
     def args = task.ext.args ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     def (forward, reverse) = reads.collate(2).transpose()
+    // Three files are two cDNA mates and a separate barcode read, which STAR takes in that order:
+    // with `--soloBarcodeMate 0` the barcode read has to be the last file listed.
+    def read_files_in = reads.size() == 3 ? reads.join(' ') : "${reverse.join( "," )} ${forward.join( "," )}"
     def zcat = reads[0].getExtension() == "gz" ? "--readFilesCommand zcat": ""
 
     // Handle solotype argument logic
@@ -51,7 +55,7 @@ process STAR_STARSOLO {
     """
     STAR \\
         --genomeDir $index \\
-        --readFilesIn ${reverse.join( "," )} ${forward.join( "," )} \\
+        --readFilesIn ${read_files_in} \\
         --runThreadN $task.cpus \\
         --outFileNamePrefix $prefix. \\
         --soloType $solotype \\

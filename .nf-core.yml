@@ -5,7 +5,12 @@ nf_core_version: 4.1.0
 lint:
   template_strings:
     - justfile # just interpolates recipe args with doubled braces, not Jinja
-    - .claude/knowledge/carmack-image-tag-is-global.md # quotes that justfile recipe verbatim
+    # Developer notes quote justfile recipes verbatim, so a recipe's doubled braces read as an
+    # unrendered Jinja placeholder here. Listed one file at a time because the check compares each
+    # path to this list by exact string equality — a directory or a glob matches nothing, so do not
+    # replace these with `.claude/`. The alternative, paraphrasing a recipe until the check passes,
+    # once left this note documenting a command the justfile does not contain.
+    - .claude/knowledge/carmack-image-tag-is-global.md
   files_unchanged:
     - .gitattributes # carries the uv.lock merge=binary directive
     - .gitignore # un-ignores tests/data/ (the template's bare `data/` swallows the fixtures)

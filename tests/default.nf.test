@@ -16,9 +16,9 @@ nextflow_pipeline {
         then {
             // stable_path: All files + folders in ${params.outdir}/ with a stable path (including file name)
             def stable_path = getAllFilesFromDir(params.outdir, relative: true, includeDir: true, ignore: ['pipeline_info/*.{html,json,txt}'])
-            // stable_content: All files in ${params.outdir}/ with stable content. The absolutised
-            // samplesheet carries this checkout's own paths and carmack's plots carry whatever
-            // matplotlib the image resolved, so tests/.nftignore drops both: neither survives CI.
+            // stable_content: All files in ${params.outdir}/ with stable content. carmack's plots
+            // carry whatever matplotlib the image resolved, so tests/.nftignore drops them: they do
+            // not survive CI.
             def stable_content = getAllFilesFromDir(params.outdir, ignoreFile: 'tests/.nftignore')
             // Asserted by name rather than left to the snapshot alone: dropping a module's
             // `topic: versions` output drops its entry silently, and a refreshed snapshot would
@@ -80,7 +80,7 @@ nextflow_pipeline {
                 { assert path("$outputDir/samtools/SK609.TATAGCCT/SK609.TATAGCCT.stats").exists() },
                 // Each arm's report rows, all named off meta.id alone: without them a MultiQC
                 // report says nothing about read quality, mapping or duplication per target index.
-                { assert path("$outputDir/multiqc/multiqc_data/multiqc_fastqc.txt").readLines().count { it.startsWith('SK609.none\t') } == 1 },
+                { assert path("$outputDir/multiqc/multiqc_data/multiqc_fastqc.txt").readLines().count { it.startsWith('SK609.none_') } == 2 },
                 { assert path("$outputDir/multiqc/multiqc_data/multiqc_star.txt").readLines().count { it.startsWith('SK609.none\t') } == 1 },
                 { assert path("$outputDir/multiqc/multiqc_data/multiqc_fastqc.txt").readLines().count { it.startsWith('SK609.TATAGCCT_') } == 2 },
                 { assert path("$outputDir/multiqc/multiqc_data/multiqc_fastp.txt").readLines().count { it.startsWith('SK609.TATAGCCT\t') } == 1 },
@@ -88,12 +88,16 @@ nextflow_pipeline {
                 { assert path("$outputDir/multiqc/multiqc_data/multiqc_samtools_stats.txt").readLines().count { it.startsWith('SK609.TATAGCCT\t') } == 1 },
                 // umi_tools deduplicated per cell and MultiQC read its log: the row carries fewer
                 // reads out than in, which is the one number a silently misconfigured dedup loses.
-                // Both counts are higher than the same fixture reaches untrimmed (1016 in, 300 out):
-                // bowtie2 maps end to end, so an adapter read-through costs the whole alignment.
+                // Only what bowtie2 placed concordantly at MAPQ 30 or better gets this far. Of the
+                // fixture's 13051 trimmed pairs it aligns 153 concordantly once and 272 more than
+                // once; the multi-mappers carry a MAPQ below the floor and are dropped with them a
+                // few low-confidence uniques, leaving 109. The count cannot exceed the concordant
+                // total, because `--no-mixed --no-discordant` and `-f 2` keep single-mate and
+                // discordant alignments out of deduplication.
                 { assert path("$outputDir/multiqc/multiqc_data/multiqc_umitools_dedup.txt").readLines().findAll { it.startsWith('SK609.TATAGCCT\t') }.collect { row ->
                     def fields = row.split('\t')
                     [ fields[1] as int, fields[2] as int ]
-                } == [ [ 1078, 410 ] ] },
+                } == [ [ 109, 83 ] ] },
                 // Linear dedup's general-statistics payload builds no section of its own, so the
                 // table is the only place it shows. Its columns have to land on the row umi_tools'
                 // are already on: a sample name drifting by so much as a suffix would split the

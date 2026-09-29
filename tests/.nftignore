@@ -20,7 +20,6 @@ samtools/**/*.stats
 umitools/**/*.{bam,bai,log}
 lineardedup/**/*.{bam,bai}
 lineardedup/**/*_stats.txt
-# The fixture writes this with absolute paths, so its checksum is the checkout's location and
-# nothing else: it differs between a worktree, the main checkout and CI. Its name still reaches
-# the snapshot through stable_path, which is relative.
-samplesheet_test.csv
+# carmack renders its plots with whatever matplotlib the image resolved, so their bytes are not
+# stable across builds; their names still reach the snapshot through stable_path.
+carmack/**/*.png

@@ -15,9 +15,10 @@
 %%metro file:  star_gtf   | GTF        | Annotation
 %%metro file:  bt2_fasta  | FASTA      | Reference
 %%metro dir:   solo_out   | Solo.out   | Count matrices
+%%metro file:  solo_bam   | BAM        | CB/UB-tagged BAM (--solo_bam)
 %%metro files: dedup_out  | BAM        | Deduplicated | banner
 %%metro file:  report_out | HTML       | MultiQC report
-%%metro off_track: prep_out, gate_out, star_fasta, star_gtf, bt2_fasta, dedup_out
+%%metro off_track: prep_out, gate_out, star_fasta, star_gtf, bt2_fasta, solo_bam, dedup_out
 
 %%metro marker: arm_gate | square, #e63946
 %%metro marker: fastp_scrna | square, #e63946
@@ -38,6 +39,7 @@
 %%metro process: resync_barcodes  | SCRNA_ARM:RESYNCBARCODES
 %%metro process: star_index       | SCRNA_ARM:STAR_GENOMEGENERATE
 %%metro process: star_align       | SCRNA_ARM:STAR_STARSOLO
+%%metro process: solo_index       | SCRNA_ARM:SAMTOOLS_INDEX_SOLO
 %%metro process: fastp_sctip      | SCTIP_ARM:FASTP
 %%metro process: fastqc_sctip     | SCTIP_ARM:FASTQC_PREPARED
 %%metro process: bt2_build        | SCTIP_ARM:BOWTIE2_BUILD
@@ -83,6 +85,8 @@ graph LR
         star_index[STAR genomeGenerate]
         star_align[STARsolo]
         solo_out[ ]
+        solo_index[samtools index]
+        solo_bam[ ]
         fastp_scrna -->|scrna| fastqc_scrna
         fastqc_scrna -->|scrna| resync_barcodes
         resync_barcodes -->|scrna| star_align
@@ -90,6 +94,8 @@ graph LR
         star_gtf -->|scrna| star_index
         star_index -->|scrna| star_align
         star_align -->|scrna| solo_out
+        star_align -->|scrna| solo_index
+        solo_index -->|scrna| solo_bam
     end
 
     subgraph sctip_arm[scTIP arms]

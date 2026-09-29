@@ -53,7 +53,8 @@
                     "star/starsolo": {
                         "branch": "master",
                         "git_sha": "d28b8b9497c367a9af632d643fa48b4e03e3eb2b",
-                        "installed_by": ["modules"]
+                        "installed_by": ["modules"],
+                        "patch": "modules/nf-core/star/starsolo/star-starsolo.diff"
                     },
                     "umitools/dedup": {
                         "branch": "master",
