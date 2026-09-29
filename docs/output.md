@@ -105,7 +105,7 @@ By default no alignment file is written, since the matrices are the product and 
 
 </details>
 
-bowtie2 runs end to end, so adapter read-through costs the whole alignment rather than a soft clip: the arm is trimmed first, with `--trim_poly_g` and `--length_required 25`. Quality trimming is deliberately absent — it would shorten reads, moving the leftmost coordinate of a reverse-strand alignment, which is both the key `umi_tools dedup` groups on and the insertion site carmack's linear pass groups on. The trimmed FASTQs are intermediates and are not published.
+bowtie2 runs end to end, so adapter read-through costs the whole alignment rather than a soft clip: the arm is trimmed first, with `--trim_poly_g` and `--length_required 20`, the shortest R1 bowtie2's `--very-sensitive` seeds can still place. Quality trimming is deliberately absent — it would shorten reads, moving the leftmost coordinate of a reverse-strand alignment, which is both the key `umi_tools dedup` groups on and the insertion site carmack's linear pass groups on. The trimmed FASTQs are intermediates and are not published.
 
 The aligned BAM is not published — it is superseded by the sort and the retagging before the arm finishes. Read names carry carmack's barcode and UMI through bowtie2 intact; those fields are lifted into `CB` and `UB` tags before deduplication, so the published BAM has bare read names and `CB:Z:`/`UB:Z:` tags. The bowtie2 index is an intermediate and is not published.
 

@@ -41,7 +41,7 @@ nextflow_pipeline {
                 { assert path("$outputDir/pipeline_info/arm_gate.tsv").readLines() == [
                     'sample\tarm\ttgidx\treads\tthreshold\tstatus',
                     'SK609\tscrna\tNONE\t6227\t1000\tPASS',
-                    'SK609\tsctip\tTATAGCCT\t13051\t1000\tPASS',
+                    'SK609\tsctip\tTATAGCCT\t13069\t1000\tPASS',
                 ] },
                 // The fixture is built to exercise both arms, so this file listing exactly these
                 // two tokens is what makes every downstream per-arm assertion meaningful. Its counts
@@ -89,7 +89,7 @@ nextflow_pipeline {
                 // umi_tools deduplicated per cell and MultiQC read its log: the row carries fewer
                 // reads out than in, which is the one number a silently misconfigured dedup loses.
                 // Only what bowtie2 placed concordantly at MAPQ 30 or better gets this far. Of the
-                // fixture's 13051 trimmed pairs it aligns 153 concordantly once and 272 more than
+                // fixture's 13069 trimmed pairs it aligns 153 concordantly once and 275 more than
                 // once; the multi-mappers carry a MAPQ below the floor and are dropped with them a
                 // few low-confidence uniques, leaving 109. The count cannot exceed the concordant
                 // total, because `--no-mixed --no-discordant` and `-f 2` keep single-mate and
