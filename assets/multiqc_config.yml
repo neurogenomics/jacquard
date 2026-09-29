@@ -52,8 +52,9 @@ report_section_order:
 # fastp estimates insert size from the R1/R2 overlap, taking R1 as one end of the fragment. carmack
 # has already cut R1 down to the insert's first bases, so the histogram peaks at R1's trimmed length
 # in every library (34–35 bases on the scTIP arm, about 65 on the scRNA arm) and would read as a
-# library of 35-base inserts. The fragment sizes are in samtools stats instead. The anchor is taken
-# from MultiQC 1.35's fastp module.
+# library of 35-base inserts. The scTIP arm's fragment sizes are in its samtools stats section; the
+# scRNA arm has no fragment-size view, and fastp's was never one. The anchor is taken from MultiQC
+# 1.35's fastp module.
 remove_sections:
   - fastp-insert-size
 
