@@ -10,6 +10,25 @@ Changes in 'star/starsolo/main.nf':
      tuple val("${task.process}"), val('star'), eval('STAR --version | sed -e "s/STAR_//g"'), topic: versions, emit: versions_star
  
      when:
+@@ -27,6 +28,9 @@
+     def args = task.ext.args ?: ''
+     def prefix = task.ext.prefix ?: "${meta.id}"
+     def (forward, reverse) = reads.collate(2).transpose()
++    // Three files are two cDNA mates and a separate barcode read, which STAR takes in that order:
++    // with `--soloBarcodeMate 0` the barcode read has to be the last file listed.
++    def read_files_in = reads.size() == 3 ? reads.join(' ') : "${reverse.join( "," )} ${forward.join( "," )}"
+     def zcat = reads[0].getExtension() == "gz" ? "--readFilesCommand zcat": ""
+ 
+     // Handle solotype argument logic
+@@ -51,7 +55,7 @@
+     """
+     STAR \\
+         --genomeDir $index \\
+-        --readFilesIn ${reverse.join( "," )} ${forward.join( "," )} \\
++        --readFilesIn ${read_files_in} \\
+         --runThreadN $task.cpus \\
+         --outFileNamePrefix $prefix. \\
+         --soloType $solotype \\
 
 'modules/nf-core/star/starsolo/environment.yml' is unchanged
 Changes in 'star/starsolo/meta.yml':

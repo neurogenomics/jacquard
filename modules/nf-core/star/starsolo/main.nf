@@ -28,6 +28,9 @@ process STAR_STARSOLO {
     def args = task.ext.args ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     def (forward, reverse) = reads.collate(2).transpose()
+    // Three files are two cDNA mates and a separate barcode read, which STAR takes in that order:
+    // with `--soloBarcodeMate 0` the barcode read has to be the last file listed.
+    def read_files_in = reads.size() == 3 ? reads.join(' ') : "${reverse.join( "," )} ${forward.join( "," )}"
     def zcat = reads[0].getExtension() == "gz" ? "--readFilesCommand zcat": ""
 
     // Handle solotype argument logic
@@ -52,7 +55,7 @@ process STAR_STARSOLO {
     """
     STAR \\
         --genomeDir $index \\
-        --readFilesIn ${reverse.join( "," )} ${forward.join( "," )} \\
+        --readFilesIn ${read_files_in} \\
         --runThreadN $task.cpus \\
         --outFileNamePrefix $prefix. \\
         --soloType $solotype \\

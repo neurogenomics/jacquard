@@ -80,7 +80,7 @@ nextflow_pipeline {
                 { assert path("$outputDir/samtools/SK609.TATAGCCT/SK609.TATAGCCT.stats").exists() },
                 // Each arm's report rows, all named off meta.id alone: without them a MultiQC
                 // report says nothing about read quality, mapping or duplication per target index.
-                { assert path("$outputDir/multiqc/multiqc_data/multiqc_fastqc.txt").readLines().count { it.startsWith('SK609.none\t') } == 1 },
+                { assert path("$outputDir/multiqc/multiqc_data/multiqc_fastqc.txt").readLines().count { it.startsWith('SK609.none_') } == 2 },
                 { assert path("$outputDir/multiqc/multiqc_data/multiqc_star.txt").readLines().count { it.startsWith('SK609.none\t') } == 1 },
                 { assert path("$outputDir/multiqc/multiqc_data/multiqc_fastqc.txt").readLines().count { it.startsWith('SK609.TATAGCCT_') } == 2 },
                 { assert path("$outputDir/multiqc/multiqc_data/multiqc_fastp.txt").readLines().count { it.startsWith('SK609.TATAGCCT\t') } == 1 },

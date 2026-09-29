@@ -82,10 +82,11 @@ workflow SCRNA_ARM {
         ch_trim_json = FASTP.out.json
 
         //
-        // STARsolo pairs its two input files positionally, record for record, and fastp dropped
-        // whole records out of one of them. Replaying the surviving read ids onto carmack's barcode
-        // read is what keeps the two aligned; without it every read after the first dropped one
-        // would be counted against the wrong cell, and the run would still exit 0.
+        // STARsolo pairs its input files positionally, record for record, and fastp dropped whole
+        // records out of the cDNA pair — both mates together, so `r1` and `r2` still agree.
+        // Replaying the surviving read ids onto carmack's barcode read is what keeps it aligned with
+        // them; without it every read after the first dropped one would be counted against the
+        // wrong cell, and the run would still exit 0.
         //
         RESYNCBARCODES(ARM_TRIM_GATE.out.arms.map { meta, r1, _r2, barcodes -> [ meta, r1, barcodes ] })
 
@@ -95,11 +96,11 @@ workflow SCRNA_ARM {
     }
 
     //
-    // FastQC on the cDNA read STARsolo aligns rather than on the raw input pair, so the report
-    // carries read quality per arm — one row per target index — instead of for the library as a
-    // whole. `meta.id` is already `<sample>.<tgidx>`, so that row names itself.
+    // FastQC on the cDNA pair STARsolo aligns rather than on the raw input pair, so the report
+    // carries read quality per arm — one pair of rows per target index — instead of for the library
+    // as a whole. `meta.id` is already `<sample>.<tgidx>`, so the two rows name themselves.
     //
-    FASTQC_PREPARED(ch_reads.map { meta, r1, _r2, _barcodes -> [ meta, r1 ] })
+    FASTQC_PREPARED(ch_reads.map { meta, r1, r2, _barcodes -> [ meta, [ r1, r2 ] ] })
 
     //
     // The reference is derived from the post-trim arm channel rather than read straight off the
@@ -124,12 +125,13 @@ workflow SCRNA_ARM {
     }
 
     //
-    // STARsolo's CB_UMI_Simple takes exactly one cDNA read and one barcode read, so of the arm's
-    // three files it is handed `r1` — the cDNA insert prepare-reads trimmed R1 down to — and
-    // `barcodes`, the resynced corrected-barcode-plus-UMI record. `r2` is the other mate of the
-    // same cDNA fragment and has no place in a run that maps a single read. The module renders
-    // `--readFilesIn` as its second file then its first, so the pair is handed over barcodes-first
-    // to reach STAR cDNA-first.
+    // STARsolo maps the cDNA as a pair: `r1`, the insert prepare-reads cut R1 down to, and `r2`,
+    // the other end of the same fragment, followed by `barcodes`, the resynced corrected-barcode-
+    // plus-UMI record. With `--soloBarcodeMate 0` STAR takes a separate barcode read as the last file
+    // listed, and the module passes three files through in the order given. Mapping `r1` alone
+    // discards the longer mate: on a 6.46M-pair arm against GRCh38, adding `r2` raised uniquely
+    // mapped reads from 46.3% to 60.1%, the unique GeneFull fraction from 33.2% to 42.0% and median
+    // UMI per cell from 206 to 258. Each fragment still counts once, under its one barcode read.
     //
     // carmack has already corrected every barcode against the chemistry's own whitelists, so
     // STARsolo is run whitelist-free: a second correction here could only disagree with the first
@@ -137,7 +139,7 @@ workflow SCRNA_ARM {
     // NO_FILE, which is what the absence of a whitelist is spelled as.
     //
     STAR_STARSOLO(
-        ch_reads.map { meta, r1, _r2, barcodes -> [ meta, 'CB_UMI_Simple', [ barcodes, r1 ] ] },
+        ch_reads.map { meta, r1, r2, barcodes -> [ meta, 'CB_UMI_Simple', [ r1, r2, barcodes ] ] },
         file("${projectDir}/assets/NO_FILE"),
         ch_index,
     )

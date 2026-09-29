@@ -76,8 +76,9 @@ nextflow_workflow {
             def trim_command = report.command
 
             // The one thing the whole arm turns on: what STAR was actually told to read, in what
-            // order. carmack's `.r1` is the cDNA insert and `.barcodes` the synthesized
-            // barcode-plus-UMI record, and STARsolo takes them cDNA first.
+            // order. carmack's `.r1` is the cDNA insert, `.r2` the other end of the same fragment and
+            // `.barcodes` the synthesized barcode-plus-UMI record, and STARsolo takes the two cDNA
+            // mates first and the barcode read last.
             def star_dir = new File(solo_out).parentFile
             def star_command = new File(star_dir, '.command.sh').text
             def read_files_in = new File(star_dir, '.command.sh')
@@ -97,9 +98,13 @@ nextflow_workflow {
                     .collect { line, _index -> line.substring(1).split(/\s+/).first().replaceAll(/\/[12]$/, '') }
             }
             def cdna_ids = readIds('SK609.none_R1.fastp.fastq.gz')
+            def mate_ids = readIds('SK609.none_R2.fastp.fastq.gz')
             def barcode_ids = readIds('SK609.none.resynced.barcodes.fastq.gz')
 
-            def cell_barcodes = path("${solo_out}/Gene/raw/barcodes.tsv.gz").linesGzip
+            // Read off `GeneFull`, not `Gene`: against a chr21-only reference the paired fixture has
+            // no read STAR assigns to an exon uniquely, so `Gene/raw/` lists no barcode at all, while
+            // `GeneFull` counts the intronic reads and calls cells.
+            def cell_barcodes = path("${solo_out}/GeneFull/raw/barcodes.tsv.gz").linesGzip
 
             // Every barcode STARsolo called, read back out of the file it was handed as the barcode
             // read. Length alone cannot show which file that was — the 65 base cDNA read would give
@@ -132,9 +137,14 @@ nextflow_workflow {
                 { assert workflow.out.multiqc_files.collect { file(it).name }.sort() == [
                     'SK609.none.Log.final.out',
                     'SK609.none.fastp.json',
-                    'SK609.none_fastqc.zip',
+                    'SK609.none_1_fastqc.zip',
+                    'SK609.none_2_fastqc.zip',
                 ] },
-                { assert read_files_in == [ 'SK609.none_R1.fastp.fastq.gz', 'SK609.none.resynced.barcodes.fastq.gz' ] },
+                { assert read_files_in == [
+                    'SK609.none_R1.fastp.fastq.gz',
+                    'SK609.none_R2.fastp.fastq.gz',
+                    'SK609.none.resynced.barcodes.fastq.gz',
+                ] },
 
                 // The arguments this arm's config block sets, read off fastp's own record of the
                 // command line rather than trusted to the selector having matched.
@@ -166,6 +176,9 @@ nextflow_workflow {
                 // the same order and naming the same reads. A resync that dropped or reordered a
                 // record would still produce a whole matrix, keyed on the wrong cells.
                 { assert !cdna_ids.isEmpty() && barcode_ids == cdna_ids },
+                // The same holds for the second mate, which fastp keeps or drops together with the
+                // first, so the three files STAR reads side by side name the same reads.
+                { assert mate_ids == cdna_ids },
                 { assert barcode_ids.size() == workflow.out.gate[0][1] },
 
                 // The acceptance criterion itself: a Solo.out tree with a cell-by-gene matrix in it.
@@ -286,11 +299,20 @@ nextflow_workflow {
                 // being there on every record is what shows the in-process sort was used.
                 { assert !records.isEmpty() },
                 { assert records.every { record -> tags(record).containsAll([ 'CB', 'UB', 'CR', 'UR', 'GX', 'GN' ]) } },
+                // Both cDNA mates were mapped as a pair: a run given only R1 would write every
+                // record without the paired flag, 0x1.
+                { assert records.every { record -> ((record[1] as int) & 1) != 0 } },
                 // Coordinate order: each reference is one contiguous run of records, and positions
                 // never fall within it.
                 { assert records.collect { record -> record[2] }.unique(false) == records.collect { record -> record[2] }.toUnique() },
                 { assert records.collate(2, 1, false).every { a, b -> a[2] != b[2] || (a[3] as long) <= (b[3] as long) } },
-                { assert !barcoded.isEmpty() && barcoded.every { record -> tag_value(record, 'CB').length() == 30 } },
+                // The geometry is read off `CR`/`UR`, which STAR writes on every record. The
+                // corrected `CB` is `-` on every record of this fixture once the cDNA is mapped as a
+                // pair, although it is not in a real run: on 1M SK588_4 pairs against GRCh38, 90.1%
+                // of the paired BAM's records carry one. So `CB` is checked only where it is set.
+                { assert records.every { record -> tag_value(record, 'CR').length() == 30 } },
+                { assert records.every { record -> tag_value(record, 'UR').length() == 8 } },
+                { assert barcoded.every { record -> tag_value(record, 'CB').length() == 30 } },
                 { assert barcoded.every { record -> tag_value(record, 'UB') == '-' || tag_value(record, 'UB').length() == 8 } },
                 // The published copies, beside the Solo.out tree.
                 { assert path("${params.outdir}/star/SK609.none/SK609.none.Aligned.sortedByCoord.out.bam").exists() },
@@ -366,9 +388,9 @@ nextflow_workflow {
                 { assert workflow.trace.tasks().findAll { task -> task.name.contains('RESYNCBARCODES') }.isEmpty() },
                 { assert workflow.out.trim_json.isEmpty() },
                 { assert workflow.out.gate.isEmpty() },
-                // carmack's own two files, untouched: the resync exists only to repair what fastp
+                // carmack's own three files, untouched: the resync exists only to repair what fastp
                 // dropped, so with no fastp there is nothing to repair.
-                { assert read_files_in == [ 'SK609.none.r1.fastq.gz', 'SK609.none.barcodes.fastq.gz' ] },
+                { assert read_files_in == [ 'SK609.none.r1.fastq.gz', 'SK609.none.r2.fastq.gz', 'SK609.none.barcodes.fastq.gz' ] },
                 // Every read pair prepare-reads wrote reached STAR, untrimmed.
                 { assert file(workflow.out.summary[0][1]).readLines().contains('Number of Reads,6229') },
             )
