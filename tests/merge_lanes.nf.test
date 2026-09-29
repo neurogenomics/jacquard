@@ -1,0 +1,59 @@
+nextflow_pipeline {
+
+    name "Test pipeline - one sample across several lanes"
+    script "../main.nf"
+    tag "pipeline"
+    tag "merge_lanes"
+
+    test("-profile test --stop_after readprep with one sample on two rows") {
+
+        when {
+            params {
+                input      = Fixtures.lanes("$baseDir", "$outputDir")
+                outdir     = "$outputDir"
+                stop_after = 'readprep'
+            }
+        }
+
+        then {
+            def merged = [1, 2].collect { read -> Fixtures.workFile("$workDir", "SK609_${read}.merged.fastq.gz") }
+
+            assertAll(
+                { assert workflow.success },
+                // One merge for the one sample, however many rows it was listed on, and the run is
+                // otherwise the single-lane `--stop_after readprep` run: the same stages, plus the
+                // concatenation's own entry in the software record.
+                { assert workflow.trace.tasks().findAll { task -> task.name.contains('CAT_FASTQ') }.size() == 1 },
+                // The merge is named in the log, since nothing else distinguishes lanes of one
+                // library from two libraries given one sample name by mistake. Read off the run's own
+                // log: Nextflow 26 keeps `log.info` off the console nf-test captures.
+                { assert new File(new File("$workDir").parentFile, 'meta/nextflow.log').text.contains("Sample 'SK609' spans 2 samplesheet rows") },
+                { assert path("$outputDir/pipeline_info/jacquard_software_mqc_versions.yml").readLines().findAll { line -> line.endsWith(':') }.toSorted() == [
+                    'CARMACK_ASSIGNTARGETS:',
+                    'CARMACK_EXTRACTBARCODES:',
+                    'CARMACK_EXTRACTUMIS:',
+                    'CARMACK_PREPAREREADS:',
+                    'CAT_FASTQ:',
+                    'FASTQC:',
+                    'Workflow:',
+                ] },
+                // The two lanes are halves of the committed pair, so a merge that kept them in
+                // samplesheet order reproduces it and hashes as the committed file does. nf-test
+                // decompresses before hashing, so the two-member gzip `cat` writes is compared on
+                // content: a lane concatenated the other way round fails here and nowhere else,
+                // since every count below is a count of the same reads.
+                { assert path(merged[0]).md5 == path("$baseDir/tests/data/SK609_L5_R1.fastq.gz").md5 },
+                { assert path(merged[1]).md5 == path("$baseDir/tests/data/SK609_L5_R2.fastq.gz").md5 },
+                // Read preparation saw one library rather than two lanes: these are the counts the
+                // single-lane run of the same fixture reports, off the same reads.
+                { assert path("$outputDir/carmack/preparereads/SK609/SK609.detected_targets.txt").readLines() == [
+                    'NONE\t6229',
+                    'TATAGCCT\t13332',
+                ] },
+                // The merged pair is what FastQC and every carmack stage read, under the sample's
+                // own name: a per-lane row here would mean the merge happened after the fan-out.
+                { assert path("$outputDir/multiqc/multiqc_data/multiqc_fastqc.txt").readLines().collect { it.tokenize('\t').first() } == [ 'Sample', 'SK609_1', 'SK609_2' ] }
+            )
+        }
+    }
+}

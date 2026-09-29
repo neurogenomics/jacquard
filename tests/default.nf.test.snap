@@ -11,22 +11,22 @@
                     "bowtie2": "2.5.4"
                 },
                 "CARMACK_ASSIGNTARGETS": {
-                    "carmack": "0.0.0+24f7fbb"
+                    "carmack": "0.0.0+75dde74"
                 },
                 "CARMACK_EXTRACTBARCODES": {
-                    "carmack": "0.0.0+24f7fbb"
+                    "carmack": "0.0.0+75dde74"
                 },
                 "CARMACK_EXTRACTUMIS": {
-                    "carmack": "0.0.0+24f7fbb"
+                    "carmack": "0.0.0+75dde74"
                 },
                 "CARMACK_LINEARDEDUP": {
-                    "carmack": "0.0.0+24f7fbb"
+                    "carmack": "0.0.0+75dde74"
                 },
                 "CARMACK_PREPAREREADS": {
-                    "carmack": "0.0.0+24f7fbb"
+                    "carmack": "0.0.0+75dde74"
                 },
                 "CHEMISTRYADAPTERS": {
-                    "carmack": "0.0.0+24f7fbb"
+                    "carmack": "0.0.0+75dde74"
                 },
                 "FASTP": {
                     "fastp": "1.3.6"
@@ -528,7 +528,7 @@
                 "matrix.mtx.gz:md5,d207689c06a72f98b3e0689fd8b6d988"
             ]
         ],
-        "timestamp": "2026-09-29T21:40:16.490792359",
+        "timestamp": "2026-09-29T22:06:52.302323995",
         "meta": {
             "nf-test": "0.9.5",
             "nextflow": "26.04.6"

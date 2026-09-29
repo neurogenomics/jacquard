@@ -3,6 +3,7 @@
     IMPORT MODULES / SUBWORKFLOWS / FUNCTIONS
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 */
+include { CAT_FASTQ              } from '../modules/nf-core/cat/fastq/main'
 include { CARMACK_READPREP       } from '../subworkflows/local/carmack_readprep/main'
 include { CHEMISTRYADAPTERS      } from '../modules/local/chemistryadapters/main'
 include { ARM_FANOUT             } from '../subworkflows/local/arm_fanout/main'
@@ -85,12 +86,27 @@ workflow JACQUARD {
     def stages = stagesUpTo(stop_after)
 
     //
+    // MODULE: Concatenate the flowcell lanes a sample was sequenced across into one R1/R2 pair
+    //
+    // A sample listed on several samplesheet rows arrives as one interleaved list — R1 then R2 of
+    // each row, in samplesheet order — which is the order CAT_FASTQ splits on, so the merged R1 and
+    // R2 carry their lanes in the same order and stay mate-synchronised. The schema makes R2
+    // mandatory, so more than two files always means more than one lane; a sample on a single row
+    // bypasses the module, since concatenating one pair would only copy it.
+    //
+    def ch_lanes = ch_samplesheet.branch { _meta, fastqs ->
+        merge: fastqs.size() > 2
+        pair: true
+    }
+    CAT_FASTQ(ch_lanes.merge)
+
+    //
     // SUBWORKFLOW: QC the raw reads and run carmack's read preparation chain
     //
     // The first four stop points are boundaries inside this subworkflow, so the surviving stages go
     // in with it rather than being enforced from out here.
     //
-    CARMACK_READPREP(ch_samplesheet, chemistry, stages)
+    CARMACK_READPREP(ch_lanes.pair.mix(CAT_FASTQ.out.reads), chemistry, stages)
     ch_versions = ch_versions.mix(CARMACK_READPREP.out.versions)
     ch_multiqc_files = ch_multiqc_files.mix(CARMACK_READPREP.out.multiqc_files)
 

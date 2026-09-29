@@ -71,6 +71,9 @@ nextflow_pipeline {
                     'TAGQNAME',
                     'UMITOOLS_DEDUP',
                 ].every { process -> software_versions.contains("${process}:\n") } },
+                // A sample on one samplesheet row already is a single R1/R2 pair, so nothing is
+                // concatenated: a merge task here would be copying the run's whole input for nothing.
+                { assert workflow.trace.tasks().findAll { task -> task.name.contains('CAT_FASTQ') }.isEmpty() },
                 // The counterpart of each arm test's "no aligner task was submitted": the same
                 // predicates have to find the tasks here, or their emptiness there proves nothing.
                 { assert workflow.trace.tasks().findAll { task -> task.name.contains('STAR_') }.size() == 2 },

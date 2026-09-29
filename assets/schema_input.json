@@ -30,5 +30,5 @@
         },
         "required": ["sample", "fastq_1", "fastq_2"]
     },
-    "uniqueEntries": ["sample"]
+    "uniqueEntries": ["sample", "fastq_1"]
 }

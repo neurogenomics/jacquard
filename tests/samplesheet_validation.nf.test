@@ -22,11 +22,11 @@ nextflow_pipeline {
         }
     }
 
-    test("rejects a sample name used by more than one row") {
+    test("rejects the same fastq_1 listed twice under one sample") {
 
         when {
             params {
-                input  = Fixtures.absolutise("$baseDir", "$outputDir", 'samplesheet_duplicate_sample.csv')
+                input  = Fixtures.absolutise("$baseDir", "$outputDir", 'samplesheet_duplicate_row.csv')
                 outdir = "$outputDir"
             }
         }
@@ -35,7 +35,31 @@ nextflow_pipeline {
             assertAll(
                 { assert workflow.failed },
                 { assert workflow.trace.tasks().size() == 0 },
-                { assert workflow.stderr.join("\n").contains("Detected duplicate entries: [sample:SK609]") }
+                // A sample may span rows, one per lane, so uniqueness is on the pair of columns: the
+                // rejected sheet would otherwise concatenate one lane with itself and double every
+                // read count the run reports. The path the message quotes is the checkout's own.
+                { assert workflow.stderr.join("\n").contains("Detected duplicate entries: [sample:SK609, fastq_1:") }
+            )
+        }
+    }
+
+    test("rejects a lane's fastq_2 repeated under a different fastq_1") {
+
+        when {
+            params {
+                input  = Fixtures.absolutise("$baseDir", "$outputDir", 'samplesheet_duplicate_r2.csv')
+                outdir = "$outputDir"
+            }
+        }
+
+        then {
+            assertAll(
+                { assert workflow.failed },
+                // Rejected at launch, before carmack reads either file: concatenated, the repeated
+                // R2 would no longer match the merged R1 read for read.
+                { assert workflow.trace.tasks().size() == 0 },
+                { assert (workflow.stdout + workflow.stderr).join("\n").contains("A FASTQ appears on more than one row:") },
+                { assert (workflow.stdout + workflow.stderr).join("\n").contains("SK609_L5_R2.fastq.gz (sample(s) SK609)") }
             )
         }
     }

@@ -29,6 +29,7 @@
 %%metro grid: sctip_arm | 2,1
 
 %%metro process_scope: NEUROGENOMICS_JACQUARD:JACQUARD
+%%metro process: merge_lanes      | CAT_FASTQ
 %%metro process: fastqc_raw       | CARMACK_READPREP:FASTQC
 %%metro process: extract_barcodes | CARMACK_READPREP:CARMACK_EXTRACTBARCODES
 %%metro process: extract_umis     | CARMACK_READPREP:CARMACK_EXTRACTUMIS
@@ -59,6 +60,7 @@ graph LR
     end
 
     subgraph readprep[Pre-processing]
+        merge_lanes[Merge lanes]
         fastqc_raw[FastQC]
         extract_barcodes[carmack extract-barcodes]
         extract_umis[carmack extract-umis]
@@ -67,6 +69,7 @@ graph LR
         prep_out[ ]
         arm_gate[Read-count gate]
         gate_out[ ]
+        merge_lanes -->|prep,qc| fastqc_raw
         fastqc_raw -->|prep,qc| extract_barcodes
         extract_barcodes -->|prep,qc| extract_umis
         extract_umis -->|prep,qc| assign_targets
@@ -126,7 +129,7 @@ graph LR
         multiqc -->|qc| report_out
     end
 
-    input_in -->|prep,qc| fastqc_raw
+    input_in -->|prep,qc| merge_lanes
     prepare_reads -->|qc| multiqc
     arm_gate -->|scrna| fastp_scrna
     arm_gate -->|sctip| fastp_sctip
