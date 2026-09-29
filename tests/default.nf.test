@@ -136,6 +136,10 @@ nextflow_pipeline {
                 // `report_section_order` buys.
                 { assert plot_sections.findIndexOf { section -> section.startsWith('fastp') } > plot_sections.findLastIndexOf { section -> section.startsWith('carmack_') } },
                 { assert plot_sections.findIndexOf { section -> section.startsWith('fastp') } < plot_sections.indexOf('arm_gate_table') },
+                // fastp's insert-size plot is left out, because carmack's shortened R1 makes it peak
+                // at R1's length rather than at any insert size; its other plots stay.
+                { assert !plot_sections.contains('fastp-insert-size-plot') },
+                { assert plot_sections.contains('fastp_filtered_reads_plot') },
                 // Each of those sections was parsed, not merely ordered: MultiQC wrote a data file
                 // for every one of them.
                 { assert carmack_sections.every { section -> path("$outputDir/multiqc/multiqc_data/multiqc_${section}.txt").exists() } },
