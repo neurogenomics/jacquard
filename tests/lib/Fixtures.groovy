@@ -46,7 +46,7 @@ class Fixtures {
     static String lanes(String baseDir, String outputDir, int firstLaneRecords = 6000) {
         def lanes = [1, 2].collect { read ->
             def src = new File(baseDir, "tests/data/SK609_L5_R${read}.fastq.gz")
-            def lines = new java.util.zip.GZIPInputStream(new FileInputStream(src)).readLines()
+            def lines = new java.util.zip.GZIPInputStream(new FileInputStream(src)).withReader('UTF-8') { reader -> reader.readLines() }
             [lines[0..<firstLaneRecords * 4], lines[firstLaneRecords * 4..<lines.size()]].withIndex().collect { chunk, lane ->
                 def dst = new File(outputDir, "SK609_L${lane + 1}_R${read}.fastq.gz")
                 dst.parentFile.mkdirs()

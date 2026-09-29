@@ -24,6 +24,10 @@ nextflow_pipeline {
                 // otherwise the single-lane `--stop_after readprep` run: the same stages, plus the
                 // concatenation's own entry in the software record.
                 { assert workflow.trace.tasks().findAll { task -> task.name.contains('CAT_FASTQ') }.size() == 1 },
+                // The merge is named in the log, since nothing else distinguishes lanes of one
+                // library from two libraries given one sample name by mistake. Read off the run's own
+                // log: Nextflow 26 keeps `log.info` off the console nf-test captures.
+                { assert new File(new File("$workDir").parentFile, 'meta/nextflow.log').text.contains("Sample 'SK609' spans 2 samplesheet rows") },
                 { assert path("$outputDir/pipeline_info/jacquard_software_mqc_versions.yml").readLines().findAll { line -> line.endsWith(':') }.toSorted() == [
                     'CARMACK_ASSIGNTARGETS:',
                     'CARMACK_EXTRACTBARCODES:',

@@ -41,8 +41,10 @@ they appear in the samplesheet, R1 and R2 alike, so the two files stay mate-sync
 preparation begins, so barcodes, UMIs and target indices are counted once over the whole library rather
 than once per lane. A sample given on a single row is used as it stands and no concatenation runs for it.
 
-One `fastq_1` cannot appear twice: an exactly repeated row is rejected at validation, since concatenating
-a lane with itself would double every read count the run reports.
+A FASTQ belongs to exactly one row: a file listed twice, in either column or under two sample names, is
+rejected at validation, since concatenating a lane with itself would double every read count the run
+reports, and a repeated R2 would leave the merged R2 out of step with its R1. Every sample whose rows are
+merged is named in the run's log, so two libraries given one name by mistake show up there.
 
 An [example samplesheet](../assets/samplesheet.csv) has been provided with the pipeline.
 
