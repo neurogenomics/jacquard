@@ -129,9 +129,10 @@ workflow SCRNA_ARM {
     // the other end of the same fragment, followed by `barcodes`, the resynced corrected-barcode-
     // plus-UMI record. With `--soloBarcodeMate 0` STAR takes a separate barcode read as the last file
     // listed, and the module passes three files through in the order given. Mapping `r1` alone
-    // discards the longer mate: on a 6.46M-pair arm against GRCh38, adding `r2` raised uniquely
-    // mapped reads from 46.3% to 60.1%, the unique GeneFull fraction from 33.2% to 42.0% and median
-    // UMI per cell from 206 to 258. Each fragment still counts once, under its one barcode read.
+    // discards the longer mate: on a 6.46M-pair arm against GRCh38, counted unstranded, adding `r2`
+    // raised uniquely mapped reads from 46.3% to 60.1%, the unique GeneFull fraction from 33.2% to
+    // 42.0% and median UMI per cell from 206 to 258. Each fragment still counts once, under its one
+    // barcode read.
     //
     // carmack has already corrected every barcode against the chemistry's own whitelists, so
     // STARsolo is run whitelist-free: a second correction here could only disagree with the first

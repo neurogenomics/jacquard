@@ -523,18 +523,18 @@
                 "barcodes.tsv.gz:md5,d41d8cd98f00b204e9800998ecf8427e",
                 "features.tsv.gz:md5,a7c451918a577bf504f6b303f2f8180a",
                 "matrix.mtx.gz:md5,0fd257d60581ee1aeeff6ba2a76f5a72",
-                "Features.stats:md5,20225aed6b7073a2fbc3f27c42186d6d",
-                "Summary.csv:md5,7338bdaf9556518f0567486574656f58",
-                "UMIperCellSorted.txt:md5,84dcc96f5ce05ba184a44bf051d55b34",
-                "barcodes.tsv.gz:md5,6151cc939ff42acf8813e0a4fc564f76",
+                "Features.stats:md5,149be5fc8a584ed3830c8c9ca3c8b2f2",
+                "Summary.csv:md5,58d397da1996beec130536b65ed903c5",
+                "UMIperCellSorted.txt:md5,035f9dc03e1d05adc4d598db13d3f091",
+                "barcodes.tsv.gz:md5,b4a12b74b0bff0c48233a9a328bb5235",
                 "features.tsv.gz:md5,a7c451918a577bf504f6b303f2f8180a",
-                "matrix.mtx.gz:md5,0b7d30e680b2b40632d61dd9d421c4a8",
-                "barcodes.tsv.gz:md5,6151cc939ff42acf8813e0a4fc564f76",
+                "matrix.mtx.gz:md5,d207689c06a72f98b3e0689fd8b6d988",
+                "barcodes.tsv.gz:md5,b4a12b74b0bff0c48233a9a328bb5235",
                 "features.tsv.gz:md5,a7c451918a577bf504f6b303f2f8180a",
-                "matrix.mtx.gz:md5,0b7d30e680b2b40632d61dd9d421c4a8"
+                "matrix.mtx.gz:md5,d207689c06a72f98b3e0689fd8b6d988"
             ]
         ],
-        "timestamp": "2026-09-28T17:48:23.29675343",
+        "timestamp": "2026-09-29T19:48:53.808227762",
         "meta": {
             "nf-test": "0.9.5",
             "nextflow": "26.04.6"

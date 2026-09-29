@@ -80,9 +80,9 @@ The cDNA pair is trimmed first, paired-end and trim-only: `--disable_quality_fil
 
 Trimming drops whole pairs from the cDNA reads, and STARsolo pairs its three input files positionally, record for record — so the read ids that survived are replayed onto carmack's synthesized barcode read before STAR sees it. Without that step every read after the first dropped one would be counted against the wrong cell, and the run would still succeed. The trimmed FASTQs and the resynced barcode read are intermediates and are not published.
 
-STARsolo maps the cDNA as a pair — the insert carmack cut out of R1, and R2 — with the barcode read supplied separately, so each fragment is still counted once under its one barcode. Mapping R1 alone would discard the longer mate: on a 6.46M-pair arm against GRCh38 it lowered uniquely mapped reads from 60.1% to 46.3% and median UMI per cell from 258 to 206.
+STARsolo maps the cDNA as a pair — the insert carmack cut out of R1, and R2 — with the barcode read supplied separately, so each fragment is still counted once under its one barcode. Mapping R1 alone would discard the longer mate: on a 6.46M-pair arm against GRCh38, counted unstranded, it lowered uniquely mapped reads from 60.1% to 46.3% and median UMI per cell from 258 to 206.
 
-The library is unstranded: Tn5 tagments double-stranded cDNA, so an insert lands on either strand of its gene. STARsolo therefore runs with `--soloStrand Unstranded`, and a read counts toward a gene whichever strand it aligned to.
+The library is forward-stranded: the cDNA R1 is the sense read, on its gene's own strand in 77.8–94.7% of reads across the carmack libraries measured. STARsolo therefore runs with `--soloStrand Forward`, taking a pair's strand from R1, and a read antisense to a gene is not counted toward it.
 
 By default no alignment file is written, since the matrices are the product and STARsolo runs with `--outSAMtype None`. `--solo_bam` switches on a coordinate-sorted BAM for the tools that need one. The STAR index is an intermediate and is not published.
 

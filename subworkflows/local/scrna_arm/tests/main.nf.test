@@ -205,10 +205,10 @@ nextflow_workflow {
                 // other end of the resync.
                 { assert file(workflow.out.summary[0][1]).readLines().contains("Number of Reads,${workflow.out.gate[0][1]}".toString()) },
 
-                // The library is unstranded, and STAR's own default, `Forward`, would discard every
-                // antisense insert as unassigned. The other two are the defaults of the
-                // --solo_multimappers and --solo_bam parameters: unique reads only, and no BAM.
-                { assert star_command.contains('--soloStrand Unstranded') },
+                // The library is forward-stranded, and the setting is spelled out rather than left to
+                // STAR's default. The other two are the defaults of the --solo_multimappers and
+                // --solo_bam parameters: unique reads only, and no BAM.
+                { assert star_command.contains('--soloStrand Forward') },
                 { assert star_command.contains('--soloMultiMappers Unique') },
                 { assert star_command.contains('--outSAMtype None') },
                 { assert workflow.out.bam.isEmpty() },
