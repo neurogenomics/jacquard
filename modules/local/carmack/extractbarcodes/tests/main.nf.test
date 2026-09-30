@@ -1,0 +1,69 @@
+nextflow_process {
+
+    name "Test process CARMACK_EXTRACTBARCODES"
+    script "../main.nf"
+    process "CARMACK_EXTRACTBARCODES"
+
+    tag "modules"
+    tag "modules_local"
+    tag "carmack"
+    tag "carmack/extractbarcodes"
+
+    test("SK609 - fastq.gz") {
+
+        when {
+            process {
+                """
+                input[0] = [ [ id:'SK609' ], file("${baseDir}/tests/data/SK609_L5_R1.fastq.gz", checkIfExists: true) ]
+                input[1] = 'carmack_custom_seq_1_0'
+                """
+            }
+        }
+
+        then {
+            // The report carries the wall-clock time it was written at, so that line alone is dropped. The
+            // lines are rejoined because nf-test resolves a bare '' in a snapshotted list as a directory path.
+            def stats = path(process.out.stats[0][1])
+                .readLines()
+                .findAll { !it.startsWith('# Report generated at:') }
+                .join('\n')
+            assertAll(
+                { assert process.success },
+                { assert snapshot(stats, process.out.multiqc, process.out.versions_carmack).match() },
+                { assert process.out.reads[0][1] ==~ /.*\/SK609\.r1_annotated\.fastq\.gz$/ },
+                { assert process.out.bc_all[0][1] ==~ /.*\/SK609\.bc_all\.txt\.gz$/ },
+                { assert process.out.bc_valid[0][1] ==~ /.*\/SK609\.bc_valid\.txt\.gz$/ },
+                { assert process.out.counts[0][1] ==~ /.*\/SK609\.bc_counts\.csv$/ },
+                { assert process.out.rank_plot[0][1] ==~ /.*\/SK609\.bc_rank\.png$/ }
+            )
+        }
+    }
+
+    test("SK609 - fastq.gz - carmack_fast") {
+
+        when {
+            params {
+                carmack_fast = true
+            }
+            process {
+                """
+                input[0] = [ [ id:'SK609' ], file("${baseDir}/tests/data/SK609_L5_R1.fastq.gz", checkIfExists: true) ]
+                input[1] = 'carmack_custom_seq_1_0'
+                """
+            }
+        }
+
+        then {
+            def stats = path(process.out.stats[0][1])
+                .readLines()
+                .findAll { !it.startsWith('# Report generated at:') }
+                .join('\n')
+            assertAll(
+                { assert process.success },
+                // --fast drops the local alignment stage, so the report loses its ALIGNMATCH sections.
+                { assert !stats.contains('ALIGNMATCH') },
+                { assert snapshot(stats, process.out.multiqc, process.out.versions_carmack).match() }
+            )
+        }
+    }
+}

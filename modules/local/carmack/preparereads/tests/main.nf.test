@@ -1,0 +1,75 @@
+nextflow_process {
+
+    name "Test process CARMACK_PREPAREREADS"
+    script "../main.nf"
+    process "CARMACK_PREPAREREADS"
+
+    tag "modules"
+    tag "modules_local"
+    tag "carmack"
+    tag "carmack/preparereads"
+
+    test("SK609 - r1_tgidx fastq.gz + raw R2") {
+
+        setup {
+            run("CARMACK_EXTRACTBARCODES") {
+                script "../../extractbarcodes/main.nf"
+                process {
+                    """
+                    input[0] = [ [ id:'SK609' ], file("${baseDir}/tests/data/SK609_L5_R1.fastq.gz", checkIfExists: true) ]
+                    input[1] = 'carmack_custom_seq_1_0'
+                    """
+                }
+            }
+            run("CARMACK_EXTRACTUMIS") {
+                script "../../extractumis/main.nf"
+                process {
+                    """
+                    input[0] = CARMACK_EXTRACTBARCODES.out.reads
+                    input[1] = 'carmack_custom_seq_1_0'
+                    """
+                }
+            }
+            run("CARMACK_ASSIGNTARGETS") {
+                script "../../assigntargets/main.nf"
+                process {
+                    """
+                    input[0] = CARMACK_EXTRACTUMIS.out.reads
+                    input[1] = 'carmack_custom_seq_1_0'
+                    """
+                }
+            }
+        }
+
+        when {
+            process {
+                """
+                // The raw R2 is staged under a name that a '*.r2.fastq.gz' glob over the task
+                // directory would capture alongside carmack's own per-target outputs.
+                input[0] = CARMACK_ASSIGNTARGETS.out.reads.map { meta, r1_tgidx ->
+                    def raw_r2 = file("${baseDir}/tests/data/SK609_L5_R2.fastq.gz", checkIfExists: true)
+                    [ meta, r1_tgidx, raw_r2.copyTo("${outputDir}/SK609.L5.r2.fastq.gz") ]
+                }
+                input[1] = 'carmack_custom_seq_1_0'
+                """
+            }
+        }
+
+        then {
+            // The report carries the wall-clock time it was written at, so that line alone is dropped. The
+            // lines are rejoined because nf-test resolves a bare '' in a snapshotted list as a directory path.
+            def stats = path(process.out.stats[0][1])
+                .readLines()
+                .findAll { !it.startsWith('# Report generated at:') }
+                .join('\n')
+            assertAll(
+                { assert process.success },
+                { assert snapshot(stats, process.out.targets, process.out.multiqc, process.out.versions_carmack).match() },
+                { assert process.out.scrna[0][1] ==~ /.*\/scrna\/SK609\.none\.r1\.fastq\.gz$/ },
+                { assert process.out.scrna[0][2] ==~ /.*\/scrna\/SK609\.none\.r2\.fastq\.gz$/ },
+                { assert process.out.scrna[0][3] ==~ /.*\/scrna\/SK609\.none\.barcodes\.fastq\.gz$/ },
+                { assert process.out.sctip[0][1].collect { file(it).name } == [ 'SK609.TATAGCCT.r1.fastq.gz', 'SK609.TATAGCCT.r2.fastq.gz' ] }
+            )
+        }
+    }
+}

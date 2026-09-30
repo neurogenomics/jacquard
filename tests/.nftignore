@@ -9,4 +9,17 @@ multiqc/multiqc_data/llms-full.txt
 multiqc/multiqc_plots/{svg,pdf,png}/*.{svg,pdf,png}
 multiqc/multiqc_report.html
 fastqc/*_fastqc.{html,zip}
+carmack/**/*.gz
+carmack/**/*_stats.txt
 pipeline_info/*.{html,json,txt,yml}
+star/**/*Log.*
+fastqc/prepared/**/*_fastqc.{html,zip}
+fastp/**/*.{json,html,log}
+bowtie2/**/*.log
+samtools/**/*.stats
+umitools/**/*.{bam,bai,log}
+lineardedup/**/*.{bam,bai}
+lineardedup/**/*_stats.txt
+# carmack renders its plots with whatever matplotlib the image resolved, so their bytes are not
+# stable across builds; their names still reach the snapshot through stable_path.
+carmack/**/*.png

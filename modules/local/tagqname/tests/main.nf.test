@@ -1,0 +1,70 @@
+nextflow_process {
+
+    name "Test process TAGQNAME"
+    script "../main.nf"
+    process "TAGQNAME"
+
+    tag "modules"
+    tag "modules_local"
+    tag "tagqname"
+
+    test("carmack QNAMEs become CB and UB tags") {
+
+        when {
+            process {
+                """
+                input[0] = [
+                    [ id:'SK609.TATAGCCT' ],
+                    file("${baseDir}/tests/data/sctip_qname_tagged.sam", checkIfExists: true),
+                ]
+                """
+            }
+        }
+
+        then {
+            def sam_lines = bam(process.out.bam[0][1]).getSamLines().collect { line -> line.trim() }
+            def qnames = sam_lines.collect { line -> line.tokenize('\t').first() }
+            def tags = sam_lines.collect { line -> line.tokenize('\t').findAll { field -> field.startsWith('CB:') || field.startsWith('UB:') } }
+
+            assertAll(
+                { assert process.success },
+                // `.tagged` comes from the pipeline's own ext.prefix: the sort's output and this
+                // one are the same alignments, so they cannot both be named off meta.id alone.
+                { assert file(process.out.bam[0][1]).name == 'SK609.TATAGCCT.tagged.bam' },
+                { assert qnames == [
+                    'LH00235:668:23H753LT4:5:1101:39371:1014',
+                    'LH00235:668:23H753LT4:5:1101:47882:1014',
+                ] },
+                // The asymmetry the whole module exists for: the QNAME spells the UMI `UR`, the tag is `UB`.
+                { assert tags == [
+                    [ 'CB:Z:CTTGAAGAAGATACAGAGAGTGTAGCAAGT', 'UB:Z:ATGCTCCC' ],
+                    [ 'CB:Z:AGATATCGAGACTCGCACGACTTCGTGTTA', 'UB:Z:GGTACCTG' ],
+                ] },
+                { assert sam_lines.every { line -> !line.contains('UR:') } }
+            )
+        }
+    }
+
+    test("a QNAME carrying no UMI fails the task, naming the read") {
+
+        when {
+            process {
+                """
+                input[0] = [
+                    [ id:'SK609.TATAGCCT' ],
+                    file("${baseDir}/tests/data/sctip_qname_malformed.sam", checkIfExists: true),
+                ]
+                """
+            }
+        }
+
+        then {
+            assertAll(
+                // A read carrying no UMI is a broken library, not a read to drop: dedup would
+                // otherwise collapse every such read into one and report nothing about it.
+                { assert process.failed },
+                { assert process.errorReport.contains('LH00235:668:23H753LT4:5:1101:47882:1014|CB=AGATATCGAGACTCGCACGACTTCGTGTTA') }
+            )
+        }
+    }
+}

@@ -1,0 +1,52 @@
+name: "tagqname"
+description: Move carmack's pipe-delimited QNAME fields into CB and UB BAM tags
+keywords:
+  - single-cell
+  - multiome
+  - barcode
+  - umi
+  - bam
+tools:
+  - "pysam":
+      description: "Python interface to htslib for reading and writing SAM/BAM/CRAM"
+      homepage: "https://github.com/pysam-developers/pysam"
+      documentation: "https://pysam.readthedocs.io/"
+      tool_dev_url: "https://github.com/pysam-developers/pysam"
+
+input:
+  - - meta:
+        type: map
+        description: |
+          Groovy Map containing sample information, e.g. `[ id:'sample1.TATAGCCT' ]`
+    - bam:
+        type: file
+        description: Aligned reads whose QNAMEs are still `readid|CB=<barcode>|UR=<umi>`
+        pattern: "*.{bam,sam,cram}"
+
+output:
+  bam:
+    - - meta:
+          type: map
+          description: |
+            Groovy Map containing sample information, e.g. `[ id:'sample1.TATAGCCT' ]`
+      - "*.bam":
+          type: file
+          description: The same alignments with a bare QNAME and `CB`/`UB` tags
+          pattern: "*.bam"
+  versions_pysam:
+    - - "${task.process}":
+          type: string
+          description: Name of the emitting process
+      - "pysam":
+          type: string
+          description: Name of the tool
+      - version:
+          type: string
+          description: Version of pysam, emitted on the `versions` topic
+
+authors:
+  - "@HDash"
+  - "@chris-cheshire"
+maintainers:
+  - "@HDash"
+  - "@chris-cheshire"

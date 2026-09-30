@@ -1,0 +1,2 @@
+sample,fastq_1,fastq_2
+SK609,tests/data/SK609_L5_R1.fastq.gz,tests/data/SK609_L5_R2.fastq.gz

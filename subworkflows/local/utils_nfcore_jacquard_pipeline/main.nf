@@ -91,8 +91,26 @@ workflow PIPELINE_INITIALISATION {
     // Create channel from input file provided through params.input
     //
 
+    def rows = samplesheetToList(input, "${projectDir}/assets/schema_input.json")
+
+    //
+    // A FASTQ belongs to exactly one row. The schema's (sample, fastq_1) uniqueness cannot see a
+    // lane's R2 repeated under a new R1, or one file listed under two sample names, and a sample's
+    // rows are concatenated lane by lane: a repeated R2 builds a merged R2 that no longer matches its
+    // R1, which carmack's paired reader only discovers hours into the run. Checked here, before any
+    // task is submitted.
+    //
+    def rows_by_fastq = [:]
+    rows.each { meta, fastq_1, fastq_2 ->
+        [ fastq_1, fastq_2 ].findAll { fastq -> fastq }.each { fastq -> rows_by_fastq.get(fastq.toString(), []) << meta.id }
+    }
+    def repeated = rows_by_fastq.findAll { _fastq, samples -> samples.size() > 1 }
+    if (repeated) {
+        error("Please check input samplesheet -> A FASTQ appears on more than one row: " + repeated.collect { fastq, samples -> "${fastq} (sample(s) ${samples.unique().join(', ')})" }.join('; '))
+    }
+
     channel
-        .fromList(samplesheetToList(input, "${projectDir}/assets/schema_input.json"))
+        .fromList(rows)
         .map {
             meta, fastq_1, fastq_2 ->
                 if (!fastq_2) {
@@ -178,6 +196,12 @@ def validateInputParameters() {
 //
 def validateInputSamplesheet(input) {
     def (metas, fastqs) = input[1..2]
+
+    // Rows sharing a sample name are merged as lanes of one library, with nothing to tell two
+    // libraries given one name by mistake from lanes of one, so each merge is named in the log.
+    if (metas.size() > 1) {
+        log.info("Sample '${metas[0].id}' spans ${metas.size()} samplesheet rows; they are concatenated, in samplesheet order, as lanes of one library.")
+    }
 
     // Check that multiple runs of the same sample are of the same datatype i.e. single-end / paired-end
     def endedness_ok = metas.collect{ meta -> meta.single_end }.unique().size == 1

@@ -1,0 +1,58 @@
+nextflow_process {
+
+    name "Test process CARMACK_ASSIGNTARGETS"
+    script "../main.nf"
+    process "CARMACK_ASSIGNTARGETS"
+
+    tag "modules"
+    tag "modules_local"
+    tag "carmack"
+    tag "carmack/assigntargets"
+
+    test("SK609 - r1_umi fastq.gz") {
+
+        setup {
+            run("CARMACK_EXTRACTBARCODES") {
+                script "../../extractbarcodes/main.nf"
+                process {
+                    """
+                    input[0] = [ [ id:'SK609' ], file("${baseDir}/tests/data/SK609_L5_R1.fastq.gz", checkIfExists: true) ]
+                    input[1] = 'carmack_custom_seq_1_0'
+                    """
+                }
+            }
+            run("CARMACK_EXTRACTUMIS") {
+                script "../../extractumis/main.nf"
+                process {
+                    """
+                    input[0] = CARMACK_EXTRACTBARCODES.out.reads
+                    input[1] = 'carmack_custom_seq_1_0'
+                    """
+                }
+            }
+        }
+
+        when {
+            process {
+                """
+                input[0] = CARMACK_EXTRACTUMIS.out.reads
+                input[1] = 'carmack_custom_seq_1_0'
+                """
+            }
+        }
+
+        then {
+            // The report carries the wall-clock time it was written at, so that line alone is dropped. The
+            // lines are rejoined because nf-test resolves a bare '' in a snapshotted list as a directory path.
+            def stats = path(process.out.stats[0][1])
+                .readLines()
+                .findAll { !it.startsWith('# Report generated at:') }
+                .join('\n')
+            assertAll(
+                { assert process.success },
+                { assert snapshot(stats, process.out.multiqc, process.out.versions_carmack).match() },
+                { assert process.out.reads[0][1] ==~ /.*\/SK609\.r1_tgidx\.fastq\.gz$/ }
+            )
+        }
+    }
+}

@@ -20,17 +20,6 @@ include { getGenomeAttribute      } from './subworkflows/local/utils_nfcore_jacq
 
 /*
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-    GENOME PARAMETER VALUES
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-*/
-
-// TODO nf-core: Remove this line if you don't need a FASTA file
-//   This is an example of how to use getGenomeAttribute() to fetch parameters
-//   from igenomes.config using `--genome`
-params.fasta = getGenomeAttribute('fasta')
-
-/*
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     NAMED WORKFLOWS FOR PIPELINE
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 */
@@ -48,8 +37,18 @@ workflow NEUROGENOMICS_JACQUARD {
     //
     // WORKFLOW: Run pipeline
     //
+    // The three references are resolved here and handed down rather than written back into
+    // `params`: a script-level `params.x = ...` assignment is not visible to an included script,
+    // so `--genome` would reach the workflow as a silent null. Whatever a config file or the
+    // command line set wins, and igenomes fills in only what they left empty.
     JACQUARD (
         samplesheet,
+        params.chemistry,
+        params.stop_after,
+        params.fasta ?: getGenomeAttribute('fasta'),
+        params.gtf ?: getGenomeAttribute('gtf'),
+        params.star_index ?: getGenomeAttribute('star'),
+        params.bowtie2_index ?: getGenomeAttribute('bowtie2'),
         params.multiqc_config,
         params.multiqc_logo,
         params.multiqc_methods_description,

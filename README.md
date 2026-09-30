@@ -1,38 +1,54 @@
 # neurogenomics/jacquard
 
-[![Open in GitHub Codespaces](https://img.shields.io/badge/Open_In_GitHub_Codespaces-black?labelColor=grey&logo=github)](https://github.com/codespaces/new/neurogenomics/jacquard)
 [![GitHub Actions CI Status](https://github.com/neurogenomics/jacquard/actions/workflows/nf-test.yml/badge.svg)](https://github.com/neurogenomics/jacquard/actions/workflows/nf-test.yml)
-[![GitHub Actions Linting Status](https://github.com/neurogenomics/jacquard/actions/workflows/linting.yml/badge.svg)](https://github.com/neurogenomics/jacquard/actions/workflows/linting.yml)[![Cite with Zenodo](http://img.shields.io/badge/DOI-10.5281/zenodo.XXXXXXX-1073c8?labelColor=000000)](https://doi.org/10.5281/zenodo.XXXXXXX)
+[![GitHub Actions Linting Status](https://github.com/neurogenomics/jacquard/actions/workflows/linting.yml/badge.svg)](https://github.com/neurogenomics/jacquard/actions/workflows/linting.yml)
 [![nf-test](https://img.shields.io/badge/unit_tests-nf--test-337ab7.svg)](https://www.nf-test.com)
 
+[![Version](https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fraw.githubusercontent.com%2Fneurogenomics%2Fjacquard%2Fmain%2F.release-please-manifest.json&query=%24%5B'.'%5D&label=version&prefix=v&color=blue)](https://github.com/neurogenomics/jacquard/releases)
 [![Nextflow](https://img.shields.io/badge/version-%E2%89%A525.10.4-green?style=flat&logo=nextflow&logoColor=white&color=%230DC09D&link=https%3A%2F%2Fnextflow.io)](https://www.nextflow.io/)
 [![nf-core template version](https://img.shields.io/badge/nf--core_template-4.1.0-green?style=flat&logo=nfcore&logoColor=white&color=%2324B064&link=https%3A%2F%2Fnf-co.re)](https://github.com/nf-core/tools/releases/tag/4.1.0)
 [![run with conda](http://img.shields.io/badge/run%20with-conda-3EB049?labelColor=000000&logo=anaconda)](https://docs.conda.io/en/latest/)
 [![run with docker](https://img.shields.io/badge/run%20with-docker-0db7ed?labelColor=000000&logo=docker)](https://www.docker.com/)
 [![run with singularity](https://img.shields.io/badge/run%20with-singularity-1d355c.svg?labelColor=000000)](https://sylabs.io/docs/)
-[![Launch on Seqera Platform](https://img.shields.io/badge/Launch%20%F0%9F%9A%80-Seqera%20Platform-%234256e7)](https://cloud.seqera.io/launch?pipeline=https://github.com/neurogenomics/jacquard)
+
+> [!WARNING]
+> **jacquard is incomplete and under active development.** Its inputs, parameters, outputs and
+> defaults may change without notice between versions. For the latest changes, see the
+> [`dev`](https://github.com/neurogenomics/jacquard/tree/dev) branch.
 
 ## Introduction
 
-**neurogenomics/jacquard** is a bioinformatics pipeline that ...
+**neurogenomics/jacquard** is a bioinformatics pipeline for scMultiome libraries that carry both a
+single-cell RNA readout and one or more scTIP target indices in the same pool. It prepares the reads with
+[`carmack`](https://github.com/neurogenomics/carmack), splits each sample into one arm per target
+index plus an scRNA arm, gates each arm on its read count, and then quantifies the scRNA arm with STARsolo
+and aligns and deduplicates every scTIP arm. It produces per-arm count matrices or deduplicated BAMs and a
+single MultiQC report over the whole run.
 
-<!-- TODO nf-core:
-   Complete this sentence with a 2-3 sentence summary of what types of data the pipeline ingests, a brief overview of the
-   major pipeline sections and the types of output it produces. You're giving an overview to someone new
-   to nf-core here, in 15-20 seconds. For an example, see https://github.com/nf-core/rnaseq/blob/master/README.md#introduction
--->
+<p align="center">
+  <img src="docs/images/jacquard_metro.svg" alt="neurogenomics/jacquard workflow" width="100%">
+</p>
 
-<!-- TODO nf-core: Include a figure that guides the user through the major workflow steps. Many nf-core
-     workflows use the "tube map" design for that. See https://nf-co.re/docs/community/brand/workflow-schematics#examples for examples.   -->
-<!-- TODO nf-core: Fill in short bullet-pointed list of the default steps in the pipeline -->1. Read QC ([`FastQC`](https://www.bioinformatics.babraham.ac.uk/projects/fastqc/))2. Present QC for raw reads ([`MultiQC`](http://multiqc.info/))
+1. Read QC ([`FastQC`](https://www.bioinformatics.babraham.ac.uk/projects/fastqc/))
+2. Barcode, UMI and target-index extraction, and per-arm read preparation ([`carmack`](https://github.com/neurogenomics/carmack))
+3. Arm fan-out and a per-arm read-count gate
+4. scRNA arm: per-arm FastQC and quantification ([`STARsolo`](https://github.com/alexdobin/STAR))
+5. scTIP arm: adapter trimming against the chemistry's own sequences ([`fastp`](https://github.com/OpenGene/fastp)), per-arm FastQC, alignment ([`bowtie2`](https://bowtie-bio.sourceforge.net/bowtie2/)) and per-cell deduplication, by UMI ([`UMI-tools`](https://github.com/CGATOxford/UMI-tools)) and then by insertion site ([`carmack`](https://github.com/neurogenomics/carmack))
+6. Aggregate report ([`MultiQC`](http://multiqc.info/))
+
+### Planned additions
+
+The following are planned but not yet part of the pipeline:
+
+- **Cell calling**, jointly across the scRNA and scTIP arms
+- **Peak calling** on the scTIP arms
+- **scRNA filtering**: doublet detection, ambient RNA removal and similar clean-up
+- **Late-stage QC**
 
 ## Usage
 
 > [!NOTE]
 > If you are new to Nextflow and nf-core, please refer to [this page](https://nf-co.re/docs/get_started/environment_setup/overview) on how to set-up Nextflow. Make sure to [test your setup](https://nf-co.re/docs/get_started/run-your-first-pipeline) with `-profile test` before running the workflow on actual data.
-
-<!-- TODO nf-core: Describe the minimum required steps to execute the pipeline, e.g. how to prepare samplesheets.
-     Explain what rows and columns represent. For instance (please edit as appropriate):
 
 First, prepare a samplesheet with your input data that looks as follows:
 
@@ -41,20 +57,22 @@ First, prepare a samplesheet with your input data that looks as follows:
 ```csv
 sample,fastq_1,fastq_2
 CONTROL_REP1,AEG588A1_S1_L002_R1_001.fastq.gz,AEG588A1_S1_L002_R2_001.fastq.gz
+CONTROL_REP2,AEG588A2_S2_L001_R1_001.fastq.gz,AEG588A2_S2_L001_R2_001.fastq.gz
+CONTROL_REP2,AEG588A2_S2_L002_R1_001.fastq.gz,AEG588A2_S2_L002_R2_001.fastq.gz
 ```
 
-Each row represents a fastq file (single-end) or a pair of fastq files (paired end).
-
--->
+Each row is one R1/R2 pair and all three columns are mandatory. Repeat a sample name to list the
+flowcell lanes it was sequenced across, as `CONTROL_REP2` does; they are concatenated into one pair
+before read preparation — see [usage.md](docs/usage.md) for the full contract.
 
 Now, you can run the pipeline using:
-
-<!-- TODO nf-core: update the following command to include all required parameters for a minimal example -->
 
 ```bash
 nextflow run neurogenomics/jacquard \
    -profile <docker/singularity/.../institute> \
    --input samplesheet.csv \
+   --fasta genome.fa \
+   --gtf genes.gtf \
    --outdir <OUTDIR>
 ```
 
@@ -75,7 +93,7 @@ If you would like to contribute to this pipeline, please see the [contributing g
 
 ## Citations
 
-<!-- TODO nf-core: Add citation for pipeline after first release. Uncomment lines below and update Zenodo doi and badge at the top of this file. -->
+<!-- TODO nf-core: Add citation for pipeline after first release. Uncomment lines below and update Zenodo doi. -->
 <!-- If you use neurogenomics/jacquard for your analysis, please cite it using the following doi: [10.5281/zenodo.XXXXXX](https://doi.org/10.5281/zenodo.XXXXXX) -->
 
 <!-- TODO nf-core: Add bibliography of tools and data used in your pipeline -->

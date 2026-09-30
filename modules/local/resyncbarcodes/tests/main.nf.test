@@ -1,0 +1,72 @@
+nextflow_process {
+
+    name "Test process RESYNCBARCODES"
+    script "../main.nf"
+    process "RESYNCBARCODES"
+
+    tag "modules"
+    tag "modules_local"
+    tag "resyncbarcodes"
+
+    test("the barcode stream follows the reads that survived trimming") {
+
+        when {
+            process {
+                """
+                input[0] = [
+                    [ id:'SK609.none' ],
+                    file("${baseDir}/tests/data/scrna_trimmed_r1.fastq.gz", checkIfExists: true),
+                    file("${baseDir}/tests/data/scrna_barcodes.fastq.gz", checkIfExists: true),
+                ]
+                """
+            }
+        }
+
+        then {
+            def lines = path(process.out.barcodes[0][1]).linesGzip
+            def headers = lines.withIndex().findAll { _line, index -> index % 4 == 0 }.collect { line, _index -> line.substring(1) }
+            def sequences = lines.withIndex().findAll { _line, index -> index % 4 == 1 }.collect { line, _index -> line }
+
+            assertAll(
+                { assert process.success },
+                { assert file(process.out.barcodes[0][1]).name == 'SK609.none.resynced.barcodes.fastq.gz' },
+                // The middle read is the one the trimmed cDNA file no longer carries, so its
+                // barcode record is what has to be gone: STARsolo pairs the two files positionally,
+                // and leaving it in would reassign every later read to the wrong cell.
+                { assert headers == [
+                    'LH00235:668:23H753LT4:5:1101:39371:1014',
+                    'LH00235:668:23H753LT4:5:1101:51232:1014',
+                ] },
+                // Verbatim, down to the barcode and UMI STARsolo reads off fixed offsets of it.
+                { assert sequences == [
+                    'CTTGAAGAAGATACAGAGAGTGTAGCAAGTATGCTCCC',
+                    'TCTCGCGCGTATCTGCCAGTAAGGACTAACCAGTTGAC',
+                ] }
+            )
+        }
+    }
+
+    test("a read the barcode stream never carried fails the task, naming the read") {
+
+        when {
+            process {
+                """
+                input[0] = [
+                    [ id:'SK609.none' ],
+                    file("${baseDir}/tests/data/scrna_trimmed_r1.fastq.gz", checkIfExists: true),
+                    file("${baseDir}/tests/data/scrna_barcodes_truncated.fastq.gz", checkIfExists: true),
+                ]
+                """
+            }
+        }
+
+        then {
+            assertAll(
+                // A barcode file that cannot cover the reads is a broken pairing, not a read to
+                // drop: STARsolo would still produce a whole matrix, keyed on the wrong cells.
+                { assert process.failed },
+                { assert process.errorReport.contains('LH00235:668:23H753LT4:5:1101:51232:1014') }
+            )
+        }
+    }
+}

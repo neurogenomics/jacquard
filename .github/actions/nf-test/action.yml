@@ -56,6 +56,22 @@ runs:
         channel-priority: strict
         conda-remove-defaults: true
 
+    # The carmack-derived modules run ghcr.io/neurogenomics/carmack:sha-<7>, which must name the
+    # external/carmack pin. Each carmack stats file opens with `# Carmack version: 0.0.0+<sha>` and
+    # the snapshots record the pin's sha, so a module left on another tag after a bump fails its
+    # snapshots with no hint of the cause. Checking first turns that into one error that names it,
+    # as `just carmack-image` does locally.
+    - name: Check every carmack container names the submodule pin
+      shell: bash
+      run: |
+        expected="ghcr.io/neurogenomics/carmack:sha-$(git ls-tree HEAD external/carmack | awk '{print $3}' | cut -c1-7)"
+        tags=$(grep -rhoE 'ghcr\.io/neurogenomics/carmack:[A-Za-z0-9._-]+' modules/ conf/ | sort -u)
+        if [ "$tags" != "$expected" ]; then
+          echo "::error::Every carmack container directive must be $expected; the modules name: $(echo $tags)"
+          exit 1
+        fi
+        echo "Modules and external/carmack agree on $expected."
+
     - name: Run nf-test
       shell: bash
       env:

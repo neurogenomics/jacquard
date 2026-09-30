@@ -1,0 +1,93 @@
+nextflow_process {
+
+    name "Test process CARMACK_EXTRACTUMIS"
+    script "../main.nf"
+    process "CARMACK_EXTRACTUMIS"
+
+    tag "modules"
+    tag "modules_local"
+    tag "carmack"
+    tag "carmack/extractumis"
+
+    test("SK609 - r1_annotated fastq.gz") {
+
+        setup {
+            run("CARMACK_EXTRACTBARCODES") {
+                script "../../extractbarcodes/main.nf"
+                process {
+                    """
+                    input[0] = [ [ id:'SK609' ], file("${baseDir}/tests/data/SK609_L5_R1.fastq.gz", checkIfExists: true) ]
+                    input[1] = 'carmack_custom_seq_1_0'
+                    """
+                }
+            }
+        }
+
+        when {
+            process {
+                """
+                input[0] = CARMACK_EXTRACTBARCODES.out.reads
+                input[1] = 'carmack_custom_seq_1_0'
+                """
+            }
+        }
+
+        then {
+            // The report carries the wall-clock time it was written at, so that line alone is dropped. The
+            // lines are rejoined because nf-test resolves a bare '' in a snapshotted list as a directory path.
+            def stats = path(process.out.stats[0][1])
+                .readLines()
+                .findAll { !it.startsWith('# Report generated at:') }
+                .join('\n')
+            assertAll(
+                { assert process.success },
+                { assert snapshot(stats, process.out.multiqc, process.out.versions_carmack).match() },
+                { assert process.out.reads[0][1] ==~ /.*\/SK609\.r1_umi\.fastq\.gz$/ }
+            )
+        }
+    }
+
+    test("SK609 - r1_annotated fastq.gz - meta.id drives the prefix") {
+
+        setup {
+            run("CARMACK_EXTRACTBARCODES") {
+                script "../../extractbarcodes/main.nf"
+                process {
+                    """
+                    input[0] = [ [ id:'SK609' ], file("${baseDir}/tests/data/SK609_L5_R1.fastq.gz", checkIfExists: true) ]
+                    input[1] = 'carmack_custom_seq_1_0'
+                    """
+                }
+            }
+        }
+
+        when {
+            process {
+                """
+                // carmack derives its prefix from the input filename unless told otherwise, so an id
+                // that has diverged from the filename is what shows the --prefix is being passed.
+                input[0] = CARMACK_EXTRACTBARCODES.out.reads.map { _meta, r1_annotated ->
+                    [ [ id:'renamed' ], r1_annotated ]
+                }
+                input[1] = 'carmack_custom_seq_1_0'
+                """
+            }
+        }
+
+        then {
+            def stats_mqc = process.out.multiqc[0][1].find { it.endsWith('umi_general_stats_mqc.json') }
+            assertAll(
+                { assert process.success },
+                { assert process.out.reads[0][1] ==~ /.*\/renamed\.r1_umi\.fastq\.gz$/ },
+                { assert process.out.stats[0][1] ==~ /.*\/renamed\.umi_stats\.txt$/ },
+                { assert process.out.multiqc[0][1].collect { file(it).name } == [
+                    'renamed.umi_anchor_run_mqc.json',
+                    'renamed.umi_breakdown_mqc.json',
+                    'renamed.umi_general_stats_mqc.json',
+                ] },
+                // The prefix is also the MultiQC sample key, which is the reason it must not drift.
+                { assert path(stats_mqc).text.contains('"renamed"') }
+            )
+        }
+    }
+}
