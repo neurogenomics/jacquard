@@ -66,12 +66,10 @@ jobs:
       fail-fast: false
       matrix:
         shard: ${{ fromJson(needs.nf-test-changes.outputs.shard) }}
-        # docker only, deliberately. Every carmack-dependent local module declares
-        # `ghcr.io/crick-pipelines-stp/carmack:local` and no `conda` directive. The docker leg
-        # builds that tag from the pinned submodule (see .github/actions/nf-test/action.yml), which
-        # conda and singularity cannot do: carmack has no conda package, and its GHCR package is
-        # private, so apptainer has nothing to pull. The carmack-profile-gap job reports that the
-        # conda and singularity profiles are not run; see issue #10.
+        # docker only, deliberately. Every carmack-dependent local module declares the public
+        # `ghcr.io/neurogenomics/carmack:main` image and no `conda` directive, so conda cannot run
+        # them at all: carmack has no conda package. Singularity could pull that image but has no
+        # leg here yet. The carmack-profile-gap job reports both profiles as not run.
         profile: [docker]
         NXF_VER:
           - "25.10.4"
@@ -130,7 +128,7 @@ jobs:
           path: pr-comment-fragment/
 
   # Announce the coverage hole rather than leaving it to whoever reads the matrix: the conda and
-  # singularity profiles are untested here, and the reason is external to this repo.
+  # singularity profiles are untested here.
   carmack-profile-gap:
     name: "conda + singularity | not run"
     needs: [nf-test-changes]
@@ -140,20 +138,18 @@ jobs:
     steps:
       - name: Report the skipped profiles
         run: |
-          echo "::warning::The conda and singularity profiles are not run at all, because nearly every test needs carmack: it has no conda package, and its GHCR image is private so apptainer cannot pull it. Only the docker profile is tested."
+          echo "::warning::The conda and singularity profiles are not run. Nearly every test needs carmack, which has no conda package, and no singularity leg has been added yet. Only the docker profile is tested."
           {
             echo "## ⚠️ conda and singularity profiles not run"
             echo ""
-            echo "Every carmack-derived module runs from \`ghcr.io/crick-pipelines-stp/carmack:local\`,"
-            echo "built on the docker legs from the pinned \`external/carmack\` submodule."
+            echo "Every carmack-derived module runs from \`ghcr.io/neurogenomics/carmack:main\`,"
+            echo "checked on the docker legs against the pinned \`external/carmack\` submodule."
             echo ""
             echo "| Profile | nf-test | Why |"
             echo "|---------|---------------|-----|"
-            echo "| \`docker\` | run | image built from the submodule pin |"
+            echo "| \`docker\` | run | public image, checked against the submodule pin |"
             echo "| \`conda\` | not run | carmack has no conda package |"
-            echo "| \`singularity\` | not run | carmack's GHCR package is private; nothing to pull |"
-            echo ""
-            echo "Lifting this needs a public carmack image or a conda recipe — see issue #10."
+            echo "| \`singularity\` | not run | the image is pullable, but no singularity leg exists yet |"
           } >> $GITHUB_STEP_SUMMARY
 
   confirm-pass:

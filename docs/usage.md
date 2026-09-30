@@ -4,7 +4,7 @@
 
 ## Introduction
 
-jacquard prepares scMultiome reads with [carmack](https://github.com/crick-pipelines-stp/carmack), then fans
+jacquard prepares scMultiome reads with [carmack](https://github.com/neurogenomics/carmack), then fans
 each sample out into one **scRNA arm** and one **scTIP arm** per target index found in the library, gating
 each arm on its read count before aligning it. See [output.md](output.md) for what each arm writes.
 

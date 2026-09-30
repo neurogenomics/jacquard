@@ -2,7 +2,7 @@ process CARMACK_PREPAREREADS {
     tag "$meta.id"
     label 'process_medium'
 
-    container 'ghcr.io/crick-pipelines-stp/carmack:local'
+    container 'ghcr.io/neurogenomics/carmack:main'
 
     input:
     tuple val(meta), path(r1_tgidx), path(r2)

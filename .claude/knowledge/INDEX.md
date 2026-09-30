@@ -4,7 +4,7 @@ Durable, hard-won facts about this pipeline — one file per fact, linked from h
 Add an entry when something cost real time to work out and would cost it again.
 
 - [A container without procps breaks every task](carmack-container-needs-procps.md) — Nextflow exits 1 without `ps`, blaming the wrong command; carmack ships it since `24f7fbb`.
-- [carmack:local is one global docker tag](carmack-image-tag-is-global.md) — two worktrees on different pins silently clobber each other's image.
+- [The carmack image is `:main`](carmack-image-main-tag.md) — it moves with carmack's main; bump the submodule pin to match or every carmack snapshot fails.
 - [nf-test samplesheet paths](nf-test-samplesheet-paths.md) — launchDir differs under nf-test; use `Fixtures.absolutise`.
 - [Never snapshot lines that can be blank](nf-test-snapshot-blank-lines.md) — nf-test resolves `''` as a directory and inlines its listing.
 - [nf-test md5 decompresses gzip](nf-test-md5-decompresses-gzip.md) — content-identical `.gz` files hash the same; use raw bytes for byte-identity.

@@ -21,7 +21,7 @@
 
 **neurogenomics/jacquard** is a bioinformatics pipeline for scMultiome libraries that carry both a
 single-cell RNA readout and one or more scTIP target indices in the same pool. It prepares the reads with
-[`carmack`](https://github.com/crick-pipelines-stp/carmack), splits each sample into one arm per target
+[`carmack`](https://github.com/neurogenomics/carmack), splits each sample into one arm per target
 index plus an scRNA arm, gates each arm on its read count, and then quantifies the scRNA arm with STARsolo
 and aligns and deduplicates every scTIP arm. It produces per-arm count matrices or deduplicated BAMs and a
 single MultiQC report over the whole run.
@@ -31,10 +31,10 @@ single MultiQC report over the whole run.
 </p>
 
 1. Read QC ([`FastQC`](https://www.bioinformatics.babraham.ac.uk/projects/fastqc/))
-2. Barcode, UMI and target-index extraction, and per-arm read preparation ([`carmack`](https://github.com/crick-pipelines-stp/carmack))
+2. Barcode, UMI and target-index extraction, and per-arm read preparation ([`carmack`](https://github.com/neurogenomics/carmack))
 3. Arm fan-out and a per-arm read-count gate
 4. scRNA arm: per-arm FastQC and quantification ([`STARsolo`](https://github.com/alexdobin/STAR))
-5. scTIP arm: adapter trimming against the chemistry's own sequences ([`fastp`](https://github.com/OpenGene/fastp)), per-arm FastQC, alignment ([`bowtie2`](https://bowtie-bio.sourceforge.net/bowtie2/)) and per-cell deduplication, by UMI ([`UMI-tools`](https://github.com/CGATOxford/UMI-tools)) and then by insertion site ([`carmack`](https://github.com/crick-pipelines-stp/carmack))
+5. scTIP arm: adapter trimming against the chemistry's own sequences ([`fastp`](https://github.com/OpenGene/fastp)), per-arm FastQC, alignment ([`bowtie2`](https://bowtie-bio.sourceforge.net/bowtie2/)) and per-cell deduplication, by UMI ([`UMI-tools`](https://github.com/CGATOxford/UMI-tools)) and then by insertion site ([`carmack`](https://github.com/neurogenomics/carmack))
 6. Aggregate report ([`MultiQC`](http://multiqc.info/))
 
 ## Usage
