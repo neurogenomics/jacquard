@@ -37,6 +37,15 @@ single MultiQC report over the whole run.
 5. scTIP arm: adapter trimming against the chemistry's own sequences ([`fastp`](https://github.com/OpenGene/fastp)), per-arm FastQC, alignment ([`bowtie2`](https://bowtie-bio.sourceforge.net/bowtie2/)) and per-cell deduplication, by UMI ([`UMI-tools`](https://github.com/CGATOxford/UMI-tools)) and then by insertion site ([`carmack`](https://github.com/neurogenomics/carmack))
 6. Aggregate report ([`MultiQC`](http://multiqc.info/))
 
+### Planned additions
+
+The following are planned but not yet part of the pipeline:
+
+- **Cell calling**, jointly across the scRNA and scTIP arms
+- **Peak calling** on the scTIP arms
+- **scRNA filtering**: doublet detection, ambient RNA removal and similar clean-up
+- **Late-stage QC**
+
 ## Usage
 
 > [!NOTE]
