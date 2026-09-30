@@ -15,7 +15,7 @@
 %%metro file:  star_gtf   | GTF        | Annotation
 %%metro file:  bt2_fasta  | FASTA      | Reference
 %%metro dir:   solo_out   | Solo.out   | Count matrices
-%%metro file:  solo_bam   | BAM        | CB/UB-tagged BAM (--solo_bam)
+%%metro file:  solo_bam   | BAM        | CB/UB-tagged BAM\n(--solo_bam)
 %%metro files: dedup_out  | BAM        | Deduplicated | banner
 %%metro file:  report_out | HTML       | MultiQC report
 %%metro off_track: prep_out, gate_out, star_fasta, star_gtf, bt2_fasta, solo_bam, dedup_out
@@ -62,10 +62,10 @@ graph LR
     subgraph readprep[Pre-processing]
         merge_lanes[Merge lanes]
         fastqc_raw[FastQC]
-        extract_barcodes[carmack extract-barcodes]
-        extract_umis[carmack extract-umis]
-        assign_targets[carmack assign-targets]
-        prepare_reads[carmack prepare-reads]
+        extract_barcodes[carmack\nextract-barcodes]
+        extract_umis[carmack\nextract-umis]
+        assign_targets[carmack\nassign-targets]
+        prepare_reads[carmack\nprepare-reads]
         prep_out[ ]
         arm_gate[Read-count gate]
         gate_out[ ]
@@ -85,10 +85,10 @@ graph LR
         resync_barcodes[Resync barcodes]
         star_fasta[ ]
         star_gtf[ ]
-        star_index[STAR genomeGenerate]
+        star_index[STAR\ngenomeGenerate]
         star_align[STARsolo]
         solo_out[ ]
-        solo_index[samtools index]
+        solo_index[samtools\nindex]
         solo_bam[ ]
         fastp_scrna -->|scrna| fastqc_scrna
         fastqc_scrna -->|scrna| resync_barcodes
@@ -107,9 +107,9 @@ graph LR
         bt2_fasta[ ]
         bt2_build[bowtie2-build]
         bt2_align[bowtie2]
-        tagqname[QNAME → CB/UB tags]
+        tagqname[QNAME →\nCB/UB tags]
         umi_dedup[umi_tools dedup]
-        linear_dedup[carmack linear-dedup]
+        linear_dedup[carmack\nlinear-dedup]
         sctip_stats[samtools stats]
         dedup_out[ ]
         fastp_sctip -->|sctip| fastqc_sctip
