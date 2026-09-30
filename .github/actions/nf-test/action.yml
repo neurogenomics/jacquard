@@ -56,24 +56,21 @@ runs:
         channel-priority: strict
         conda-remove-defaults: true
 
-    # The carmack-derived modules run ghcr.io/neurogenomics/carmack:main, which moves with every
-    # push to carmack's main. Each carmack stats file opens with `# Carmack version: 0.0.0+<sha>`
-    # and the snapshots record the external/carmack pin's sha, so an image from any other commit
-    # fails every carmack snapshot at once. Checking the pin first turns that into one error that
-    # names the cause, as `just carmack-image` does locally.
-    - name: Check the carmack image matches the submodule pin
-      if: contains(inputs.profile, 'docker')
+    # The carmack-derived modules run ghcr.io/neurogenomics/carmack:sha-<7>, which must name the
+    # external/carmack pin. Each carmack stats file opens with `# Carmack version: 0.0.0+<sha>` and
+    # the snapshots record the pin's sha, so a module left on another tag after a bump fails its
+    # snapshots with no hint of the cause. Checking first turns that into one error that names it,
+    # as `just carmack-image` does locally.
+    - name: Check every carmack container names the submodule pin
       shell: bash
       run: |
-        image=ghcr.io/neurogenomics/carmack:main
-        docker pull -q "$image" >/dev/null
-        got=$(docker run --rm "$image" carmack --version 2>/dev/null | tail -1 | sed 's/.*+//')
-        pin=$(git ls-tree HEAD external/carmack | awk '{print $3}' | cut -c1-7)
-        if [ "$got" != "$pin" ]; then
-          echo "::error::$image is carmack $got but external/carmack pins $pin. Bump the submodule to carmack's main and refresh the snapshots."
+        expected="ghcr.io/neurogenomics/carmack:sha-$(git ls-tree HEAD external/carmack | awk '{print $3}' | cut -c1-7)"
+        tags=$(grep -rhoE 'ghcr\.io/neurogenomics/carmack:[A-Za-z0-9._-]+' modules/ conf/ | sort -u)
+        if [ "$tags" != "$expected" ]; then
+          echo "::error::Every carmack container directive must be $expected; the modules name: $(echo $tags)"
           exit 1
         fi
-        echo "$image is carmack $got, matching the submodule pin."
+        echo "Modules and external/carmack agree on $expected."
 
     - name: Run nf-test
       shell: bash

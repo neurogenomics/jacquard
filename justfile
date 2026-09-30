@@ -1,8 +1,10 @@
 set shell := ["bash", "-eu", "-o", "pipefail", "-c"]
 
-# The image every carmack-derived module declares. carmack's CI publishes it on each push to main;
-# the external/carmack submodule records which of those commits the snapshots were taken against.
-CARMACK_IMAGE := "ghcr.io/neurogenomics/carmack:main"
+# The image every carmack-derived module declares: carmack's CI publishes `sha-<7>` for each tested
+# commit on its main and never moves it, so the tag names the external/carmack pin exactly. Read
+# from the index rather than the submodule's working tree, so a bump counts once it is staged.
+CARMACK_PIN := `git ls-files -s external/carmack | cut -d' ' -f2 | cut -c1-7`
+CARMACK_IMAGE := "ghcr.io/neurogenomics/carmack:sha-" + CARMACK_PIN
 
 default: dev
 
@@ -36,23 +38,25 @@ nf-lint:
 nf-test *ARGS="": carmack-image
     nf-test test --profile=+docker {{ARGS}}
 
-# Pull the carmack image the modules run. `:main` moves with every push to carmack's main and
-# docker never re-pulls a tag it already holds, so without the pull a stale local copy would run.
-# Every carmack stats file opens with `# Carmack version: 0.0.0+<sha>` and the snapshots record the
-# submodule pin's sha, so an image built from any other commit fails every carmack snapshot. The
-# recipe stops on that mismatch rather than letting nf-test report it as forty unrelated diffs.
+# Check every module names the pinned carmack image, then pull it. Every carmack stats file opens
+# with `# Carmack version: 0.0.0+<sha>` and the snapshots record the pin's sha, so a module left on
+# an older tag after a bump fails its snapshots with no hint of the cause. A failed pull means the
+# pin has no published image: carmack publishes only commits that reach its main.
 carmack-image:
     #!/usr/bin/env bash
     set -euo pipefail
-    docker pull -q {{CARMACK_IMAGE}} >/dev/null
-    image=$(docker run --rm {{CARMACK_IMAGE}} carmack --version 2>/dev/null | tail -1 | sed 's/.*+//')
-    pin=$(git ls-files -s external/carmack | cut -d' ' -f2 | cut -c1-7)
-    if [ "$image" != "$pin" ]; then
-        echo "{{CARMACK_IMAGE}} is carmack $image but external/carmack pins $pin." >&2
-        echo "Bump the submodule to carmack's main and stage it (git add external/carmack)." >&2
+    tags=$(grep -rhoE 'ghcr\.io/neurogenomics/carmack:[A-Za-z0-9._-]+' modules/ conf/ | sort -u)
+    if [ "$tags" != "{{CARMACK_IMAGE}}" ]; then
+        echo "external/carmack pins {{CARMACK_PIN}}, but the modules name:" >&2
+        echo "$tags" | sed 's/^/  /' >&2
+        echo "Every carmack container directive must be {{CARMACK_IMAGE}}." >&2
         exit 1
     fi
-    echo "{{CARMACK_IMAGE}} is carmack $image, matching the submodule pin."
+    if ! docker pull -q {{CARMACK_IMAGE}} >/dev/null; then
+        echo "{{CARMACK_IMAGE}} is not published; pin a commit on carmack's main." >&2
+        exit 1
+    fi
+    echo "Modules and external/carmack agree on {{CARMACK_IMAGE}}."
 
 # Smoke-run the pipeline against the bundled test profile
 smoke OUTDIR="results_test": carmack-image

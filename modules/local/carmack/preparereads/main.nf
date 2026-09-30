@@ -2,7 +2,7 @@ process CARMACK_PREPAREREADS {
     tag "$meta.id"
     label 'process_medium'
 
-    container 'ghcr.io/neurogenomics/carmack:main'
+    container 'ghcr.io/neurogenomics/carmack:sha-2a19d26'
 
     input:
     tuple val(meta), path(r1_tgidx), path(r2)

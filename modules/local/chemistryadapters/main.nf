@@ -2,7 +2,7 @@ process CHEMISTRYADAPTERS {
     tag "$chemistry"
     label 'process_single'
 
-    container 'ghcr.io/neurogenomics/carmack:main'
+    container 'ghcr.io/neurogenomics/carmack:sha-2a19d26'
 
     input:
     val chemistry

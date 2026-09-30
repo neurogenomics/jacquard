@@ -67,7 +67,7 @@ jobs:
       matrix:
         shard: ${{ fromJson(needs.nf-test-changes.outputs.shard) }}
         # docker only, deliberately. Every carmack-dependent local module declares the public
-        # `ghcr.io/neurogenomics/carmack:main` image and no `conda` directive, so conda cannot run
+        # `ghcr.io/neurogenomics/carmack:sha-<pin>` image and no `conda` directive, so conda cannot run
         # them at all: carmack has no conda package. Singularity could pull that image but has no
         # leg here yet. The carmack-profile-gap job reports both profiles as not run.
         profile: [docker]
@@ -142,12 +142,12 @@ jobs:
           {
             echo "## ⚠️ conda and singularity profiles not run"
             echo ""
-            echo "Every carmack-derived module runs from \`ghcr.io/neurogenomics/carmack:main\`,"
-            echo "checked on the docker legs against the pinned \`external/carmack\` submodule."
+            echo "Every carmack-derived module runs from \`ghcr.io/neurogenomics/carmack:sha-<pin>\`,"
+            echo "the published image of the pinned \`external/carmack\` submodule."
             echo ""
             echo "| Profile | nf-test | Why |"
             echo "|---------|---------------|-----|"
-            echo "| \`docker\` | run | public image, checked against the submodule pin |"
+            echo "| \`docker\` | run | public image named by the submodule pin |"
             echo "| \`conda\` | not run | carmack has no conda package |"
             echo "| \`singularity\` | not run | the image is pullable, but no singularity leg exists yet |"
           } >> $GITHUB_STEP_SUMMARY
