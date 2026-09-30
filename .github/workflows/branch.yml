@@ -13,13 +13,15 @@ jobs:
   test:
     runs-on: ubuntu-latest
     steps:
-      # PRs to the nf-core repo main/master branch are only ok if coming from the nf-core repo `dev` or any `patch` branches
+      # PRs to the nf-core repo main/master branch are only ok if coming from the nf-core repo `dev` or any `patch` branches.
+      # release-please opens its Release PR from `release-please--branches--main--...` in this
+      # repository, so that prefix is accepted from here too, never from a fork.
       - name: Check PRs
         if: github.repository == 'neurogenomics/jacquard'
         env:
           HEAD_REPO: ${{ github.event.pull_request.head.repo.full_name }}
         run: |
-          { [[ "$HEAD_REPO" == neurogenomics/jacquard ]] && [[ $GITHUB_HEAD_REF == "dev" ]]; } || [[ $GITHUB_HEAD_REF == "patch" ]]
+          { [[ "$HEAD_REPO" == neurogenomics/jacquard ]] && [[ $GITHUB_HEAD_REF == "dev" || $GITHUB_HEAD_REF == release-please--* ]]; } || [[ $GITHUB_HEAD_REF == "patch" ]]
 
       # If the above check failed, build a comment to be posted by the shared poster workflow
       - name: Build PR comment

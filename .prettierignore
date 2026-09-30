@@ -12,3 +12,6 @@ bin/
 ro-crate-metadata.json
 modules/nf-core/
 subworkflows/nf-core/
+# release-please writes CHANGELOG.md with `*` bullets and rewrites it on every Release PR refresh,
+# so prettier's `-` bullets would fail every Release PR and any fix would be overwritten.
+CHANGELOG.md

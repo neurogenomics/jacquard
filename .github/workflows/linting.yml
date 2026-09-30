@@ -6,6 +6,10 @@ on:
   pull_request:
   release:
     types: [published]
+  # Lints main itself, which drives the README badge. `release` alone never fires for a tag:
+  # release-please publishes its Release with GITHUB_TOKEN, which starts no workflow.
+  push:
+    branches: [main]
 
 jobs:
   pre-commit:
@@ -46,15 +50,16 @@ jobs:
         run: uv tool install nf-core==${{ steps.read_yml.outputs['nf_core_version'] }}
 
       - name: Run nf-core pipelines lint
-        if: ${{ github.base_ref != 'master' && github.base_ref != 'main' }}
+        if: ${{ github.base_ref != 'master' && github.base_ref != 'main' && github.ref != 'refs/heads/main' }}
         env:
           GITHUB_COMMENTS_URL: ${{ github.event.pull_request.comments_url }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GITHUB_PR_COMMIT: ${{ github.event.pull_request.head.sha }}
         run: nf-core -l lint_log.txt pipelines lint --dir ${GITHUB_WORKSPACE} --markdown lint_results.md
 
+      # main is the release branch, so a push to it is held to the same standard as a PR into it.
       - name: Run nf-core pipelines lint --release
-        if: ${{ github.base_ref == 'master' || github.base_ref == 'main' }}
+        if: ${{ github.base_ref == 'master' || github.base_ref == 'main' || github.ref == 'refs/heads/main' }}
         env:
           GITHUB_COMMENTS_URL: ${{ github.event.pull_request.comments_url }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
