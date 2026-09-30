@@ -1,7 +1,7 @@
 # neurogenomics/jacquard
 
-[![GitHub Actions CI Status](https://github.com/neurogenomics/jacquard/actions/workflows/nf-test.yml/badge.svg)](https://github.com/neurogenomics/jacquard/actions/workflows/nf-test.yml)
-[![GitHub Actions Linting Status](https://github.com/neurogenomics/jacquard/actions/workflows/linting.yml/badge.svg)](https://github.com/neurogenomics/jacquard/actions/workflows/linting.yml)
+[![GitHub Actions CI Status](https://github.com/neurogenomics/jacquard/actions/workflows/nf-test.yml/badge.svg?branch=main)](https://github.com/neurogenomics/jacquard/actions/workflows/nf-test.yml?query=branch%3Amain)
+[![GitHub Actions Linting Status](https://github.com/neurogenomics/jacquard/actions/workflows/linting.yml/badge.svg?branch=main)](https://github.com/neurogenomics/jacquard/actions/workflows/linting.yml?query=branch%3Amain)
 [![nf-test](https://img.shields.io/badge/unit_tests-nf--test-337ab7.svg)](https://www.nf-test.com)
 
 [![Version](https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fraw.githubusercontent.com%2Fneurogenomics%2Fjacquard%2Fmain%2F.release-please-manifest.json&query=%24%5B'.'%5D&label=version&prefix=v&color=blue)](https://github.com/neurogenomics/jacquard/releases)
