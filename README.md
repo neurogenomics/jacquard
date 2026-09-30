@@ -14,8 +14,8 @@
 
 > [!WARNING]
 > **jacquard is incomplete and under active development.** Its inputs, parameters, outputs and
-> defaults may change without notice between versions, and it has not yet been validated for
-> production analyses. Do not rely on it for results you intend to publish.
+> defaults may change without notice between versions. For the latest changes, see the
+> [`dev`](https://github.com/neurogenomics/jacquard/tree/dev) branch.
 
 ## Introduction
 
