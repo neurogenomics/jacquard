@@ -29,6 +29,11 @@ lint:
     - manifest.homePage
   multiqc_config:
     - report_comment
+  # The check wants nextflow.config to include `pipeline/jacquard.config` from nf-core/configs.
+  # jacquard is not an nf-core pipeline, so that file does not exist upstream (the URL returns 404),
+  # and including it would make every online run fail at config load. Institutional profiles still
+  # load through the `nfcore_custom.config` include, which stays active.
+  included_configs: false
   files_exist:
     - CODE_OF_CONDUCT.md
     - assets/nf-core-jacquard_logo_light.png
