@@ -2,7 +2,7 @@ process CARMACK_EXTRACTUMIS {
     tag "$meta.id"
     label 'process_single'
 
-    container 'ghcr.io/crick-pipelines-stp/carmack:local'
+    container 'ghcr.io/neurogenomics/carmack:sha-2a19d26'
 
     input:
     tuple val(meta), path(r1_annotated)

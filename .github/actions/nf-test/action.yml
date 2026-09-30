@@ -56,31 +56,21 @@ runs:
         channel-priority: strict
         conda-remove-defaults: true
 
-    # carmack's GHCR package is private, so CI builds the `:local` tag the modules declare, from the
-    # pinned submodule, as `just carmack-image` does. The update keeps the action self-contained.
-    - name: Init the carmack submodule
-      if: contains(inputs.profile, 'docker')
-      id: carmack
+    # The carmack-derived modules run ghcr.io/neurogenomics/carmack:sha-<7>, which must name the
+    # external/carmack pin. Each carmack stats file opens with `# Carmack version: 0.0.0+<sha>` and
+    # the snapshots record the pin's sha, so a module left on another tag after a bump fails its
+    # snapshots with no hint of the cause. Checking first turns that into one error that names it,
+    # as `just carmack-image` does locally.
+    - name: Check every carmack container names the submodule pin
       shell: bash
       run: |
-        git submodule update --init external/carmack
-        echo "sha=$(git -C external/carmack rev-parse --short HEAD)" >> "$GITHUB_OUTPUT"
-
-    - name: Set up Docker Buildx
-      if: contains(inputs.profile, 'docker')
-      uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
-
-    # Shared GHA layer cache: every shard needs the same image, so only the first build is cold.
-    - name: Build the carmack image
-      if: contains(inputs.profile, 'docker')
-      uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
-      with:
-        context: external/carmack
-        load: true
-        tags: ghcr.io/crick-pipelines-stp/carmack:local
-        build-args: CARMACK_VERSION=0.0.0+${{ steps.carmack.outputs.sha }}
-        cache-from: type=gha,scope=carmack-${{ steps.carmack.outputs.sha }}
-        cache-to: type=gha,mode=max,ignore-error=true,scope=carmack-${{ steps.carmack.outputs.sha }}
+        expected="ghcr.io/neurogenomics/carmack:sha-$(git ls-tree HEAD external/carmack | awk '{print $3}' | cut -c1-7)"
+        tags=$(grep -rhoE 'ghcr\.io/neurogenomics/carmack:[A-Za-z0-9._-]+' modules/ conf/ | sort -u)
+        if [ "$tags" != "$expected" ]; then
+          echo "::error::Every carmack container directive must be $expected; the modules name: $(echo $tags)"
+          exit 1
+        fi
+        echo "Modules and external/carmack agree on $expected."
 
     - name: Run nf-test
       shell: bash

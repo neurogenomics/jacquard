@@ -2,7 +2,7 @@ process TAGQNAME {
     tag "$meta.id"
     label 'process_low'
 
-    container 'ghcr.io/crick-pipelines-stp/carmack:local'
+    container 'ghcr.io/neurogenomics/carmack:sha-2a19d26'
 
     input:
     tuple val(meta), path(bam)

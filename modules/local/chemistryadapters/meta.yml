@@ -9,9 +9,9 @@ keywords:
 tools:
   - "carmack":
       description: "Single-cell multiome read preparation"
-      homepage: "https://github.com/crick-pipelines-stp/carmack"
-      documentation: "https://github.com/crick-pipelines-stp/carmack"
-      tool_dev_url: "https://github.com/crick-pipelines-stp/carmack"
+      homepage: "https://github.com/neurogenomics/carmack"
+      documentation: "https://github.com/neurogenomics/carmack"
+      tool_dev_url: "https://github.com/neurogenomics/carmack"
 
 input:
   - - chemistry:

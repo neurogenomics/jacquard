@@ -8,9 +8,9 @@ keywords:
 tools:
   - "carmack":
       description: "Helper tools for the analysis of single-cell multi-omic data"
-      homepage: "https://github.com/crick-pipelines-stp/carmack"
-      documentation: "https://github.com/crick-pipelines-stp/carmack"
-      tool_dev_url: "https://github.com/crick-pipelines-stp/carmack"
+      homepage: "https://github.com/neurogenomics/carmack"
+      documentation: "https://github.com/neurogenomics/carmack"
+      tool_dev_url: "https://github.com/neurogenomics/carmack"
 
 input:
   - - meta:

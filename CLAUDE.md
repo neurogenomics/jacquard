@@ -34,6 +34,20 @@ by hand.
   `package-dir = {"" = "lib"}` in `pyproject.toml` is load-bearing; `lib/core/tests/` guards it.
 - `conf/` — profiles and per-module resource config.
 
+## carmack
+
+carmack is a separate repo, [`neurogenomics/carmack`](https://github.com/neurogenomics/carmack),
+vendored as the `external/carmack` submodule. Changes to carmack's behaviour land there first;
+jacquard only bumps the pin and does its own wiring.
+
+The pipeline runs carmack's published image, never a local build. Every carmack-derived module
+declares `ghcr.io/neurogenomics/carmack:sha-<7>`, and `<7>` **must be the submodule's pin**. Keep
+the two in lockstep: a bump moves the gitlink and every `container` tag in the same commit. carmack
+publishes `sha-<7>` only for commits that reach its `main`, so pin the tip of `main` once its
+publish run has finished. Every carmack stats file records `0.0.0+<sha>`, so snapshots move with
+the pin. `just carmack-image` and the nf-test CI action both fail when a tag and the pin disagree.
+The full bump procedure is in `.claude/knowledge/carmack-image-pin.md`.
+
 ## Comments
 
 This is a production pipeline, and its comments are read by people who were not present when the

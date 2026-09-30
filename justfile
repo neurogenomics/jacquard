@@ -1,7 +1,10 @@
 set shell := ["bash", "-eu", "-o", "pipefail", "-c"]
 
-# carmack is vendored as a submodule; this tag is built locally from it.
-CARMACK_IMAGE := "ghcr.io/crick-pipelines-stp/carmack:local"
+# The image every carmack-derived module declares: carmack's CI publishes `sha-<7>` for each tested
+# commit on its main and never moves it, so the tag names the external/carmack pin exactly. Read
+# from the index rather than the submodule's working tree, so a bump counts once it is staged.
+CARMACK_PIN := `git ls-files -s external/carmack | cut -d' ' -f2 | cut -c1-7`
+CARMACK_IMAGE := "ghcr.io/neurogenomics/carmack:sha-" + CARMACK_PIN
 
 default: dev
 
@@ -35,13 +38,25 @@ nf-lint:
 nf-test *ARGS="": carmack-image
     nf-test test --profile=+docker {{ARGS}}
 
-# Build carmack's container from the pinned submodule. The submodule gitlink is the pin, so
-# `:local` always means "whatever this checkout points at" — here and in CI alike.
+# Check every module names the pinned carmack image, then pull it. Every carmack stats file opens
+# with `# Carmack version: 0.0.0+<sha>` and the snapshots record the pin's sha, so a module left on
+# an older tag after a bump fails its snapshots with no hint of the cause. A failed pull means the
+# pin has no published image: carmack publishes only commits that reach its main.
 carmack-image:
-    git submodule update --init external/carmack
-    docker build -t {{CARMACK_IMAGE}} \
-        --build-arg CARMACK_VERSION=0.0.0+$(git -C external/carmack rev-parse --short HEAD) \
-        external/carmack
+    #!/usr/bin/env bash
+    set -euo pipefail
+    tags=$(grep -rhoE 'ghcr\.io/neurogenomics/carmack:[A-Za-z0-9._-]+' modules/ conf/ | sort -u)
+    if [ "$tags" != "{{CARMACK_IMAGE}}" ]; then
+        echo "external/carmack pins {{CARMACK_PIN}}, but the modules name:" >&2
+        echo "$tags" | sed 's/^/  /' >&2
+        echo "Every carmack container directive must be {{CARMACK_IMAGE}}." >&2
+        exit 1
+    fi
+    if ! docker pull -q {{CARMACK_IMAGE}} >/dev/null; then
+        echo "{{CARMACK_IMAGE}} is not published; pin a commit on carmack's main." >&2
+        exit 1
+    fi
+    echo "Modules and external/carmack agree on {{CARMACK_IMAGE}}."
 
 # Smoke-run the pipeline against the bundled test profile
 smoke OUTDIR="results_test": carmack-image

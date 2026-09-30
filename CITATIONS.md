@@ -14,7 +14,7 @@
 
 > Andrews, S. (2010). FastQC: A Quality Control Tool for High Throughput Sequence Data [Online].
 
-- [carmack](https://github.com/crick-pipelines-stp/carmack)
+- [carmack](https://github.com/neurogenomics/carmack)
 
 > Crick Institute Science Technology Platform. carmack: single-cell multiome read preparation.
 >
