@@ -10,6 +10,10 @@ inputs:
   tags:
     description: "Tags to pass as argument for nf-test --tag parameter"
     required: false
+  changed_since:
+    description: "Git ref passed to nf-test --changed-since; empty selects every test"
+    required: false
+    default: "HEAD^"
 outputs:
   shard:
     description: "Array of shard numbers"
@@ -34,7 +38,7 @@ runs:
           $(if [ -n "${{ inputs.tags }}" ]; then echo "--tag ${{ inputs.tags }}"; fi) \
           --dry-run \
           --ci \
-          --changed-since HEAD^) || {
+          $(if [ -n "${{ inputs.changed_since }}" ]; then echo "--changed-since ${{ inputs.changed_since }}"; fi)) || {
             echo "nf-test command failed with exit code $?"
             echo "Full output: $nftest_output"
             exit 1
