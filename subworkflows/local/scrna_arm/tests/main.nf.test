@@ -223,6 +223,11 @@ nextflow_workflow {
                 { assert star_command.contains('--soloStrand Forward') },
                 { assert star_command.contains('--soloMultiMappers Unique') },
                 { assert star_command.contains('--outSAMtype None') },
+                // The barcode read is a file of its own rather than a stretch of a cDNA mate, and no
+                // whitelist is given: together these are what make STAR take the barcode asserted
+                // above off the third file and accept every barcode it finds there.
+                { assert star_command.contains('--soloBarcodeMate 0') },
+                { assert star_command.contains('--soloCBwhitelist None') },
                 // Where STAR was told to find the cell barcode and the UMI, against the layout
                 // carmack wrote for this chemistry. STAR counts its positions from 1 and the layout
                 // gives 0-based offsets, which is the one translation this pipeline performs.
