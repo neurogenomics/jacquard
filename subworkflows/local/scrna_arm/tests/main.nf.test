@@ -118,15 +118,15 @@ nextflow_workflow {
             // `GeneFull` counts the intronic reads and calls cells.
             def cell_barcodes = path("${solo_out}/GeneFull/raw/barcodes.tsv.gz").linesGzip
 
-            // What a default run is counting: `Gene` plus the two features --solo_features asks for,
-            // each with its raw matrix.
+            // What a default run is counting: three features, three UMI deduplication types. With
+            // more than one type STARsolo writes no `raw/matrix.mtx` at all — each type is its own
+            // `raw/umiDedup-<type>.mtx` — so the names are listed in full rather than inferred.
             def expected_tree = [ 'Gene', 'GeneFull', 'GeneFull_ExonOverIntron' ].collectMany { feature ->
                 [
                     "${feature}/Summary.csv",
                     "${feature}/raw/barcodes.tsv.gz",
                     "${feature}/raw/features.tsv.gz",
-                    "${feature}/raw/matrix.mtx.gz",
-                ]
+                ] + [ '1MM_All', 'Exact', 'NoDedup' ].collect { dedup -> "${feature}/raw/umiDedup-${dedup}.mtx.gz" }
             }*.toString()
 
             // Every barcode STARsolo called, read back out of the file it was handed as the barcode
@@ -209,6 +209,9 @@ nextflow_workflow {
                 // what --solo_features asks for and `Gene` is what the module's non-optional summary
                 // output needs to exist.
                 { assert solo_tree.containsAll(expected_tree) },
+                // A reader given a `matrix.mtx` would not know which deduplication produced it, and
+                // STARsolo writes one only while a single --soloUMIdedup type is asked for.
+                { assert !solo_tree.any { entry -> entry.endsWith('/matrix.mtx.gz') } },
                 // The cell barcodes STARsolo actually read back, measured rather than assumed: they
                 // are as long as the layout declares, and STAR's own 10x default of 16 would
                 // silently produce a whole matrix keyed on truncated barcodes. Emptiness is checked
@@ -222,9 +225,10 @@ nextflow_workflow {
 
                 // The library is forward-stranded, and the setting is spelled out rather than left to
                 // STAR's default. The rest are the defaults of --solo_features (with `Gene`
-                // prepended), --solo_multimappers and --solo_bam.
+                // prepended), --solo_umi_dedup, --solo_multimappers and --solo_bam.
                 { assert star_command.contains('--soloStrand Forward') },
                 { assert star_command.contains('--soloFeatures Gene GeneFull GeneFull_ExonOverIntron') },
+                { assert star_command.contains('--soloUMIdedup 1MM_All Exact NoDedup') },
                 { assert star_command.contains('--soloMultiMappers Unique') },
                 { assert star_command.contains('--outSAMtype None') },
                 // The barcode read is a file of its own rather than a stretch of a cDNA mate, and no
@@ -328,9 +332,16 @@ nextflow_workflow {
                 // The sort buffer follows the task's memory instead of STAR's default, which sizes it
                 // off the genome and fails on a large arm.
                 { assert star_command =~ /--limitBAMsortRAM \d+/ },
-                // Each non-Unique mode writes its own matrix beside the unique one.
-                { assert new File("${solo_out}/Gene/raw/UniqueAndMult-EM.mtx.gz").exists() },
-                { assert new File("${solo_out}/Gene/raw/matrix.mtx.gz").exists() },
+                // Each non-Unique mode writes its own matrix beside the unique one, and the two
+                // settings multiply out: one matrix per multimapper mode per deduplication type,
+                // named for both. Neither plain `UniqueAndMult-EM.mtx` nor `matrix.mtx` is written
+                // once more than one --soloUMIdedup type is asked for, which is the default here.
+                { assert [ '1MM_All', 'Exact', 'NoDedup' ].every { dedup ->
+                    new File("${solo_out}/Gene/raw/UniqueAndMult-EM_umiDedup-${dedup}.mtx.gz").exists() &&
+                        new File("${solo_out}/Gene/raw/umiDedup-${dedup}.mtx.gz").exists()
+                } },
+                { assert !new File("${solo_out}/Gene/raw/UniqueAndMult-EM.mtx.gz").exists() },
+                { assert !new File("${solo_out}/Gene/raw/matrix.mtx.gz").exists() },
 
                 { assert workflow.out.bam[0][0].id == 'SK609.none' },
                 { assert file(solo_bam).name == 'SK609.none.Aligned.sortedByCoord.out.bam' },

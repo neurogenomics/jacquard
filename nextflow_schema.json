@@ -149,8 +149,16 @@
                     "default": "Unique",
                     "pattern": "^(Unique|Uniform|PropUnique|EM|Rescue)( (Unique|Uniform|PropUnique|EM|Rescue))*$",
                     "description": "How STARsolo counts reads that map to more than one gene, space-separated.",
-                    "help_text": "One or more of `Unique`, `Uniform`, `PropUnique`, `EM` and `Rescue`, passed to `--soloMultiMappers`. `Unique` counts only reads that map to one gene, as Cell Ranger does. Each other mode shares multimapping reads out between the genes they hit and writes its own `UniqueAndMult-<mode>.mtx` next to the unique matrix, which is always written. Nuclear RNA carries many intronic reads in repeats and paralogous loci, and `EM` recovers those.",
+                    "help_text": "One or more of `Unique`, `Uniform`, `PropUnique`, `EM` and `Rescue`, passed to `--soloMultiMappers`. `Unique` counts only reads that map to one gene, as Cell Ranger does. Each other mode shares multimapping reads out between the genes they hit and writes its own `UniqueAndMult-<mode>` matrix next to the unique one, which is always written; with several `--solo_umi_dedup` types that is one `UniqueAndMult-<mode>_umiDedup-<type>.mtx` per type. Nuclear RNA carries many intronic reads in repeats and paralogous loci, and `EM` recovers those.",
                     "fa_icon": "fas fa-random"
+                },
+                "solo_umi_dedup": {
+                    "type": "string",
+                    "default": "1MM_All Exact NoDedup",
+                    "pattern": "^(1MM_All|1MM_Directional_UMItools|1MM_Directional|1MM_CR|Exact|NoDedup)( (1MM_All|1MM_Directional_UMItools|1MM_Directional|1MM_CR|Exact|NoDedup))*$",
+                    "description": "UMI deduplication algorithms STARsolo counts with, space-separated.",
+                    "help_text": "One or more of `1MM_All`, `1MM_Directional_UMItools`, `1MM_Directional`, `1MM_CR`, `Exact` and `NoDedup`, passed to `--soloUMIdedup`. With more than one type STARsolo writes a `raw/umiDedup-<type>.mtx` per type and no `raw/matrix.mtx`, and `filtered/`, `Summary.csv` and the cell filter are built from the first type alone. `1MM_All`, STAR's default, merges UMIs within one mismatch chain-wise per cell and gene, which saturates once a gene holds more molecules under one barcode than the 8 base UMI can label: MALAT1 on 2M reads of a single-barcode (pseudobulk) S1_SK600 library gave 117 UMIs under `1MM_All` against 16,742 under `Exact`. Keep `1MM_All` first for split-pool libraries, where per-cell per-gene counts stay far below saturation; read `Exact`, or `NoDedup` for a saturated gene, on pseudobulk libraries.",
+                    "fa_icon": "fas fa-compress-arrows-alt"
                 },
                 "solo_bam": {
                     "type": "boolean",
