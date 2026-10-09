@@ -11,22 +11,22 @@
                     "bowtie2": "2.5.4"
                 },
                 "CARMACK_ASSIGNTARGETS": {
-                    "carmack": "0.0.0+2a19d26"
+                    "carmack": "0.0.0+9a8e5c4"
                 },
                 "CARMACK_EXTRACTBARCODES": {
-                    "carmack": "0.0.0+2a19d26"
+                    "carmack": "0.0.0+9a8e5c4"
                 },
                 "CARMACK_EXTRACTUMIS": {
-                    "carmack": "0.0.0+2a19d26"
+                    "carmack": "0.0.0+9a8e5c4"
                 },
                 "CARMACK_LINEARDEDUP": {
-                    "carmack": "0.0.0+2a19d26"
+                    "carmack": "0.0.0+9a8e5c4"
                 },
                 "CARMACK_PREPAREREADS": {
-                    "carmack": "0.0.0+2a19d26"
+                    "carmack": "0.0.0+9a8e5c4"
                 },
                 "CHEMISTRYADAPTERS": {
-                    "carmack": "0.0.0+2a19d26"
+                    "carmack": "0.0.0+9a8e5c4"
                 },
                 "FASTP": {
                     "fastp": "1.3.6"
@@ -111,6 +111,7 @@
                 "carmack/preparereads/SK609/SK609.prepare_target_distribution_mqc.json",
                 "carmack/preparereads/SK609/scrna",
                 "carmack/preparereads/SK609/scrna/SK609.none.barcodes.fastq.gz",
+                "carmack/preparereads/SK609/scrna/SK609.none.barcodes.json",
                 "carmack/preparereads/SK609/scrna/SK609.none.r1.fastq.gz",
                 "carmack/preparereads/SK609/scrna/SK609.none.r2.fastq.gz",
                 "carmack/preparereads/SK609/sctip",
@@ -415,7 +416,9 @@
                 "star/SK609.none/SK609.none.Solo.out/Gene/raw",
                 "star/SK609.none/SK609.none.Solo.out/Gene/raw/barcodes.tsv.gz",
                 "star/SK609.none/SK609.none.Solo.out/Gene/raw/features.tsv.gz",
-                "star/SK609.none/SK609.none.Solo.out/Gene/raw/matrix.mtx.gz",
+                "star/SK609.none/SK609.none.Solo.out/Gene/raw/umiDedup-1MM_All.mtx.gz",
+                "star/SK609.none/SK609.none.Solo.out/Gene/raw/umiDedup-Exact.mtx.gz",
+                "star/SK609.none/SK609.none.Solo.out/Gene/raw/umiDedup-NoDedup.mtx.gz",
                 "star/SK609.none/SK609.none.Solo.out/GeneFull",
                 "star/SK609.none/SK609.none.Solo.out/GeneFull/Features.stats",
                 "star/SK609.none/SK609.none.Solo.out/GeneFull/Summary.csv",
@@ -423,11 +426,27 @@
                 "star/SK609.none/SK609.none.Solo.out/GeneFull/filtered",
                 "star/SK609.none/SK609.none.Solo.out/GeneFull/filtered/barcodes.tsv.gz",
                 "star/SK609.none/SK609.none.Solo.out/GeneFull/filtered/features.tsv.gz",
-                "star/SK609.none/SK609.none.Solo.out/GeneFull/filtered/matrix.mtx.gz",
+                "star/SK609.none/SK609.none.Solo.out/GeneFull/filtered/umiDedup-1MM_All.mtx.gz",
                 "star/SK609.none/SK609.none.Solo.out/GeneFull/raw",
                 "star/SK609.none/SK609.none.Solo.out/GeneFull/raw/barcodes.tsv.gz",
                 "star/SK609.none/SK609.none.Solo.out/GeneFull/raw/features.tsv.gz",
-                "star/SK609.none/SK609.none.Solo.out/GeneFull/raw/matrix.mtx.gz",
+                "star/SK609.none/SK609.none.Solo.out/GeneFull/raw/umiDedup-1MM_All.mtx.gz",
+                "star/SK609.none/SK609.none.Solo.out/GeneFull/raw/umiDedup-Exact.mtx.gz",
+                "star/SK609.none/SK609.none.Solo.out/GeneFull/raw/umiDedup-NoDedup.mtx.gz",
+                "star/SK609.none/SK609.none.Solo.out/GeneFull_ExonOverIntron",
+                "star/SK609.none/SK609.none.Solo.out/GeneFull_ExonOverIntron/Features.stats",
+                "star/SK609.none/SK609.none.Solo.out/GeneFull_ExonOverIntron/Summary.csv",
+                "star/SK609.none/SK609.none.Solo.out/GeneFull_ExonOverIntron/UMIperCellSorted.txt",
+                "star/SK609.none/SK609.none.Solo.out/GeneFull_ExonOverIntron/filtered",
+                "star/SK609.none/SK609.none.Solo.out/GeneFull_ExonOverIntron/filtered/barcodes.tsv.gz",
+                "star/SK609.none/SK609.none.Solo.out/GeneFull_ExonOverIntron/filtered/features.tsv.gz",
+                "star/SK609.none/SK609.none.Solo.out/GeneFull_ExonOverIntron/filtered/umiDedup-1MM_All.mtx.gz",
+                "star/SK609.none/SK609.none.Solo.out/GeneFull_ExonOverIntron/raw",
+                "star/SK609.none/SK609.none.Solo.out/GeneFull_ExonOverIntron/raw/barcodes.tsv.gz",
+                "star/SK609.none/SK609.none.Solo.out/GeneFull_ExonOverIntron/raw/features.tsv.gz",
+                "star/SK609.none/SK609.none.Solo.out/GeneFull_ExonOverIntron/raw/umiDedup-1MM_All.mtx.gz",
+                "star/SK609.none/SK609.none.Solo.out/GeneFull_ExonOverIntron/raw/umiDedup-Exact.mtx.gz",
+                "star/SK609.none/SK609.none.Solo.out/GeneFull_ExonOverIntron/raw/umiDedup-NoDedup.mtx.gz",
                 "umitools",
                 "umitools/SK609.TATAGCCT",
                 "umitools/SK609.TATAGCCT/SK609.TATAGCCT.bam",
@@ -451,6 +470,7 @@
                 "SK609.detected_targets.txt:md5,f3dcfe4f6b657ee3473d3b00b16e4f90",
                 "SK609.prepare_general_stats_mqc.json:md5,02383c0afa7176ee798185656b84d5dd",
                 "SK609.prepare_target_distribution_mqc.json:md5,cf366372d6d880c6e514eb1459442cb7",
+                "SK609.none.barcodes.json:md5,11922bf54a49fc8a9360bf87eac98e8d",
                 "carmack_custom_seq_1_0.adapters.fasta:md5,462b074fb155fa2c3e0ae9eab9de2473",
                 "SK609.TATAGCCT.linear_dedup_breakdown_mqc.json:md5,d781defb7c7cfeffca75de172791b440",
                 "SK609.TATAGCCT.linear_dedup_chromosome_breakdown_mqc.json:md5,144b75557eb6815219ed57309023b51b",
@@ -516,19 +536,34 @@
                 "UMIperCellSorted.txt:md5,d41d8cd98f00b204e9800998ecf8427e",
                 "barcodes.tsv.gz:md5,d41d8cd98f00b204e9800998ecf8427e",
                 "features.tsv.gz:md5,a7c451918a577bf504f6b303f2f8180a",
-                "matrix.mtx.gz:md5,0fd257d60581ee1aeeff6ba2a76f5a72",
+                "umiDedup-1MM_All.mtx.gz:md5,0fd257d60581ee1aeeff6ba2a76f5a72",
+                "umiDedup-Exact.mtx.gz:md5,0fd257d60581ee1aeeff6ba2a76f5a72",
+                "umiDedup-NoDedup.mtx.gz:md5,0fd257d60581ee1aeeff6ba2a76f5a72",
                 "Features.stats:md5,149be5fc8a584ed3830c8c9ca3c8b2f2",
                 "Summary.csv:md5,58d397da1996beec130536b65ed903c5",
                 "UMIperCellSorted.txt:md5,035f9dc03e1d05adc4d598db13d3f091",
                 "barcodes.tsv.gz:md5,b4a12b74b0bff0c48233a9a328bb5235",
                 "features.tsv.gz:md5,a7c451918a577bf504f6b303f2f8180a",
-                "matrix.mtx.gz:md5,d207689c06a72f98b3e0689fd8b6d988",
+                "umiDedup-1MM_All.mtx.gz:md5,d207689c06a72f98b3e0689fd8b6d988",
                 "barcodes.tsv.gz:md5,b4a12b74b0bff0c48233a9a328bb5235",
                 "features.tsv.gz:md5,a7c451918a577bf504f6b303f2f8180a",
-                "matrix.mtx.gz:md5,d207689c06a72f98b3e0689fd8b6d988"
+                "umiDedup-1MM_All.mtx.gz:md5,d207689c06a72f98b3e0689fd8b6d988",
+                "umiDedup-Exact.mtx.gz:md5,d207689c06a72f98b3e0689fd8b6d988",
+                "umiDedup-NoDedup.mtx.gz:md5,16f5e73847617d46092e5b3a8008810d",
+                "Features.stats:md5,1d9561e6d96d3268fb9fe5fa13a6ca06",
+                "Summary.csv:md5,e3197454639625e537805017a23ea509",
+                "UMIperCellSorted.txt:md5,f8ec1f945aca76a21e256218fcb3793e",
+                "barcodes.tsv.gz:md5,665b1fa1376c556b9311b1ceaa7497d1",
+                "features.tsv.gz:md5,a7c451918a577bf504f6b303f2f8180a",
+                "umiDedup-1MM_All.mtx.gz:md5,36e8e734a4f79abc59bbbb0bb2ea3480",
+                "barcodes.tsv.gz:md5,665b1fa1376c556b9311b1ceaa7497d1",
+                "features.tsv.gz:md5,a7c451918a577bf504f6b303f2f8180a",
+                "umiDedup-1MM_All.mtx.gz:md5,36e8e734a4f79abc59bbbb0bb2ea3480",
+                "umiDedup-Exact.mtx.gz:md5,36e8e734a4f79abc59bbbb0bb2ea3480",
+                "umiDedup-NoDedup.mtx.gz:md5,63305aedbc86cf7e3ce90841c1d2a319"
             ]
         ],
-        "timestamp": "2026-09-29T22:06:52.302323995",
+        "timestamp": "2026-10-09T09:55:52.766499127",
         "meta": {
             "nf-test": "0.9.5",
             "nextflow": "26.04.6"
