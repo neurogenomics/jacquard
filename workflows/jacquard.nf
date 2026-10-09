@@ -145,6 +145,7 @@ workflow JACQUARD {
         //
         SCRNA_ARM(
             'arms' in stages ? ARM_FANOUT.out.scrna : channel.empty(),
+            'arms' in stages ? CARMACK_READPREP.out.scrna_layout : channel.empty(),
             fasta,
             gtf,
             star_index,

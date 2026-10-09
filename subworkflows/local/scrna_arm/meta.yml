@@ -21,6 +21,13 @@ input:
         to, the untouched R2 mate, and the synthesized barcode-plus-UMI read. `meta.id` is already
         `<sample>.none`, which is what names every output path and MultiQC row for this arm.
         Structure: [ val(meta), path(r1), path(r2), path(barcodes) ]
+  - ch_layout:
+      type: file
+      description: |
+        The layout prepare-reads wrote beside the barcode read, one per sample rather than per arm,
+        so it is keyed by `meta.id` of the sample. It gives the 0-based offsets and lengths of the
+        cell barcode and the UMI inside that record, which is what STARsolo is told to read.
+        Structure: [ val(meta), path(barcodes.json) ]
   - fasta:
       type: string
       description: Genome FASTA an index is built from when `star_index` is not given

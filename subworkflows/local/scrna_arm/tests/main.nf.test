@@ -50,17 +50,29 @@ nextflow_workflow {
             workflow {
                 """
                 input[0] = ARM_FANOUT.out.scrna
-                input[1] = params.modules_testdata_base_path + 'genomics/homo_sapiens/genome/chr21/sequence/genome.fasta'
-                input[2] = params.modules_testdata_base_path + 'genomics/homo_sapiens/genome/chr21/sequence/chr21_gencode.gtf'
-                input[3] = null
-                input[4] = false
-                input[5] = 1000
+                input[1] = CARMACK_READPREP.out.scrna_layout
+                input[2] = params.modules_testdata_base_path + 'genomics/homo_sapiens/genome/chr21/sequence/genome.fasta'
+                input[3] = params.modules_testdata_base_path + 'genomics/homo_sapiens/genome/chr21/sequence/chr21_gencode.gtf'
+                input[4] = null
+                input[5] = false
+                input[6] = 1000
                 """
             }
         }
 
         then {
             def arm_meta = [ id:'SK609.none', sample:'SK609', arm:'scrna', tgidx:'NONE', single_end:false ]
+            // The layout prepare-reads wrote, read back out of its own task directory. Every number
+            // below comes from it rather than from a literal: the pipeline carries no chemistry's
+            // geometry, so a test that spelled one out would be asserting against itself.
+            def layout_json = null
+            new File("$workDir").eachDirRecurse { dir ->
+                def candidate = new File(dir, 'scrna/SK609.none.barcodes.json')
+                if (candidate.exists()) {
+                    layout_json = candidate
+                }
+            }
+            def layout = new groovy.json.JsonSlurper().parseText(layout_json.text)
             def solo_out = workflow.out.counts[0][1]
             // The matrices are gzipped and the run summary carries mapping numbers, so the tree is
             // asserted by the names STARsolo wrote rather than by content.
@@ -108,8 +120,8 @@ nextflow_workflow {
 
             // Every barcode STARsolo called, read back out of the file it was handed as the barcode
             // read. Length alone cannot show which file that was — the 65 base cDNA read would give
-            // 30 character strings too — so each called barcode is matched to the leading 30 bases
-            // of a record in the resynced barcodes FASTQ staged beside the command.
+            // strings of the same length too — so each called barcode is matched to the leading
+            // bases of a record in the resynced barcodes FASTQ staged beside the command.
             def barcode_read_prefixes = new java.util.zip.GZIPInputStream(
                 new File(star_dir, 'SK609.none.resynced.barcodes.fastq.gz').newInputStream()
             ).withReader('UTF-8') { reader ->
@@ -118,7 +130,7 @@ nextflow_workflow {
                 def line = reader.readLine()
                 while (line != null) {
                     if (position % 4 == 1) {
-                        prefixes << line.substring(0, 30)
+                        prefixes << line.substring(0, layout.cell_barcode.length)
                     }
                     position++
                     line = reader.readLine()
@@ -194,12 +206,12 @@ nextflow_workflow {
                     'GeneFull/raw/features.tsv.gz',
                     'GeneFull/raw/matrix.mtx.gz',
                 ]) },
-                // The cell barcodes STARsolo actually read back, measured rather than assumed: the
-                // chemistry's three 10 base chunks make a 30 base barcode, and STAR's own 10x
-                // default of 16 would silently produce a whole matrix keyed on truncated barcodes.
-                // Emptiness is checked first: `every` over no barcode at all is vacuously true, so
-                // without this the assertion would pass on a Solo.out that called no cell.
-                { assert !cell_barcodes.isEmpty() && cell_barcodes.every { it.length() == 30 } },
+                // The cell barcodes STARsolo actually read back, measured rather than assumed: they
+                // are as long as the layout declares, and STAR's own 10x default of 16 would
+                // silently produce a whole matrix keyed on truncated barcodes. Emptiness is checked
+                // first: `every` over no barcode at all is vacuously true, so without this the
+                // assertion would pass on a Solo.out that called no cell.
+                { assert !cell_barcodes.isEmpty() && cell_barcodes.every { it.length() == layout.cell_barcode.length } },
                 { assert cell_barcodes.every { barcode -> barcode_read_prefixes.contains(barcode) } },
                 // STAR counts what it was handed, so this is the post-trim pair count seen from the
                 // other end of the resync.
@@ -211,6 +223,16 @@ nextflow_workflow {
                 { assert star_command.contains('--soloStrand Forward') },
                 { assert star_command.contains('--soloMultiMappers Unique') },
                 { assert star_command.contains('--outSAMtype None') },
+                // Where STAR was told to find the cell barcode and the UMI, against the layout
+                // carmack wrote for this chemistry. STAR counts its positions from 1 and the layout
+                // gives 0-based offsets, which is the one translation this pipeline performs.
+                { assert [
+                    "--soloCBstart ${layout.cell_barcode.start + 1}",
+                    "--soloCBlen ${layout.cell_barcode.length}",
+                    "--soloUMIstart ${layout.umi.start + 1}",
+                    "--soloUMIlen ${layout.umi.length}",
+                    "--soloBarcodeReadLength ${layout.length}",
+                ]*.toString().every { flag -> star_command.contains(flag) } },
                 { assert workflow.out.bam.isEmpty() },
                 { assert workflow.trace.tasks().findAll { task -> task.name.contains('SAMTOOLS_INDEX_SOLO') }.isEmpty() },
             )
@@ -261,11 +283,12 @@ nextflow_workflow {
             workflow {
                 """
                 input[0] = ARM_FANOUT.out.scrna
-                input[1] = params.modules_testdata_base_path + 'genomics/homo_sapiens/genome/chr21/sequence/genome.fasta'
-                input[2] = params.modules_testdata_base_path + 'genomics/homo_sapiens/genome/chr21/sequence/chr21_gencode.gtf'
-                input[3] = null
-                input[4] = false
-                input[5] = 1000
+                input[1] = CARMACK_READPREP.out.scrna_layout
+                input[2] = params.modules_testdata_base_path + 'genomics/homo_sapiens/genome/chr21/sequence/genome.fasta'
+                input[3] = params.modules_testdata_base_path + 'genomics/homo_sapiens/genome/chr21/sequence/chr21_gencode.gtf'
+                input[4] = null
+                input[5] = false
+                input[6] = 1000
                 """
             }
         }
@@ -273,6 +296,14 @@ nextflow_workflow {
         then {
             def solo_out = workflow.out.counts[0][1]
             def star_command = new File(new File(solo_out).parentFile, '.command.sh').text
+            def layout_json = null
+            new File("$workDir").eachDirRecurse { dir ->
+                def candidate = new File(dir, 'scrna/SK609.none.barcodes.json')
+                if (candidate.exists()) {
+                    layout_json = candidate
+                }
+            }
+            def layout = new groovy.json.JsonSlurper().parseText(layout_json.text)
             def solo_bam = workflow.out.bam[0][1]
             def records = bam(solo_bam).getSamLines().collect { line -> line.trim().tokenize('\t') }
             def tags = { record -> record.drop(11).collect { tag -> tag.take(2) } as Set }
@@ -311,10 +342,10 @@ nextflow_workflow {
                 // corrected `CB` is `-` on every record of this fixture once the cDNA is mapped as a
                 // pair, although it is not in a real run: on 1M SK588_4 pairs against GRCh38, 90.1%
                 // of the paired BAM's records carry one. So `CB` is checked only where it is set.
-                { assert records.every { record -> tag_value(record, 'CR').length() == 30 } },
-                { assert records.every { record -> tag_value(record, 'UR').length() == 8 } },
-                { assert barcoded.every { record -> tag_value(record, 'CB').length() == 30 } },
-                { assert barcoded.every { record -> tag_value(record, 'UB') == '-' || tag_value(record, 'UB').length() == 8 } },
+                { assert records.every { record -> tag_value(record, 'CR').length() == layout.cell_barcode.length } },
+                { assert records.every { record -> tag_value(record, 'UR').length() == layout.umi.length } },
+                { assert barcoded.every { record -> tag_value(record, 'CB').length() == layout.cell_barcode.length } },
+                { assert barcoded.every { record -> tag_value(record, 'UB') == '-' || tag_value(record, 'UB').length() == layout.umi.length } },
                 // The published copies, beside the Solo.out tree.
                 { assert path("${params.outdir}/star/SK609.none/SK609.none.Aligned.sortedByCoord.out.bam").exists() },
                 { assert path("${params.outdir}/star/SK609.none/SK609.none.Aligned.sortedByCoord.out.bam.bai").exists() },
@@ -363,11 +394,12 @@ nextflow_workflow {
             workflow {
                 """
                 input[0] = ARM_FANOUT.out.scrna
-                input[1] = params.modules_testdata_base_path + 'genomics/homo_sapiens/genome/chr21/sequence/genome.fasta'
-                input[2] = params.modules_testdata_base_path + 'genomics/homo_sapiens/genome/chr21/sequence/chr21_gencode.gtf'
-                input[3] = null
-                input[4] = true
-                input[5] = 1000
+                input[1] = CARMACK_READPREP.out.scrna_layout
+                input[2] = params.modules_testdata_base_path + 'genomics/homo_sapiens/genome/chr21/sequence/genome.fasta'
+                input[3] = params.modules_testdata_base_path + 'genomics/homo_sapiens/genome/chr21/sequence/chr21_gencode.gtf'
+                input[4] = null
+                input[5] = true
+                input[6] = 1000
                 """
             }
         }
@@ -439,14 +471,15 @@ nextflow_workflow {
             workflow {
                 """
                 input[0] = ARM_FANOUT.out.scrna
-                input[1] = params.modules_testdata_base_path + 'genomics/homo_sapiens/genome/chr21/sequence/genome.fasta'
-                input[2] = params.modules_testdata_base_path + 'genomics/homo_sapiens/genome/chr21/sequence/chr21_gencode.gtf'
-                input[3] = null
-                input[4] = false
+                input[1] = CARMACK_READPREP.out.scrna_layout
+                input[2] = params.modules_testdata_base_path + 'genomics/homo_sapiens/genome/chr21/sequence/genome.fasta'
+                input[3] = params.modules_testdata_base_path + 'genomics/homo_sapiens/genome/chr21/sequence/chr21_gencode.gtf'
+                input[4] = null
+                input[5] = false
                 // The arm's own pre-trim count. It cleared the fan-out gate at 1000, so whatever
                 // trimming removes is what takes it below this — no default trimming empties SK609,
                 // and testing for zero reads would miss an arm falling from 6229 to 40.
-                input[5] = 6229
+                input[6] = 6229
                 """
             }
         }
@@ -487,12 +520,22 @@ nextflow_workflow {
             }
             workflow {
                 """
+                // The sample's layout still arrives — prepare-reads writes one whatever the gate
+                // then does with the arm — so this is also what keeps a layout with no arm from
+                // starting a STAR task on its own.
+                def layout_json = new File("${outputDir}/SK609.none.barcodes.json")
+                layout_json.parentFile.mkdirs()
+                layout_json.withWriter('UTF-8') { writer ->
+                    writer << '{"chemistry": "carmack_custom_seq_1_0", "length": 38, "cell_barcode": {"start": 0, "length": 30}, "umi": {"start": 30, "length": 8}}'
+                }
+
                 input[0] = channel.empty()
-                input[1] = params.modules_testdata_base_path + 'genomics/homo_sapiens/genome/chr21/sequence/genome.fasta'
-                input[2] = params.modules_testdata_base_path + 'genomics/homo_sapiens/genome/chr21/sequence/chr21_gencode.gtf'
-                input[3] = null
-                input[4] = false
-                input[5] = 1000
+                input[1] = channel.of([ [ id:'SK609' ], file(layout_json.toString()) ])
+                input[2] = params.modules_testdata_base_path + 'genomics/homo_sapiens/genome/chr21/sequence/genome.fasta'
+                input[3] = params.modules_testdata_base_path + 'genomics/homo_sapiens/genome/chr21/sequence/chr21_gencode.gtf'
+                input[4] = null
+                input[5] = false
+                input[6] = 1000
                 """
             }
         }
@@ -521,11 +564,12 @@ nextflow_workflow {
             workflow {
                 """
                 input[0] = channel.empty()
-                input[1] = null
+                input[1] = channel.empty()
                 input[2] = null
                 input[3] = null
-                input[4] = false
-                input[5] = 1000
+                input[4] = null
+                input[5] = false
+                input[6] = 1000
                 """
             }
         }
@@ -536,6 +580,92 @@ nextflow_workflow {
                 // scRNA arm must not be stopped by the absence of one, or the gate would turn a
                 // dropped arm back into a failed run by another route.
                 { assert workflow.success },
+                { assert workflow.trace.tasks().findAll { task -> task.name.contains('STAR_') }.isEmpty() },
+            )
+        }
+    }
+
+    test("an arm whose sample has no layout") {
+
+        tag "scrna_arm_no_layout"
+
+        when {
+            params {
+                outdir = "$outputDir"
+            }
+            workflow {
+                """
+                input[0] = channel.of([
+                    [ id:'SK609.none', sample:'SK609', arm:'scrna', tgidx:'NONE', single_end:false ],
+                    file("${baseDir}/tests/data/SK609_L5_R1.fastq.gz", checkIfExists: true),
+                    file("${baseDir}/tests/data/SK609_L5_R2.fastq.gz", checkIfExists: true),
+                    file("${baseDir}/tests/data/SK609_L5_R2.fastq.gz", checkIfExists: true),
+                ])
+                input[1] = channel.empty()
+                input[2] = null
+                input[3] = null
+                // Any existing directory stands in for the index: the arm is stopped before STAR is
+                // reached, and naming a real one would cost the test a genome build.
+                input[4] = "${baseDir}/tests/data"
+                input[5] = true
+                input[6] = 1000
+                """
+            }
+        }
+
+        then {
+            assertAll(
+                // Unlike a dropped arm, an arm with no layout is a failure: STARsolo would otherwise
+                // read the barcode record on its own defaults and count every read against a
+                // truncated cell barcode while the run exited 0.
+                { assert workflow.failed },
+                // Read off both streams: Nextflow 26.04 prints an `error()` raised in an operator to
+                // stdout, and the 26.09 edge releases print it to stderr.
+                { assert (workflow.stdout + workflow.stderr).join('\n').contains("Arm 'SK609.none': prepare-reads wrote no barcode layout for sample 'SK609'") },
+                { assert workflow.trace.tasks().findAll { task -> task.name.contains('STAR_') }.isEmpty() },
+            )
+        }
+    }
+
+    test("a layout STARsolo's CB_UMI_Simple cannot express") {
+
+        tag "scrna_arm_bad_layout"
+
+        when {
+            params {
+                outdir = "$outputDir"
+            }
+            workflow {
+                """
+                // A record whose UMI starts 8 bases past the end of the cell barcode. STAR has no
+                // way to skip those bases, so it would read 8 bases of spacer as the UMI's first
+                // half and deduplicate molecules that were never distinguishable.
+                def layout_json = new File("${outputDir}/SK609.none.barcodes.json")
+                layout_json.parentFile.mkdirs()
+                layout_json.withWriter('UTF-8') { writer ->
+                    writer << '{"chemistry": "spaced", "length": 46, "cell_barcode": {"start": 0, "length": 30}, "umi": {"start": 38, "length": 8}}'
+                }
+
+                input[0] = channel.of([
+                    [ id:'SK609.none', sample:'SK609', arm:'scrna', tgidx:'NONE', single_end:false ],
+                    file("${baseDir}/tests/data/SK609_L5_R1.fastq.gz", checkIfExists: true),
+                    file("${baseDir}/tests/data/SK609_L5_R2.fastq.gz", checkIfExists: true),
+                    file("${baseDir}/tests/data/SK609_L5_R2.fastq.gz", checkIfExists: true),
+                ])
+                input[1] = channel.of([ [ id:'SK609' ], file(layout_json.toString()) ])
+                input[2] = null
+                input[3] = null
+                input[4] = "${baseDir}/tests/data"
+                input[5] = true
+                input[6] = 1000
+                """
+            }
+        }
+
+        then {
+            assertAll(
+                { assert workflow.failed },
+                { assert (workflow.stdout + workflow.stderr).join('\n').contains("STARsolo's CB_UMI_Simple can read only a cell barcode at offset 0") },
                 { assert workflow.trace.tasks().findAll { task -> task.name.contains('STAR_') }.isEmpty() },
             )
         }

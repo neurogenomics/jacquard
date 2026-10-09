@@ -34,6 +34,7 @@ pipeline_info/
 - `carmack/assigntargets/<sample>/`: `*.r1_tgidx.fastq.gz` and `*.tgidx_stats.txt`.
 - `carmack/preparereads/<sample>/`
   - `scrna/*.none.{r1,r2,barcodes}.fastq.gz`: the scRNA arm's cDNA pair plus the synthesized corrected-barcode-and-UMI read.
+  - `scrna/*.none.barcodes.json`: the layout of that barcode read — the record's length, and the 0-based offset and length of the cell barcode, the UMI and each chunk they are built from. STARsolo is configured from this file, so the pipeline writes no chemistry's geometry down itself.
   - `sctip/*.<tgidx>.r{1,2}.fastq.gz`: one read pair per target index.
   - `*.detected_targets.txt`, `*.prepare_stats.txt`, and one `*_mqc.json` per MultiQC payload.
 
@@ -81,6 +82,8 @@ The cDNA pair is trimmed first, paired-end and trim-only: `--disable_quality_fil
 Trimming drops whole pairs from the cDNA reads, and STARsolo pairs its three input files positionally, record for record — so the read ids that survived are replayed onto carmack's synthesized barcode read before STAR sees it. Without that step every read after the first dropped one would be counted against the wrong cell, and the run would still succeed. The trimmed FASTQs and the resynced barcode read are intermediates and are not published.
 
 STARsolo maps the cDNA as a pair — the insert carmack cut out of R1, and R2 — with the barcode read supplied separately, so each fragment is still counted once under its one barcode. Mapping R1 alone would discard the longer mate: on a 6.46M-pair arm against GRCh38, counted unstranded, it lowered uniquely mapped reads from 60.1% to 46.3% and median UMI per cell from 258 to 206.
+
+Where the cell barcode and the UMI sit inside that barcode read is taken from `carmack/preparereads/<sample>/scrna/<sample>.none.barcodes.json`, published beside the read itself, and turned into STARsolo's `--soloCBstart`, `--soloCBlen`, `--soloUMIstart`, `--soloUMIlen` and `--soloBarcodeReadLength`. A chemistry whose barcode or UMI is a different length therefore needs no pipeline change. A layout that is not a cell barcode followed immediately by a UMI, filling the record, stops the run: STARsolo's `CB_UMI_Simple` cannot express it.
 
 The library is forward-stranded: the cDNA R1 is the sense read, on its gene's own strand in 77.8–94.7% of reads across the carmack libraries measured. STARsolo therefore runs with `--soloStrand Forward`, taking a pair's strand from R1, and a read antisense to a gene is not counted toward it.
 
