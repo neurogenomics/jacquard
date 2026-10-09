@@ -47,6 +47,15 @@ output:
           type: file
           description: scRNA arm barcode reads
           pattern: "scrna/*.none.barcodes.fastq.gz"
+  scrna_layout:
+    - - meta:
+          type: map
+          description: |
+            Groovy Map containing sample information, e.g. `[ id:'sample1' ]`
+      - "scrna/*.none.barcodes.json":
+          type: file
+          description: Layout of the barcode read, as 0-based offsets and lengths of the cell barcode, the UMI and each chunk they are built from
+          pattern: "scrna/*.none.barcodes.json"
   sctip:
     - - meta:
           type: map

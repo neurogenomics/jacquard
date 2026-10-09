@@ -90,6 +90,7 @@ workflow CARMACK_READPREP {
 
     emit:
     scrna         = CARMACK_PREPAREREADS.out.scrna   // channel: [ val(meta), path(r1), path(r2), path(barcodes) ]
+    scrna_layout  = CARMACK_PREPAREREADS.out.scrna_layout // channel: [ val(meta), path(barcodes.json) ]
     sctip         = CARMACK_PREPAREREADS.out.sctip   // channel: [ val(meta), [ path(fastq) ] ] — empty unless the chemistry whitelists target indices
     stats         = CARMACK_PREPAREREADS.out.stats   // channel: [ val(meta), path(prepare_stats.txt) ]
     stats_json    = ch_stats_json                    // channel: [ val(meta), path(prepare_target_distribution_mqc.json) ]

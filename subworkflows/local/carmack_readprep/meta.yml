@@ -27,6 +27,12 @@ output:
       description: |
         scRNA arm reads, for R1 carrying no real target index.
         Structure: [ val(meta), path(r1), path(r2), path(barcodes) ]
+  - scrna_layout:
+      type: file
+      description: |
+        Layout of the barcode read beside it, as 0-based offsets and lengths of the cell barcode
+        and the UMI.
+        Structure: [ val(meta), path(barcodes.json) ]
   - sctip:
       type: file
       description: |

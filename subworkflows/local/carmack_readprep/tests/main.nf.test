@@ -78,6 +78,16 @@ nextflow_workflow {
                 .findAll { it.endsWith('_mqc.json') }
                 .sort()
 
+            // The layout of the barcode read, and the first record that read actually carries: the
+            // scRNA arm hands STARsolo the one as a description of the other.
+            def layout = new groovy.json.JsonSlurper().parseText(path(workflow.out.scrna_layout[0][1]).text)
+            def first_barcode = new java.util.zip.GZIPInputStream(
+                new File(workflow.out.scrna[0][3]).newInputStream()
+            ).withReader('UTF-8') { reader ->
+                reader.readLine()
+                reader.readLine()
+            }
+
             assertAll(
                 { assert workflow.success },
                 // carmack writes every read it reads to exactly one arm, so the arms must account
@@ -107,6 +117,13 @@ nextflow_workflow {
                 ] },
                 { assert workflow.out.multiqc_files.collect { file(it).name }.contains('SK609_1_fastqc.zip') },
                 { assert workflow.out.scrna[0][2] ==~ /.*\/scrna\/SK609\.none\.r2\.fastq\.gz$/ },
+                // Keyed by the sample, not by an arm: the scRNA arm joins it on `meta.sample`.
+                { assert workflow.out.scrna_layout[0][0] == [ id:'SK609' ] },
+                { assert workflow.out.scrna_layout[0][1] ==~ /.*\/scrna\/SK609\.none\.barcodes\.json$/ },
+                { assert layout.length == layout.cell_barcode.length + layout.umi.length },
+                { assert layout.cell_barcode.start == 0 && layout.umi.start == layout.cell_barcode.length },
+                // The file describes the read it was written beside, which is the whole of its use.
+                { assert first_barcode != null && first_barcode.length() == layout.length },
                 { assert workflow.out.sctip[0][1].collect { file(it).name } == [ 'SK609.TATAGCCT.r1.fastq.gz', 'SK609.TATAGCCT.r2.fastq.gz' ] },
                 { assert snapshot(stats, workflow.out.targets).match() }
             )
