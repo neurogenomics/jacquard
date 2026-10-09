@@ -138,10 +138,10 @@
             "properties": {
                 "solo_features": {
                     "type": "string",
-                    "default": "GeneFull",
+                    "default": "GeneFull GeneFull_ExonOverIntron",
                     "pattern": "^(GeneFull_ExonOverIntron|GeneFull_Ex50pAS|GeneFull|Gene|SJ|Velocyto)( (GeneFull_ExonOverIntron|GeneFull_Ex50pAS|GeneFull|Gene|SJ|Velocyto))*$",
                     "description": "Genomic features STARsolo counts UMIs against, space-separated.",
-                    "help_text": "One or more of `Gene`, `GeneFull`, `GeneFull_ExonOverIntron`, `GeneFull_Ex50pAS`, `SJ` and `Velocyto`, separated by spaces — STARsolo writes one count matrix per feature and `--soloFeatures` takes a list, so this does too. `GeneFull` counts reads overlapping a gene's introns as well as its exons. This is Tn5-derived multiome material, where intronic reads are a large fraction of real signal, so exon-only `Gene` counting discards most of it. `Gene` is always produced in addition to whatever is asked for here, because the report and the per-arm run summary are read off it.",
+                    "help_text": "One or more of `Gene`, `GeneFull`, `GeneFull_ExonOverIntron`, `GeneFull_Ex50pAS`, `SJ` and `Velocyto`, separated by spaces — STARsolo writes one count matrix per feature and `--soloFeatures` takes a list, so this does too. This is Tn5-derived multiome material, where intronic reads are a large fraction of real signal, so exon-only `Gene` counting discards most of it. Plain `GeneFull` assigns a read to every gene body it overlaps with no priority for exons, so an exonic read of a gene nested inside another same-strand gene's body becomes `MultiFeature` and is discarded: on 2M-read subsamples of S1_SK600, HBG1/HBG2/IFITM1 carried 652/647/474 UMIs under `Gene`, 17/23/0 under `GeneFull` and 648/434/474 under `GeneFull_ExonOverIntron`, whose total UMI count stayed within 1–2% of `GeneFull`'s (369,606 against 364,532). `GeneFull_ExonOverIntron` is the recommended pre-mRNA matrix; `GeneFull` is counted beside it for comparability. `Gene` is always produced in addition to whatever is asked for here, because the report and the per-arm run summary are read off it.",
                     "fa_icon": "fas fa-layer-group"
                 },
                 "solo_multimappers": {

@@ -118,6 +118,17 @@ nextflow_workflow {
             // `GeneFull` counts the intronic reads and calls cells.
             def cell_barcodes = path("${solo_out}/GeneFull/raw/barcodes.tsv.gz").linesGzip
 
+            // What a default run is counting: `Gene` plus the two features --solo_features asks for,
+            // each with its raw matrix.
+            def expected_tree = [ 'Gene', 'GeneFull', 'GeneFull_ExonOverIntron' ].collectMany { feature ->
+                [
+                    "${feature}/Summary.csv",
+                    "${feature}/raw/barcodes.tsv.gz",
+                    "${feature}/raw/features.tsv.gz",
+                    "${feature}/raw/matrix.mtx.gz",
+                ]
+            }*.toString()
+
             // Every barcode STARsolo called, read back out of the file it was handed as the barcode
             // read. Length alone cannot show which file that was — the 65 base cDNA read would give
             // strings of the same length too — so each called barcode is matched to the leading
@@ -194,18 +205,10 @@ nextflow_workflow {
                 { assert barcode_ids.size() == workflow.out.gate[0][1] },
 
                 // The acceptance criterion itself: a Solo.out tree with a cell-by-gene matrix in it.
-                // Both feature trees are named: `GeneFull` is what --solo_features asks for and
-                // `Gene` is what the module's non-optional summary output needs to exist.
-                { assert solo_tree.containsAll([
-                    'Gene/Summary.csv',
-                    'Gene/raw/barcodes.tsv.gz',
-                    'Gene/raw/features.tsv.gz',
-                    'Gene/raw/matrix.mtx.gz',
-                    'GeneFull/Summary.csv',
-                    'GeneFull/raw/barcodes.tsv.gz',
-                    'GeneFull/raw/features.tsv.gz',
-                    'GeneFull/raw/matrix.mtx.gz',
-                ]) },
+                // All three feature trees are named: `GeneFull` and `GeneFull_ExonOverIntron` are
+                // what --solo_features asks for and `Gene` is what the module's non-optional summary
+                // output needs to exist.
+                { assert solo_tree.containsAll(expected_tree) },
                 // The cell barcodes STARsolo actually read back, measured rather than assumed: they
                 // are as long as the layout declares, and STAR's own 10x default of 16 would
                 // silently produce a whole matrix keyed on truncated barcodes. Emptiness is checked
@@ -218,9 +221,10 @@ nextflow_workflow {
                 { assert file(workflow.out.summary[0][1]).readLines().contains("Number of Reads,${workflow.out.gate[0][1]}".toString()) },
 
                 // The library is forward-stranded, and the setting is spelled out rather than left to
-                // STAR's default. The other two are the defaults of the --solo_multimappers and
-                // --solo_bam parameters: unique reads only, and no BAM.
+                // STAR's default. The rest are the defaults of --solo_features (with `Gene`
+                // prepended), --solo_multimappers and --solo_bam.
                 { assert star_command.contains('--soloStrand Forward') },
+                { assert star_command.contains('--soloFeatures Gene GeneFull GeneFull_ExonOverIntron') },
                 { assert star_command.contains('--soloMultiMappers Unique') },
                 { assert star_command.contains('--outSAMtype None') },
                 // The barcode read is a file of its own rather than a stretch of a cDNA mate, and no

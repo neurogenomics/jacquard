@@ -71,7 +71,7 @@ The same table appears in the MultiQC report as the "Arm gate" section.
 - `fastp/<sample>.none/`: the fastp JSON, HTML and log for the arm.
 - `fastqc/prepared/<sample>.none/`: FastQC on the trimmed cDNA pair STARsolo aligns.
 - `star/<sample>.none/`
-  - `<sample>.none.Solo.out/`: the count matrices, one directory per feature — `Gene`, plus whatever `--solo_features` asked for.
+  - `<sample>.none.Solo.out/<feature>/`: one directory per counted feature — `Gene`, `GeneFull` and `GeneFull_ExonOverIntron` by default, plus whatever else `--solo_features` asks for.
   - `<sample>.none.Log.final.out` and the other STAR logs.
   - `<sample>.none.Aligned.sortedByCoord.out.bam` and its `.bai`, only with `--solo_bam`: the alignments, coordinate-sorted, with every record tagged `CR`/`UR` (cell barcode and UMI as read), `CB`/`UB` (corrected) and `GX`/`GN` (the gene it was counted against). STAR writes `CB:Z:-` and `UB:Z:-` on a record it did not assign to a barcode (about 10% of records on a whole-genome arm), so filter those out before demultiplexing or velocity.
 
@@ -86,6 +86,8 @@ STARsolo maps the cDNA as a pair — the insert carmack cut out of R1, and R2 �
 Where the cell barcode and the UMI sit inside that barcode read is taken from `carmack/preparereads/<sample>/scrna/<sample>.none.barcodes.json`, published beside the read itself, and turned into STARsolo's `--soloCBstart`, `--soloCBlen`, `--soloUMIstart`, `--soloUMIlen` and `--soloBarcodeReadLength`. A chemistry whose barcode or UMI is a different length therefore needs no pipeline change. A layout that is not a cell barcode followed immediately by a UMI, filling the record, stops the run: STARsolo's `CB_UMI_Simple` cannot express it.
 
 The library is forward-stranded: the cDNA R1 is the sense read, on its gene's own strand in 77.8–94.7% of reads across the carmack libraries measured. STARsolo therefore runs with `--soloStrand Forward`, taking a pair's strand from R1, and a read antisense to a gene is not counted toward it.
+
+Among the features, `GeneFull_ExonOverIntron` is the pre-mRNA matrix to count on. Plain `GeneFull` gives a gene's exons no priority over the body of a gene they sit inside, so an exonic read of a nested same-strand gene is `MultiFeature` and is discarded: on 2M-read subsamples of S1_SK600, HBG1/HBG2/IFITM1 carried 652/647/474 UMIs under `Gene`, 17/23/0 under `GeneFull` and 648/434/474 under `GeneFull_ExonOverIntron`, whose total UMIs stayed within 1–2% of `GeneFull`'s (369,606 against 364,532). `GeneFull` is counted beside it for comparability, and `Gene` because the per-arm run summary is read off it.
 
 By default no alignment file is written, since the matrices are the product and STARsolo runs with `--outSAMtype None`. `--solo_bam` switches on a coordinate-sorted BAM for the tools that need one. The STAR index is an intermediate and is not published.
 
