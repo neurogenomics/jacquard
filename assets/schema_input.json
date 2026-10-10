@@ -9,23 +9,23 @@
         "properties": {
             "sample": {
                 "type": "string",
-                "pattern": "^\\S+$",
-                "errorMessage": "Sample name must be provided and cannot contain spaces",
+                "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]*(?![\\s\\S])",
+                "errorMessage": "Sample name must start with a letter or digit and contain only letters, digits, dots, underscores or hyphens",
                 "meta": ["id"]
             },
             "fastq_1": {
                 "type": "string",
                 "format": "file-path",
                 "exists": true,
-                "pattern": "^([\\S\\s]*\\/)?[^\\s\\/]+\\.f(ast)?q\\.gz$",
-                "errorMessage": "FastQ file for reads 1 must be provided, cannot contain spaces and must have extension '.fq.gz' or '.fastq.gz'"
+                "pattern": "^([\\S\\s]*\\/)?[A-Za-z0-9][A-Za-z0-9._-]*\\.f(ast)?q\\.gz(?![\\s\\S])",
+                "errorMessage": "FastQ file for reads 1 must have a basename starting with a letter or digit, containing only letters, digits, dots, underscores or hyphens, and ending in '.fq.gz' or '.fastq.gz'"
             },
             "fastq_2": {
                 "type": "string",
                 "format": "file-path",
                 "exists": true,
-                "pattern": "^([\\S\\s]*\\/)?[^\\s\\/]+\\.f(ast)?q\\.gz$",
-                "errorMessage": "FastQ file for reads 2 must be provided, cannot contain spaces and must have extension '.fq.gz' or '.fastq.gz'"
+                "pattern": "^([\\S\\s]*\\/)?[A-Za-z0-9][A-Za-z0-9._-]*\\.f(ast)?q\\.gz(?![\\s\\S])",
+                "errorMessage": "FastQ file for reads 2 must have a basename starting with a letter or digit, containing only letters, digits, dots, underscores or hyphens, and ending in '.fq.gz' or '.fastq.gz'"
             }
         },
         "required": ["sample", "fastq_1", "fastq_2"]

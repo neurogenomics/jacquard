@@ -6,6 +6,7 @@ PATH inside a bare python container, where `core` is not installed. It is loaded
 
 import gzip
 import importlib.util
+import io
 import re
 from pathlib import Path
 
@@ -100,3 +101,31 @@ def test_main_reports_the_unmatched_read_and_exits_non_zero(tmp_path, capsys):
 
     assert exit_code == 1
     assert READS[2] in capsys.readouterr().err
+
+
+@pytest.mark.parametrize(
+    ("record", "message"),
+    [
+        (b"r\nACGT\n+\nIIII\n", "does not start"),
+        (b"@r\nACGT\nNOT_PLUS\nIIII\n", "separator"),
+        (b"@r\nACGT\n+\nI\n", "different sequence and quality lengths"),
+        (b"@r\nACGT\n+\n", "truncated"),
+    ],
+)
+def test_malformed_fastq_is_rejected(record, message):
+    with pytest.raises(ValueError, match=message):
+        list(resync_barcodes.fastq_records(io.BytesIO(record)))
+
+
+def test_crlf_and_separator_comment_preserve_the_record():
+    record = b"@r/1 1:N:0:ACGT\r\nACGT\r\n+r/1\r\nIIII\r\n"
+    assert list(resync_barcodes.fastq_records(io.BytesIO(record))) == [(b"r", record)]
+
+
+def test_bad_barcode_quality_fails_before_star(tmp_path):
+    reads = write_fastq(tmp_path / "r1.fastq.gz", cdna_records([READS[0]]))
+    barcodes = tmp_path / "barcodes.fastq.gz"
+    with gzip.open(barcodes, "wb") as handle:
+        handle.write(f"@{READS[0]}\nACGT\n+\nI\n".encode())
+    with pytest.raises(ValueError, match="different sequence and quality lengths"):
+        resync_barcodes.resync(reads, barcodes, tmp_path / "out.fastq.gz")

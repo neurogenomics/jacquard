@@ -84,3 +84,26 @@ def test_main_reports_the_offending_read_and_exits_non_zero(tmp_path, capsys):
 
     assert exit_code == 1
     assert qname in capsys.readouterr().err
+
+
+@pytest.mark.parametrize(
+    ("qname", "message"),
+    [
+        (f"|CB={BARCODE}|UR={UMI}", "empty or whitespace"),
+        (f"{READ_ID}|CB={BARCODE}|CB=AAAA|UR={UMI}", "more than one CB="),
+        (f"{READ_ID}|CB={BARCODE}|UR={UMI}|UR=AAAA", "more than one UR="),
+        (f"{READ_ID}|CB={BARCODE}|UR={UMI}_ACGT", "non-DNA UR="),
+        (f"{READ_ID}|CB={BARCODE}|UR={UMI}|truncated", "unrecognised QNAME field"),
+    ],
+)
+def test_ambiguous_or_mutated_qname_is_rejected(qname, message):
+    with pytest.raises(ValueError, match=message):
+        tag_qname_to_bam.qname_tags(qname)
+
+
+def test_ambiguous_base_in_umi_is_preserved():
+    assert tag_qname_to_bam.qname_tags(f"{READ_ID}|CB={BARCODE}|UR=ACGTN")[1]["UB"] == "ACGTN"
+
+
+def test_lowercase_sequence_is_preserved():
+    assert tag_qname_to_bam.qname_tags(f"{READ_ID}|CB={BARCODE}|UR=acgtn")[1]["UB"] == "acgtn"

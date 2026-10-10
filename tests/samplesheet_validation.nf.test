@@ -4,6 +4,43 @@ nextflow_pipeline {
     script "../main.nf"
     tag "pipeline"
 
+    test("rejects a chemistry without downstream components before submitting any process") {
+
+        when {
+            params {
+                input = Fixtures.absolutise("$baseDir", "$outputDir")
+                outdir = "$outputDir"
+                chemistry = 'hydrop'
+            }
+        }
+
+        then {
+            assertAll(
+                { assert workflow.failed },
+                { assert workflow.trace.tasks().size() == 0 },
+                { assert (workflow.stdout + workflow.stderr).join("\n").contains("hydrop supports only --stop_after barcodes") }
+            )
+        }
+    }
+
+    test("rejects path syntax in a sample identifier before submitting any process") {
+
+        when {
+            params {
+                input = Fixtures.absolutise("$baseDir", "$outputDir", 'samplesheet_unsafe_sample.csv')
+                outdir = "$outputDir"
+            }
+        }
+
+        then {
+            assertAll(
+                { assert workflow.failed },
+                { assert workflow.trace.tasks().size() == 0 },
+                { assert (workflow.stdout + workflow.stderr).join("\n").contains("Sample name must start with a letter or digit") }
+            )
+        }
+    }
+
     test("rejects a row with an empty fastq_2 before submitting any process") {
 
         when {

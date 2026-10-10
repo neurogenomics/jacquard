@@ -25,6 +25,8 @@ def read_id(header: bytes) -> bytes:
 
     Trimming may rewrite either, so neither can be part of the identity two streams are paired on.
     """
+    if not header.startswith(b"@"):
+        raise ValueError(f"FASTQ header {header!r} does not start with '@'.")
     fields = header[1:].split()
     if not fields:
         raise ValueError(f"FASTQ header {header!r} names no read.")
@@ -38,6 +40,10 @@ def fastq_records(handle: BinaryIO) -> Iterator[tuple[bytes, bytes]]:
         lines = [header, handle.readline(), handle.readline(), handle.readline()]
         if not all(lines):
             raise ValueError(f"Record '{read_id(header).decode()}' is truncated: a FASTQ record is four lines.")
+        if not lines[2].startswith(b"+"):
+            raise ValueError(f"Record '{read_id(header).decode()}' has no '+' separator.")
+        if len(lines[1].rstrip(b"\r\n")) != len(lines[3].rstrip(b"\r\n")):
+            raise ValueError(f"Record '{read_id(header).decode()}' has different sequence and quality lengths.")
         yield read_id(header), b"".join(lines)
 
 
