@@ -1,6 +1,6 @@
 process CARMACK_EXTRACTBARCODES {
     tag "$meta.id"
-    label 'process_high'
+    label 'process_long'
 
     container 'ghcr.io/neurogenomics/carmack:sha-2a19d26'
 
