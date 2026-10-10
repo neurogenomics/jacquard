@@ -189,6 +189,12 @@ workflow PIPELINE_COMPLETION {
 //
 def validateInputParameters() {
     genomeExistsError()
+    // HyDrop's registered layout contains barcodes and spacers only. The subsequent stages need
+    // a UMI and the custom-seq insert/target geometry, so accepting the preset beyond extraction
+    // spends the full barcode-extraction job before failing in extract-umis.
+    if (params.chemistry == 'hydrop' && params.stop_after != 'barcodes') {
+        error("--chemistry hydrop supports only --stop_after barcodes: its registered layout has no UMI or target/insert components for the remaining stages.")
+    }
 }
 
 //

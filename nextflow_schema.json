@@ -69,7 +69,7 @@
                     "default": "carmack_custom_seq_1_0",
                     "enum": ["carmack_custom_seq_1_0", "carmack_custom_seq_1_0_primd", "hydrop"],
                     "description": "Name of the carmack chemistry describing the read structure of the library. The allowed list tracks the vendored carmack build.",
-                    "help_text": "The chemistry declares the barcode, UMI and target index layout of R1, and is required by every carmack read-preparation stage. The `enum` mirrors the chemistries registered in `external/carmack/carmack/chemistry/__init__.py` at the pinned submodule, so it has to be updated alongside a carmack bump that adds one.",
+                    "help_text": "The chemistry declares the barcode, UMI and target index layout of R1, and is required by every carmack read-preparation stage. The allowed list tracks the pinned carmack build. HyDrop supports only --stop_after barcodes because its registered layout has no UMI or target/insert components.",
                     "fa_icon": "fas fa-flask"
                 },
                 "carmack_fast": {
@@ -111,7 +111,7 @@
                 "skip_trimming": {
                     "type": "boolean",
                     "description": "Align and quantify the reads prepare-reads wrote, untrimmed.",
-                    "help_text": "Both arms are trimmed with fastp by default, against an adapter FASTA derived from the sequences the selected `--chemistry` declares. Set this to bypass fastp on both arms; every downstream step still runs, so the run produces the same outputs from untrimmed reads. Trimming can leave an arm below `--min_arm_reads`, in which case it is dropped and recorded as `FAIL_TRIM`; with this set no arm can be dropped after the gate.",
+                    "help_text": "Both arms are trimmed with fastp by default. The scTIP arm receives an adapter FASTA derived from the selected chemistry; the scRNA arm uses overlap trimming alone and resynchronises its separate barcode read afterwards. Set this to bypass fastp on both arms; every downstream step still runs, so the run produces the same outputs from untrimmed reads. Trimming can leave an arm below `--min_arm_reads`, in which case it is dropped and recorded as `FAIL_TRIM`; with this set no arm can be dropped after the gate.",
                     "fa_icon": "fas fa-forward"
                 }
             }

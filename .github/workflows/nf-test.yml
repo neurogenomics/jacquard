@@ -132,7 +132,7 @@ jobs:
         if: ${{ always() && steps.run_nf_test.outcome == 'failure' && matrix.NXF_VER == 'latest-everything' }}
         run: |
           mkdir -p pr-comment-fragment
-          echo "* ❌ \`${{ matrix.profile }}\` | \`${{ matrix.NXF_VER }}\` | Shard ${{ matrix.shard }}/${{ env.TOTAL_SHARDS }}" > pr-comment-fragment/fragment.md
+            echo "* ❌ \`${{ matrix.profile }}\` | \`${{ matrix.NXF_VER }}\` | Shard ${{ matrix.shard }}/${{ env.TOTAL_SHARDS }}" > pr-comment-fragment/fragment-${{ strategy.job-index }}.md
 
       - name: Upload PR comment fragment
         if: ${{ always() && steps.run_nf_test.outcome == 'failure' && matrix.NXF_VER == 'latest-everything' }}
@@ -167,7 +167,9 @@ jobs:
           } >> $GITHUB_STEP_SUMMARY
 
   confirm-pass:
-    needs: [nf-test]
+    # A shard-discovery failure skips nf-test. Include discovery itself so the final check
+    # observes that failure instead of succeeding after a matrix that never ran.
+    needs: [nf-test-changes, nf-test]
     if: always()
     runs-on: # use GitHub runners
       - "ubuntu-latest"

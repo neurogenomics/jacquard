@@ -24,11 +24,19 @@ QNAME_TAGS = {"CB": "CB", "UR": "UB"}
 def qname_tags(qname: str) -> tuple[str, dict[str, str]]:
     """Split a carmack QNAME into its bare read id and the BAM tags its fields carry."""
     read_id, *fields = qname.split("|")
+    if not read_id or any(character.isspace() for character in read_id):
+        raise ValueError(f"Read '{qname}' has an empty or whitespace-containing read id.")
     tags = {}
     for field in fields:
         key, separator, value = field.partition("=")
         if separator and key in QNAME_TAGS:
+            if QNAME_TAGS[key] in tags:
+                raise ValueError(f"Read '{qname}' carries more than one {key}= field in its QNAME.")
+            if set(value) - set("ACGTNacgtn"):
+                raise ValueError(f"Read '{qname}' carries a non-DNA {key}= field in its QNAME.")
             tags[QNAME_TAGS[key]] = value
+        else:
+            raise ValueError(f"Read '{qname}' carries an unrecognised QNAME field '{field}'.")
     missing = [key for key, tag in QNAME_TAGS.items() if not tags.get(tag)]
     if missing:
         raise ValueError(f"Read '{qname}' carries no {' or '.join(f'{key}=' for key in missing)} field in its QNAME.")
