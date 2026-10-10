@@ -23,11 +23,13 @@ CONTROL_REP2,AEG588A2_S2_L001_R1_001.fastq.gz,AEG588A2_S2_L001_R2_001.fastq.gz
 CONTROL_REP2,AEG588A2_S2_L002_R1_001.fastq.gz,AEG588A2_S2_L002_R2_001.fastq.gz
 ```
 
-| Column    | Description                                                                              |
-| --------- | ---------------------------------------------------------------------------------------- |
-| `sample`  | Sample name. Repeat it to list one sample's lanes. Cannot contain spaces.                |
-| `fastq_1` | Full path to the reads 1 FastQ. Must be gzipped, with extension `.fastq.gz` or `.fq.gz`. |
-| `fastq_2` | Full path to the reads 2 FastQ, with the same requirements.                              |
+| Column    | Description                                                                                                                             |
+| --------- | --------------------------------------------------------------------------------------------------------------------------------------- |
+| `sample`  | Sample name. Repeat it for lanes of one library. Start with a letter or digit; use only letters, digits, dots, underscores and hyphens. |
+| `fastq_1` | Full path to the reads 1 FastQ. Must be gzipped, with extension `.fastq.gz` or `.fq.gz`.                                                |
+| `fastq_2` | Full path to the reads 2 FastQ, with the same requirements.                                                                             |
+
+FASTQ basenames follow the same character rules as sample names, with the required `.fastq.gz` or `.fq.gz` extension. Directories may contain spaces. These names become staged filenames and command arguments; shell syntax and path separators are not valid sample identifiers.
 
 All three columns are **mandatory**. Single-end input is not supported: carmack reads the barcode, UMI and
 target index off R1 and carries the raw R2 through to `prepare-reads`, so a row with an empty `fastq_2` is
@@ -55,10 +57,10 @@ parameters specific to this pipeline are below.
 
 ### Read preparation
 
-| Parameter        | Default                  | Description                                                                                                                                                                                         |
-| ---------------- | ------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `--chemistry`    | `carmack_custom_seq_1_0` | carmack chemistry describing the barcode, UMI and target-index layout of R1. One of `carmack_custom_seq_1_0`, `carmack_custom_seq_1_0_primd`, `hydrop`; the list tracks the vendored carmack build. |
-| `--carmack_fast` | `false`                  | Pass `--fast` to `carmack extract-barcodes`, dropping its local-alignment fallback. Faster, at the cost of the barcodes only that stage recovers.                                                   |
+| Parameter        | Default                  | Description                                                                                                                                                                                                                                                                                           |
+| ---------------- | ------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `--chemistry`    | `carmack_custom_seq_1_0` | carmack chemistry describing the barcode, UMI and target-index layout of R1. One of `carmack_custom_seq_1_0`, `carmack_custom_seq_1_0_primd`, `hydrop`; `hydrop` supports barcode extraction only and requires `--stop_after barcodes`; its registered layout has no UMI or target/insert components. |
+| `--carmack_fast` | `false`                  | Pass `--fast` to `carmack extract-barcodes`, dropping its local-alignment fallback. Faster, at the cost of the barcodes only that stage recovers.                                                                                                                                                     |
 
 ### Arm gate
 
@@ -79,10 +81,11 @@ left as a sample quietly missing from the results.
 | ----------------- | ------- | ------------------------------------------------------------------------------------------------ |
 | `--skip_trimming` | `false` | Align and quantify the reads `prepare-reads` wrote, untrimmed. Every downstream step still runs. |
 
-Each arm that clears the gate is trimmed with fastp against an adapter FASTA built from the sequences
-the selected `--chemistry` declares, in both orientations — read-through reaches R2 as the reverse
-complement, and fastp does not reverse-complement a FASTA entry for you. No adapter sequence is ever
-configured; a chemistry declaring none falls back to fastp's read-pair overlap detection.
+Each scTIP arm that clears the gate is trimmed with fastp against an adapter FASTA built from the
+sequences the selected `--chemistry` declares, in both orientations. A chemistry declaring no known
+sequences falls back to overlap detection. The scRNA arm receives no adapter FASTA: it uses paired
+overlap analysis with quality filtering disabled and a one-base minimum length. Its separate barcode
+FASTQ is then resynchronised to the surviving cDNA pairs. See [output.md](output.md) for both contracts.
 
 Trimming can leave an arm below `--min_arm_reads`. Such an arm is dropped exactly as the gate drops
 one, and its row in `arm_gate.tsv` is **replaced** with a `FAIL_TRIM` verdict carrying the post-trim
@@ -143,10 +146,10 @@ runs. MultiQC assembles a report from whichever stages ran, so every stop point 
 The typical command for running the pipeline is as follows:
 
 ```bash
-nextflow run neurogenomics/jacquard --input ./samplesheet.csv --outdir ./results --fasta genome.fa --gtf genes.gtf -profile docker
+nextflow run neurogenomics/jacquard -r 0.1.0 --input ./samplesheet.csv --outdir ./results --fasta genome.fa --gtf genes.gtf -profile docker
 ```
 
-This will launch the pipeline with the `docker` configuration profile. See below for more information about profiles.
+This pins release `0.1.0` and launches the `docker` configuration profile. When using an unreleased change, pin its full commit SHA instead. Keep the resolved sample sheet, parameter file, reference checksums and container digests with the run; branch names and external institutional config URLs can change. See below for more information about profiles.
 
 Note that the pipeline will create the following files in your working directory:
 
@@ -215,7 +218,7 @@ Use this parameter to choose a configuration profile. Profiles can give configur
 Several generic profiles are bundled with the pipeline which instruct the pipeline to use software packaged using different methods (Docker, Singularity, Podman, Shifter, Charliecloud, Apptainer, Conda) - see below.
 
 > [!IMPORTANT]
-> We highly recommend the use of Docker or Singularity containers for full pipeline reproducibility, however when this is not possible, Conda is also supported.
+> Docker is the profile tested in CI. Singularity and Apptainer can pull the pinned carmack container but do not yet have a CI test leg. Conda and Mamba alone cannot run this pipeline: carmack-derived processes have no Conda package or environment directive.
 
 The pipeline also dynamically loads configurations from [https://github.com/nf-core/configs](https://github.com/nf-core/configs) when it runs, making multiple config profiles for various institutional clusters available at run time. For more information and to check if your system is supported, please see the [nf-core/configs documentation](https://github.com/nf-core/configs#documentation).
 
@@ -242,7 +245,7 @@ If `-profile` is not specified, the pipeline will run locally and expect all sof
 - `wave`
   - A generic configuration profile to enable [Wave](https://seqera.io/wave/) containers. Use together with one of the above (requires Nextflow `24.03.0-edge` or later).
 - `conda`
-  - A generic configuration profile to be used with [Conda](https://conda.io/docs/). Please only use Conda as a last resort i.e. when it's not possible to run the pipeline with Docker, Singularity, Podman, Shifter, Charliecloud, or Apptainer.
+  - Inherited template profile; unsupported for the complete pipeline because the carmack-derived processes require their container.
 
 ### `-resume`
 
