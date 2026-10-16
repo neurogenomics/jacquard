@@ -2,7 +2,7 @@ process CARMACK_PREPAREREADS {
     tag "$meta.id"
     label 'process_medium'
 
-    container 'ghcr.io/neurogenomics/carmack:sha-2a19d26'
+    container 'ghcr.io/neurogenomics/carmack:sha-9a8e5c4'
 
     input:
     tuple val(meta), path(r1_tgidx), path(r2)
@@ -10,6 +10,7 @@ process CARMACK_PREPAREREADS {
 
     output:
     tuple val(meta), path("scrna/*.none.r1.fastq.gz"), path("scrna/*.none.r2.fastq.gz"), path("scrna/*.none.barcodes.fastq.gz"), emit: scrna
+    tuple val(meta), path("scrna/*.none.barcodes.json"), emit: scrna_layout
     tuple val(meta), path("sctip/*.fastq.gz")          , emit: sctip, optional: true
     tuple val(meta), path("*.prepare_stats.txt")       , emit: stats
     tuple val(meta), path("*.detected_targets.txt")    , emit: targets
@@ -37,7 +38,9 @@ process CARMACK_PREPAREREADS {
         $args
 
     shopt -s nullglob
-    mv "out/${prefix}.none.r1.fastq.gz" "out/${prefix}.none.r2.fastq.gz" "out/${prefix}.none.barcodes.fastq.gz" scrna/
+    # The layout sidecar travels with the barcode read it describes: it names the offsets of the
+    # cell barcode and the UMI inside that record, which is what the aligner has to be told.
+    mv "out/${prefix}.none.r1.fastq.gz" "out/${prefix}.none.r2.fastq.gz" "out/${prefix}.none.barcodes.fastq.gz" "out/${prefix}.none.barcodes.json" scrna/
     for arm_fastq in out/*.fastq.gz; do
         mv "\$arm_fastq" sctip/
     done

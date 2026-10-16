@@ -34,6 +34,7 @@ pipeline_info/
 - `carmack/assigntargets/<sample>/`: `*.r1_tgidx.fastq.gz` and `*.tgidx_stats.txt`.
 - `carmack/preparereads/<sample>/`
   - `scrna/*.none.{r1,r2,barcodes}.fastq.gz`: the scRNA arm's cDNA pair plus the synthesized corrected-barcode-and-UMI read.
+  - `scrna/*.none.barcodes.json`: the layout of that barcode read — the record's length, and the 0-based offset and length of the cell barcode, the UMI and each chunk they are built from. STARsolo is configured from this file, so the pipeline writes no chemistry's geometry down itself.
   - `sctip/*.<tgidx>.r{1,2}.fastq.gz`: one read pair per target index.
   - `*.detected_targets.txt`, `*.prepare_stats.txt`, and one `*_mqc.json` per MultiQC payload.
 
@@ -70,7 +71,9 @@ The same table appears in the MultiQC report as the "Arm gate" section.
 - `fastp/<sample>.none/`: the fastp JSON, HTML and log for the arm.
 - `fastqc/prepared/<sample>.none/`: FastQC on the trimmed cDNA pair STARsolo aligns.
 - `star/<sample>.none/`
-  - `<sample>.none.Solo.out/`: the count matrices, one directory per feature — `Gene`, plus whatever `--solo_features` asked for.
+  - `<sample>.none.Solo.out/<feature>/`: one directory per counted feature — `Gene`, `GeneFull` and `GeneFull_ExonOverIntron` by default, plus whatever else `--solo_features` asks for — each holding `Summary.csv`, `Features.stats`, `UMIperCellSorted.txt` and the matrices below.
+    - `raw/`: `barcodes.tsv.gz`, `features.tsv.gz` and one count matrix per `--solo_umi_dedup` type: by default `umiDedup-1MM_All.mtx.gz`, `umiDedup-Exact.mtx.gz` and `umiDedup-NoDedup.mtx.gz`. STARsolo writes a plain `matrix.mtx.gz` only when a single type is asked for, so with the default there is none. A `--solo_multimappers` mode other than `Unique` adds a `UniqueAndMult-<mode>_umiDedup-<type>.mtx.gz` for each type as well.
+    - `filtered/`: `barcodes.tsv.gz`, `features.tsv.gz` and a single matrix — the cells STAR's own filter called, counted with the **first** `--solo_umi_dedup` type alone, so `umiDedup-1MM_All.mtx.gz` by default.
   - `<sample>.none.Log.final.out` and the other STAR logs.
   - `<sample>.none.Aligned.sortedByCoord.out.bam` and its `.bai`, only with `--solo_bam`: the alignments, coordinate-sorted, with every record tagged `CR`/`UR` (cell barcode and UMI as read), `CB`/`UB` (corrected) and `GX`/`GN` (the gene it was counted against). STAR writes `CB:Z:-` and `UB:Z:-` on a record it did not assign to a barcode (about 10% of records on a whole-genome arm), so filter those out before demultiplexing or velocity.
 
@@ -82,7 +85,13 @@ Trimming drops whole pairs from the cDNA reads, and STARsolo pairs its three inp
 
 STARsolo maps the cDNA as a pair — the insert carmack cut out of R1, and R2 — with the barcode read supplied separately, so each fragment is still counted once under its one barcode. Mapping R1 alone would discard the longer mate: on a 6.46M-pair arm against GRCh38, counted unstranded, it lowered uniquely mapped reads from 60.1% to 46.3% and median UMI per cell from 258 to 206.
 
+Where the cell barcode and the UMI sit inside that barcode read is taken from `carmack/preparereads/<sample>/scrna/<sample>.none.barcodes.json`, published beside the read itself, and turned into STARsolo's `--soloCBstart`, `--soloCBlen`, `--soloUMIstart`, `--soloUMIlen` and `--soloBarcodeReadLength`. A chemistry whose barcode or UMI is a different length therefore needs no pipeline change. A layout that is not a cell barcode followed immediately by a UMI, filling the record, stops the run: STARsolo's `CB_UMI_Simple` cannot express it.
+
 The library is forward-stranded: the cDNA R1 is the sense read, on its gene's own strand in 77.8–94.7% of reads across the carmack libraries measured. STARsolo therefore runs with `--soloStrand Forward`, taking a pair's strand from R1, and a read antisense to a gene is not counted toward it.
+
+Which matrix to read follows the library. `umiDedup-1MM_All` is STAR's default and the one for split-pool libraries: it merges UMIs within one mismatch of each other, chain-wise, per cell and gene, and at a cell's per-gene depth that costs 1–7% of molecules at 100 per gene. The merging has no ceiling, though, and an 8 base UMI labels only 65,536 molecules — about 39,000 of them reachable once the UMI's G-depleted alphabet is accounted for — so a gene carrying thousands of molecules under one barcode saturates and then counts _downwards_: a simulated collapse peaks near 850 at 2,400 true molecules and falls to 265 at 12,800. In a single-barcode (pseudobulk) library every molecule of a gene shares one barcode, so this is reached routinely: MALAT1 on 2M reads of S1_SK600 gave 117 UMIs under `1MM_All` against 16,742 under `Exact`. Read `umiDedup-Exact` for such libraries, and `umiDedup-NoDedup` — read counts, not molecules — for a gene whose molecules exceed the UMI space at all, since it is the only one of the three that still rises with input there.
+
+Among the features, `GeneFull_ExonOverIntron` is the pre-mRNA matrix to count on. Plain `GeneFull` gives a gene's exons no priority over the body of a gene they sit inside, so an exonic read of a nested same-strand gene is `MultiFeature` and is discarded: on 2M-read subsamples of S1_SK600, HBG1/HBG2/IFITM1 carried 652/647/474 UMIs under `Gene`, 17/23/0 under `GeneFull` and 648/434/474 under `GeneFull_ExonOverIntron`, whose total UMIs stayed within 1–2% of `GeneFull`'s (369,606 against 364,532). `GeneFull` is counted beside it for comparability, and `Gene` because the per-arm run summary is read off it.
 
 By default no alignment file is written, since the matrices are the product and STARsolo runs with `--outSAMtype None`. `--solo_bam` switches on a coordinate-sorted BAM for the tools that need one. The STAR index is an intermediate and is not published.
 

@@ -62,12 +62,25 @@ nextflow_process {
                 .readLines()
                 .findAll { !it.startsWith('# Report generated at:') }
                 .join('\n')
+            // The layout of the barcode read, which is what the scRNA arm configures STARsolo from.
+            def layout = new groovy.json.JsonSlurper().parseText(path(process.out.scrna_layout[0][1]).text)
             assertAll(
                 { assert process.success },
                 { assert snapshot(stats, process.out.targets, process.out.multiqc, process.out.versions_carmack).match() },
                 { assert process.out.scrna[0][1] ==~ /.*\/scrna\/SK609\.none\.r1\.fastq\.gz$/ },
                 { assert process.out.scrna[0][2] ==~ /.*\/scrna\/SK609\.none\.r2\.fastq\.gz$/ },
                 { assert process.out.scrna[0][3] ==~ /.*\/scrna\/SK609\.none\.barcodes\.fastq\.gz$/ },
+                // Beside the read it describes, so the arm that takes the trio takes the layout too.
+                { assert process.out.scrna_layout[0][1] ==~ /.*\/scrna\/SK609\.none\.barcodes\.json$/ },
+                { assert layout.keySet().containsAll([ 'chemistry', 'length', 'cell_barcode', 'umi', 'components' ]) },
+                { assert layout.chemistry == 'carmack_custom_seq_1_0' },
+                // The record is the cell barcode and the UMI and nothing else, which is the one shape
+                // STARsolo's CB_UMI_Simple can read.
+                { assert layout.cell_barcode.start == 0 },
+                { assert layout.umi.start == layout.cell_barcode.length },
+                { assert layout.length == layout.cell_barcode.length + layout.umi.length },
+                // Every chunk the two are built from lies inside the record it is an offset into.
+                { assert layout.components.every { part -> part.start >= 0 && part.start + part.length <= layout.length } },
                 { assert process.out.sctip[0][1].collect { file(it).name } == [ 'SK609.TATAGCCT.r1.fastq.gz', 'SK609.TATAGCCT.r2.fastq.gz' ] }
             )
         }

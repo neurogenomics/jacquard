@@ -19,6 +19,54 @@ include { SAMTOOLS_INDEX as SAMTOOLS_INDEX_SOLO } from '../../../modules/nf-core
 
 /*
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    FUNCTIONS
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+*/
+
+//
+// Drop the barcode geometry again, leaving the arm's own meta.
+//
+// The geometry travels on the meta because that is where the STARsolo module reads it from, and it
+// is taken off every output so an arm is the same map wherever else it is joined or compared.
+//
+def armMeta(Map meta) {
+    meta.subMap(meta.keySet() - [ 'cb_start', 'cb_len', 'umi_start', 'umi_len', 'barcode_len' ])
+}
+
+//
+// Add STARsolo's barcode geometry to an arm's meta, from the layout prepare-reads wrote beside the
+// barcode read.
+//
+// The sidecar gives 0-based offsets into that record and STAR counts its positions from 1, so each
+// start is shifted by one here. Nothing about the chemistry is spelled out in this pipeline: a
+// chemistry whose barcode or UMI changes length changes this file, and the flags follow it.
+//
+def soloGeometry(Map meta, Path layout_json) {
+    def layout = new groovy.json.JsonSlurper().parseText(layout_json.text)
+    def barcode = layout.cell_barcode
+    def umi = layout.umi
+    // CB_UMI_Simple can only read a cell barcode and a UMI at fixed offsets, so a record holding
+    // anything else — a spacer between the two, or a chunk outside them — would be read as if the
+    // bases it holds were barcode or UMI, and every count would be keyed on the wrong cell.
+    if (barcode.start != 0 || umi.start != barcode.length || layout.length != barcode.length + umi.length) {
+        error(
+            "Arm '${meta.id}': ${layout_json.name} describes a ${layout.length} base barcode record " +
+            "carrying a ${barcode.length} base cell barcode at offset ${barcode.start} and a " +
+            "${umi.length} base UMI at offset ${umi.start}. STARsolo's CB_UMI_Simple can read only a " +
+            "cell barcode at offset 0 followed immediately by a UMI, together filling the record."
+        )
+    }
+    meta + [
+        cb_start   : barcode.start + 1,
+        cb_len     : barcode.length,
+        umi_start  : umi.start + 1,
+        umi_len    : umi.length,
+        barcode_len: layout.length,
+    ]
+}
+
+/*
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     RUN SUBWORKFLOW
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 */
@@ -27,6 +75,7 @@ workflow SCRNA_ARM {
 
     take:
     ch_arm        // channel: [ val(meta), path(r1), path(r2), path(barcodes) ]
+    ch_layout     // channel: [ val(meta), path(barcodes.json) ], keyed by sample rather than by arm
     fasta         //   value: genome FASTA, used to build an index when `star_index` is not given
     gtf           //   value: gene annotation GTF, used to build an index when `star_index` is not given
     star_index    //   value: prebuilt STAR index, or null to build one from `fasta` and `gtf`
@@ -125,6 +174,26 @@ workflow SCRNA_ARM {
     }
 
     //
+    // The layout is written once per sample and read by that sample's one scRNA arm, so the two are
+    // joined on the sample name. `remainder: true` keeps the two unmatched directions apart: a
+    // layout with no arm is the gate having dropped the arm, and is simply discarded, while an arm
+    // with no layout aborts — it is the one case where STARsolo would otherwise be left to read the
+    // record on its 10x defaults, 16 barcode bases and 10 UMI bases, and count every read against a
+    // truncated barcode while the run exited 0.
+    //
+    def ch_solo = ch_reads
+        .map { meta, r1, r2, barcodes -> [ meta.sample, [ meta, r1, r2, barcodes ] ] }
+        .join(ch_layout.map { meta, layout_json -> [ meta.id, layout_json ] }, failOnDuplicate: true, remainder: true)
+        .filter { _sample, arm, _layout_json -> arm != null }
+        .map { sample, arm, layout_json ->
+            def (meta, r1, r2, barcodes) = arm
+            if (!layout_json) {
+                error("Arm '${meta.id}': prepare-reads wrote no barcode layout for sample '${sample}', so STARsolo cannot be told where the cell barcode and the UMI sit.")
+            }
+            [ soloGeometry(meta, layout_json), 'CB_UMI_Simple', [ r1, r2, barcodes ] ]
+        }
+
+    //
     // STARsolo maps the cDNA as a pair: `r1`, the insert prepare-reads cut R1 down to, and `r2`,
     // the other end of the same fragment, followed by `barcodes`, the resynced corrected-barcode-
     // plus-UMI record. With `--soloBarcodeMate 0` STAR takes a separate barcode read as the last file
@@ -140,29 +209,34 @@ workflow SCRNA_ARM {
     // NO_FILE, which is what the absence of a whitelist is spelled as.
     //
     STAR_STARSOLO(
-        ch_reads.map { meta, r1, r2, barcodes -> [ meta, 'CB_UMI_Simple', [ r1, r2, barcodes ] ] },
+        ch_solo,
         file("${projectDir}/assets/NO_FILE"),
         ch_index,
     )
 
     // STARsolo writes a BAM only when --solo_bam asks for one, so on a default run this indexes
     // nothing and `bam` stays empty.
-    SAMTOOLS_INDEX_SOLO(STAR_STARSOLO.out.bam)
-    def ch_bam = STAR_STARSOLO.out.bam.join(SAMTOOLS_INDEX_SOLO.out.index, failOnDuplicate: true, failOnMismatch: true)
+    def ch_solo_bam = STAR_STARSOLO.out.bam.map { meta, bam -> [ armMeta(meta), bam ] }
+    SAMTOOLS_INDEX_SOLO(ch_solo_bam)
+    def ch_bam = ch_solo_bam.join(SAMTOOLS_INDEX_SOLO.out.index, failOnDuplicate: true, failOnMismatch: true)
+
+    def ch_counts = STAR_STARSOLO.out.counts.map { meta, solo_out -> [ armMeta(meta), solo_out ] }
+    def ch_summary = STAR_STARSOLO.out.summary.map { meta, summary -> [ armMeta(meta), summary ] }
+    def ch_log_final = STAR_STARSOLO.out.log_final.map { meta, log_file -> [ armMeta(meta), log_file ] }
 
     // fastp's JSON goes to MultiQC for every arm it trimmed, including one the gate then dropped:
     // the report is the only place the reason for the drop is legible.
     def ch_multiqc_files = channel.empty()
         .mix(ch_trim_json)
         .mix(FASTQC_PREPARED.out.zip)
-        .mix(STAR_STARSOLO.out.log_final)
+        .mix(ch_log_final)
         .map { _meta, files -> files }
         .flatten()
 
     emit:
-    counts        = STAR_STARSOLO.out.counts    // channel: [ val(meta), path(*.Solo.out) ]
-    summary       = STAR_STARSOLO.out.summary   // channel: [ val(meta), path(Gene/Summary.csv) ]
-    log_final     = STAR_STARSOLO.out.log_final // channel: [ val(meta), path(*Log.final.out) ]
+    counts        = ch_counts                   // channel: [ val(meta), path(*.Solo.out) ]
+    summary       = ch_summary                  // channel: [ val(meta), path(Gene/Summary.csv) ]
+    log_final     = ch_log_final                // channel: [ val(meta), path(*Log.final.out) ]
     bam           = ch_bam                      // channel: [ val(meta), path(*.bam), path(*.bai) ]
     reads         = ch_reads                    // channel: [ val(meta), path(r1), path(r2), path(barcodes) ]
     index         = ch_index                    // channel: [ val(meta), path(star) ]
